@@ -41,9 +41,9 @@ xenvusb.sys  = 1,,
 ;*****************************************
 
 [Manufacturer]
-%ManufacturerName%=Standard,NTx86
+%ManufacturerName%=Standard,NT$ARCH$
 
-[Standard.NTx86]
+[Standard.NT$ARCH$]
 %xenvusb.DeviceDesc%=xenvusb_Device,  XEN\VUSB
 %xenvusb.DeviceDesc%=xenvusb_Device,  XEN\VHID
 %xenvusb.HubDesc%=xenvusb_NullDevice,  XEN\ROOT_HUB
