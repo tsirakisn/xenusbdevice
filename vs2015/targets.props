@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+		<TargetVersion>Windows10</TargetVersion>
+		<UseDebugLibraries>true</UseDebugLibraries>
+		<PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+		<ConfigurationType>Driver</ConfigurationType>
+		<DriverType>KMDF</DriverType>
+		<DriverTargetPlatform>Desktop</DriverTargetPlatform>
+		<KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+		<KMDF_VERSION_MINOR>15</KMDF_VERSION_MINOR>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+		<TargetVersion>Windows10</TargetVersion>
+		<UseDebugLibraries>false</UseDebugLibraries>
+		<PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+		<ConfigurationType>Driver</ConfigurationType>
+		<DriverType>KMDF</DriverType>
+		<DriverTargetPlatform>Desktop</DriverTargetPlatform>
+		<ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
+		<KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+		<KMDF_VERSION_MINOR>15</KMDF_VERSION_MINOR>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+		<TargetVersion>Windows10</TargetVersion>
+		<UseDebugLibraries>true</UseDebugLibraries>
+		<PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+		<ConfigurationType>Driver</ConfigurationType>
+		<DriverType>KMDF</DriverType>
+		<DriverTargetPlatform>Desktop</DriverTargetPlatform>
+		<KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+		<KMDF_VERSION_MINOR>15</KMDF_VERSION_MINOR>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+		<TargetVersion>Windows10</TargetVersion>
+		<UseDebugLibraries>false</UseDebugLibraries>
+		<PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+		<ConfigurationType>Driver</ConfigurationType>
+		<DriverType>KMDF</DriverType>
+		<DriverTargetPlatform>Desktop</DriverTargetPlatform>
+		<ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
+		<KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+		<KMDF_VERSION_MINOR>15</KMDF_VERSION_MINOR>
+	</PropertyGroup>
+</Project>
