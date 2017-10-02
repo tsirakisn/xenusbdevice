@@ -418,7 +418,7 @@ if __name__ == '__main__':
 
     release = { 'vs2012':'Windows Vista',
                 'vs2013':'Windows 7',
-                'vs2015':'Windows 8' }
+                'vs2015':'Windows 10' }
 
     shutil.rmtree(driver, ignore_errors=True)
 
