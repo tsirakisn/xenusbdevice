@@ -1,21 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
+		<ProjectConfiguration Include="Windows 10 Debug|Win32">
+			<Configuration>Windows 10 Debug</Configuration>
+			<Platform>Win32</Platform>
+			<WindowsTargetPlatformVersion>10</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 10 Release|Win32">
+			<Configuration>Windows 10 Release</Configuration>
+			<Platform>Win32</Platform>
+			<WindowsTargetPlatformVersion>10</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 10 Debug|x64">
+			<Configuration>Windows 10 Debug</Configuration>
+			<Platform>x64</Platform>
+			<WindowsTargetPlatformVersion>10</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 10 Release|x64">
+			<Configuration>Windows 10 Release</Configuration>
+			<Platform>x64</Platform>
+			<WindowsTargetPlatformVersion>10</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 8 Debug|Win32">
+			<Configuration>Windows 8 Debug</Configuration>
+			<Platform>Win32</Platform>
+			<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 8 Release|Win32">
+			<Configuration>Windows 8 Release</Configuration>
+			<Platform>Win32</Platform>
+			<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 8 Debug|x64">
+			<Configuration>Windows 8 Debug</Configuration>
+			<Platform>x64</Platform>
+			<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Windows 8 Release|x64">
+			<Configuration>Windows 8 Release</Configuration>
+			<Platform>x64</Platform>
+			<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+		</ProjectConfiguration>
+	</ItemGroup>
 </Project>
