@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+	<MAJOR_VERSION Condition="'$(MAJOR_VERSION)' == ''">9</MAJOR_VERSION>
+	<MINOR_VERSION Condition="'$(MINOR_VERSION)' == ''">0</MINOR_VERSION>
+	<MICRO_VERSION Condition="'$(MICRO_VERSION)' == ''">0</MICRO_VERSION>
+	<BUILD_NUMBER Condition="'$(BUILD_NUMBER)' == ''">0</BUILD_NUMBER>
+  </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
 		<TargetVersion>Windows10</TargetVersion>
 		<UseDebugLibraries>true</UseDebugLibraries>
