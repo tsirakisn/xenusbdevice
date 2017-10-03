@@ -1,4 +1,4 @@
-#!python -u
+    #!python -u
 
 import os, sys
 import shutil
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     copy_file(working, 'public\\arch-x86', 'xen-x86_64.h')
 
     copy_file(working, 'public\\io', 'ring.h')
-    copy_file(working, 'public\\io', 'netif.h')
+    copy_file(working, 'public\\io', 'usbif.h')
     copy_file(working, 'public\\io', 'xenbus.h')
 
     put_branch(working)
