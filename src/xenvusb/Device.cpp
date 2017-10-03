@@ -1008,7 +1008,7 @@ FdoEvtDeviceDpcFunc(
             fdoContext->DpcOverLapCount = 0;
             moreWork = TRUE;
         }
-        if (moreWork & (passes >= KeQueryActiveProcessorCount(NULL)))
+        if (moreWork & (passes >= KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS)))
         {
             //
             // reschedule the dpc to prevent starvation.
