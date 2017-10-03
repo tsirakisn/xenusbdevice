@@ -24,6 +24,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#if 0
+
 #define __DRIVER_NAME "xenvusb"
 #include "Driver.h"
 #include "Device.h"
@@ -2873,3 +2876,5 @@ XenCheckOperationalState(
     };
     return Operational;
 }
+
+#endif // 0

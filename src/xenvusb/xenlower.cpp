@@ -24,6 +24,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#if 0
+
 #define INITGUID
 
 #include <ntddk.h>
@@ -803,3 +806,5 @@ XenLowerGetOnline(
 
     return (state == 1);
 }
+
+#endif // 0

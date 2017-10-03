@@ -59,7 +59,9 @@ static inline void __XenTrace(XEN_TRACE_LEVEL level, ULONG flags, PCSTR fmt, ...
     // --XT-- Restored information level tracking - keep an eye on it.
 
 	va_start(args, fmt);
+#if 0
 	___XenTrace(level, XENTARGET,  sizeof(XENTARGET)-1, fmt, args);
+#endif
 	va_end(args);
 }
 
