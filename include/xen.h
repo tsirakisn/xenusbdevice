@@ -39,7 +39,6 @@
 #include <xen-warnings.h>
 
 #include <public/io/ring.h>
-#include <public/io/netif.h>
 #include <public/io/xenbus.h>
 
 #endif  // _XEN_H
