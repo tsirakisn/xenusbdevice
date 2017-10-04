@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include <drv_build.h>
+#include "drv_build.h"
 
 #define VER_INTERNALNAME_STR        "xenvusb.sys"
 #define VER_INTERNAL_FILEDESCRIPTION_STR     "XenClient Virtual USB Driver"
@@ -29,4 +29,4 @@
 //
 // generic version information
 //
-#include <vciversion.h>
+#include "vciversion.h"
