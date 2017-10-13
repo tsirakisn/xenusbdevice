@@ -99,7 +99,7 @@ typedef uint32_t usbif_request_len_t;
 #define INDIRECT_GREF_PAGES 1023
 struct usbif_indirect_page {
     uint32_t          nr_segments; // valid data grefs in this page.
-    grant_ref_t       gref[INDIRECT_GREF_PAGES];  // the data grefs.
+    ULONG             gref[INDIRECT_GREF_PAGES];  // the data grefs.
 };
 typedef struct usbif_indirect_page usbif_indirect_page_t;
 //
@@ -131,7 +131,7 @@ struct usbif_request {
 #else
     uint16_t            pad;
 #endif
-    grant_ref_t         gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST];
+	ULONG               gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST];
     uint32_t            pad;
 };
 typedef struct usbif_request usbif_request_t;
@@ -156,7 +156,7 @@ struct usbifv2_request {
 #else
     uint16_t            pad;
 #endif
-    grant_ref_t         gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST_V2];
+	ULONG               gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST_V2];
 };
 typedef struct usbifv2_request usbifv2_request_t;
 

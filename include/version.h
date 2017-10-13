@@ -20,6 +20,6 @@
 #define MONTH			10
 #define MONTH_STR		"10"
 
-#define DAY			11
-#define DAY_STR			"11"
+#define DAY			12
+#define DAY_STR			"12"
 

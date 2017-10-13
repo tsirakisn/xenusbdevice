@@ -25,33 +25,26 @@
 // THE SOFTWARE.
 //
 
-#if 0
-
 #define __DRIVER_NAME "xenvusb"
 #include "Driver.h"
 #include "Device.h"
 #include "UsbConfig.h"
 
-#define VCI_BUILD
-
 #include <xen.h>
 #include <memory.h>
-#include <grant_table.h>
-#include <event_channel.h>
-#include <ring.h>
-#include <xenbus.h>
+#include <debug_interface.h>
+#include <gnttab_interface.h>
+#include <evtchn_interface.h>
+#include <range_set_interface.h>
+#include <store_interface.h>
+#include <suspend_interface.h>
+#include <unplug_interface.h>
 #include "usbxenif.h"
 #include "xenif.h"
 #include "UsbResponse.h"
 #include "UsbRequest.h"
 #include "xenlower.h"
 #pragma warning(disable : 4127) //conditional expression is constant
-
-// --XT-- XXX TODO the logging was just sort of bolted on to get things
-// working. It really needs to be integrated to deal with noisy logging
-// in a cleaner way (w/o introducing performance issues). The current
-// solution involves a fucntion call for every line of logging.
-XXX_TODO("--XT-- Better logging integration.");
 
 #define XEN_BUS L"Xen"
 #define RB_VERSION_REQUIRED "3"
@@ -87,6 +80,9 @@ struct XEN_BUS_PLATFORM_RESOURCE
     USHORT           Flags;
 };
 
+// XXX: FIXME
+#define XEN_LOWER_MAX_PATH 64
+
 //
 /// This keeps the interface to Xenbus private to this module.
 /// Theoretically it could be a separate static or dynamic library component.
@@ -94,8 +90,15 @@ struct XEN_BUS_PLATFORM_RESOURCE
 //
 struct XEN_INTERFACE
 {
-    PUSB_FDO_CONTEXT          FdoContext;
-    PXEN_LOWER                XenLower; // --XT-- the Xen lower context association
+    PUSB_FDO_CONTEXT            FdoContext;
+	XENBUS_DEBUG_INTERFACE      DebugInterface;
+	XENBUS_SUSPEND_INTERFACE    SuspendInterface;
+	XENBUS_EVTCHN_INTERFACE     EvtchnInterface;
+	XENBUS_STORE_INTERFACE      StoreInterface;
+	XENBUS_RANGE_SET_INTERFACE  RangeSetInterface;
+	XENBUS_CACHE_INTERFACE      CacheInterface;
+	XENBUS_GNTTAB_INTERFACE     GnttabInterface;
+	XENBUS_UNPLUG_INTERFACE     UnplugInterface;
 
     //
     // Xenstore paths
@@ -106,8 +109,6 @@ struct XEN_INTERFACE
     //
     // Xen ringbuffer and grant ref interface.
     //
-    BOOLEAN                   NxPrepBoot;  // --XT-- always false for XT
-    ULONG                     XenifVersion; //!< had better be 3
     ULONG                     DeviceGoneRequestCount;
 
     usbif_sring *             Sring; //!< shared ring
@@ -128,6 +129,99 @@ struct XEN_INTERFACE
     BOOLEAN                   IndirectGrefSupport; //!< has to be true!
 };
 
+PXEN_INTERFACE
+AllocateXenInterface(
+	PUSB_FDO_CONTEXT fdoContext)
+{
+	NTSTATUS status;
+	PXEN_INTERFACE xen = (PXEN_INTERFACE)
+		ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_INTERFACE), XVU9);
+
+	if (!xen)
+	{
+		TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to allocate xeninterface\n");
+		return NULL;
+	}
+
+	RtlZeroMemory(xen, sizeof(XEN_INTERFACE));
+	xen->FdoContext = fdoContext;
+
+    status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
+        &GUID_XENBUS_DEBUG_INTERFACE,
+        (PINTERFACE)&xen->DebugInterface,
+        sizeof(xen->DebugInterface),
+        XENBUS_DEBUG_INTERFACE_VERSION_MAX,
+        NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus debug interface: %x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully queried xenbus debug interface\n");
+
+	status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
+		&GUID_XENBUS_EVTCHN_INTERFACE,
+		(PINTERFACE)&xen->EvtchnInterface,
+		sizeof(xen->EvtchnInterface),
+		XENBUS_EVTCHN_INTERFACE_VERSION_MAX,
+		NULL);
+
+	if (!NT_SUCCESS(status))
+	{
+		TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus evtchn interface: %x\n", status);
+        goto fail;
+	}
+
+	Trace("successfully queried xenbus evtchn interface\n");
+
+	status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
+		&GUID_XENBUS_GNTTAB_INTERFACE,
+		&xen->GnttabInterface.Interface,
+		sizeof(xen->GnttabInterface),
+		XENBUS_GNTTAB_INTERFACE_VERSION_MAX,
+		NULL);
+
+	if (!NT_SUCCESS(status))
+	{
+		TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus gnttab interface: %x\n", status);
+		ExFreePool(xen);
+		return NULL;
+	}
+
+	TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Successfully queried xenbus gnttab interface\n");
+
+    status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
+        &GUID_XENBUS_STORE_INTERFACE,
+        &xen->StoreInterface.Interface,
+        sizeof(xen->StoreInterface),
+        XENBUS_STORE_INTERFACE_VERSION_MAX,
+        NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus store interface: %x\n", status);
+        ExFreePool(xen);
+        return NULL;
+    }
+
+    TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Successfully queried xenbus store interface\n");
+done:	
+	return xen;
+
+fail:
+    if (xen)
+        ExFreePool(xen);
+    return NULL;
+}
+
+VOID
+DeallocateXenInterface(
+	IN PXEN_INTERFACE Xen)
+{
+	ExFreePool(Xen);
+}
 
 //
 // local declarations.
@@ -146,9 +240,9 @@ ConnectXenDevice(
 static BOOLEAN
 PutGrantOnFreelist(
     IN PXEN_INTERFACE Xen,
-    IN grant_ref_t grant);
+    IN ULONG       grant);
 
-static grant_ref_t
+static ULONG
 GetGrantFromFreelist(
     IN PXEN_INTERFACE Xen);
 
@@ -332,37 +426,6 @@ XenInterfaceCleanup(
         ExFreePool(Xen->ShadowFreeList);
         Xen->ShadowFreeList = NULL;
     }
-}
-
-PXEN_INTERFACE
-AllocateXenInterface(
-    PUSB_FDO_CONTEXT fdoContext)
-{
-    PXEN_INTERFACE xen = (PXEN_INTERFACE) 
-        ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_INTERFACE), XVU9);
-    if (xen)
-    {
-        RtlZeroMemory(xen, sizeof(XEN_INTERFACE));
-        xen->FdoContext = fdoContext;
-
-        xen->XenLower = XenLowerAlloc();
-        if (!xen->XenLower)
-        {
-            ExFreePool(xen);
-            return NULL;
-        }
-    }
-    return xen;
-}
-
-VOID
-DeallocateXenInterface(
-    IN PXEN_INTERFACE Xen)
-{
-    XenLowerFree(Xen->XenLower);
-    // XXX TODO do we want to clean all this up on shutdown?
-    XenInterfaceCleanup(Xen);
-    ExFreePool(Xen);
 }
 
 NTSTATUS
@@ -583,11 +646,6 @@ XenDeviceConnectBackend(
         __FUNCTION__ ": Xen backend connected!\n");
 
     return STATUS_SUCCESS;
-}
-
-VOID
-XenDeviceResumeConnectBackend(PXEN_LOWER, VOID*)
-{
 }
 
 VOID
@@ -836,7 +894,7 @@ GetShadowFromFreeList(
     return &Xen->Shadows[Xen->ShadowFreeList[Xen->ShadowFree]];
 }
 
-static grant_ref_t
+static ULONG
 GetGrantFromFreelist(
     IN PXEN_INTERFACE Xen)
 {
@@ -848,7 +906,7 @@ GetGrantFromFreelist(
 static BOOLEAN
 PutGrantOnFreelist(
     IN PXEN_INTERFACE Xen,
-    IN grant_ref_t grant)
+    IN ULONG       grant)
 {
     UNREFERENCED_PARAMETER(Xen);
 
@@ -892,7 +950,7 @@ AllocateGrefs(
         index++)
     {
         PFN_NUMBER pfn = pfnArray[index];
-        grant_ref_t gref = GetGrantFromFreelist(Xen);
+        ULONG gref = GetGrantFromFreelist(Xen);
         if (gref == INVALID_GRANT_REF)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
@@ -2876,5 +2934,3 @@ XenCheckOperationalState(
     };
     return Operational;
 }
-
-#endif // 0

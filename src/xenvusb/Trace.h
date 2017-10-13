@@ -19,6 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#include "dbg_print.h"
+
 #pragma once
 
 #include <stdarg.h>
@@ -41,32 +44,15 @@ typedef enum {
 	XenTraceLevelInternal   /* Reserved for internal use only */
 } XEN_TRACE_LEVEL;
 
-extern "C"
-{
-	void ___XenTrace(XEN_TRACE_LEVEL lvl,
-		__in_ecount(module_size) PCSTR module,
-		size_t module_size,
-		PCSTR fmt,
-		va_list args);
-}
-
-static inline void __XenTrace(XEN_TRACE_LEVEL level, ULONG flags, PCSTR fmt, ...) 
-{
-	va_list args;
-
-    UNREFERENCED_PARAMETER(flags);
-
-    // --XT-- Restored information level tracking - keep an eye on it.
-
-	va_start(args, fmt);
-#if 0
-	___XenTrace(level, XENTARGET,  sizeof(XENTARGET)-1, fmt, args);
-#endif
-	va_end(args);
-}
-
 #define TraceEvents(_lvl_, _flg_, format, ...) \
-	__XenTrace((XEN_TRACE_LEVEL)_lvl_, _flg_, format, __VA_ARGS__)
+	__Trace(__MODULE__ ":" __FUNCTION__, format, __VA_ARGS__)
+
+static void TraceGuid(const char *msg, const GUID *guid) {
+	Trace("%s: {%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}\n",
+		msg, guid->Data1, guid->Data2, guid->Data3,
+		guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+		guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
+}
 
 #define TRACE_DRIVER 0x01
 #define TRACE_DEVICE 0x02

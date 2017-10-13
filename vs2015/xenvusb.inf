@@ -21,8 +21,8 @@
 ;
 [Version]
 Signature="$Windows NT$"
-Class=USB
-ClassGuid={36FC9E60-C465-11CF-8056-444553540000}
+Class=System
+ClassGUID={4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider=%Vendor%
 CatalogFile=xenvusb.cat
 DriverVer=01/01/1900,0.0.0.0
@@ -40,7 +40,7 @@ xenvusb.sys=0,,
 xenvusb_coinst.dll=0,,
 
 [CoInst_CopyFiles]
-xenvusb_coinst_9_0_0_0.dll,xenvusb_coinst.dll
+xenvusb_coinst_9_0_0_1.dll,xenvusb_coinst.dll
 
 [Manufacturer]
 %Vendor%=Inst,NT$ARCH$
@@ -74,7 +74,7 @@ CopyFiles=CoInst_CopyFiles
 AddReg=CoInst_AddReg
 
 [CoInst_AddReg]
-HKR,,CoInstallers32,0x00010000,"xenvusb_coinst_9_0_0_0.dll,Entry"
+HKR,,CoInstallers32,0x00010000,"xenvusb_coinst_9_0_0_1.dll,Entry"
 
 [Strings]
 

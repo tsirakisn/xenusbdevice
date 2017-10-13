@@ -19,7 +19,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="xenvusb.inf">
+    <Inf Include="..\xenvusb.inf">
       <Filter>Driver Files</Filter>
     </Inf>
   </ItemGroup>
@@ -76,9 +76,6 @@
     <ClInclude Include="..\..\src\xenvusb\Driver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\Public.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\xenvusb\Queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -106,22 +103,13 @@
     <ClInclude Include="..\..\src\xenvusb\xenif.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\xenlower.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\xenvusb\xenusb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\build_ver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\cache_interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\debug_interface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\drv_build.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\evtchn_interface.h">
@@ -151,12 +139,6 @@
     <ClInclude Include="..\..\include\usbxenif.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\vciversion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\verrc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\xen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -170,6 +152,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\xen-warnings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\xenvusb\dbg_print.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\xenvusb\build_ver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\xenvusb\drv_build.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\xenvusb\vciversion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

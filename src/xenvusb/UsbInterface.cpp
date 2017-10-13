@@ -398,6 +398,8 @@ FdoQueryControllerType(
  * exactly that: one guid multiple versions of the interface structure. So our controller device
  * object has to preprocess the IRP_MN_QUERY_INTERFACE IRP in order to support the USBDI.
  *
+ * https://docs.microsoft.com/en-us/windows-hardware/drivers/wdf/preprocessing-and-postprocessing-irps
+ *
  * @param[in] Device. The handle to the WDFDEVICE object for the controller.
  * @param[in] Irp. The IRP_MN_QUERY_INTERFACE IRP.
  * 

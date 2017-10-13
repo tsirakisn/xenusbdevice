@@ -35,6 +35,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <FilesToPackage Include="$(TargetPath)" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\..\src\coinst\coinst.c" />
   </ItemGroup>
   <ItemGroup>
@@ -48,6 +51,7 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>xenvusb_coinst</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -107,27 +111,43 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>

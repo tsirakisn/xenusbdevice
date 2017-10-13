@@ -181,29 +181,3 @@ EvtDriverContextCleanup(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, __FUNCTION__": Driver unload\n");
 }
-
-/*
- * GetTheCurrentTime()
- *
- * Get the current time, in milliseconds (KeQuerySystemTime returns units of
- * 100ns each).
- */
-ULONG GetTheCurrentTime()
-{
-    LARGE_INTEGER Time;
-
-    KeQuerySystemTime(&Time);
-
-    return (ULONG)(Time.QuadPart / (10 * 1000));
-}
-
-//
-// How long has the system been up, in seconds.
-//
-LONGLONG Uptime()
-{
-    LARGE_INTEGER Ticks;
-    ULONG Increment = KeQueryTimeIncrement();
-    KeQueryTickCount(&Ticks);
-    return (Ticks.QuadPart * Increment)/10000000L;
-}

@@ -25,10 +25,10 @@
 // THE SOFTWARE.
 //
 
-#if 0
-
 #define INITGUID
 
+#include <xen.h>
+#include "Trace.h"
 #include <ntddk.h>
 #include <wdf.h>
 #pragma warning(push)
@@ -37,10 +37,6 @@
 #pragma warning(pop)
 #include <event_channel.h>
 #include <grant_table.h>
-#include <xenbus.h>
-extern "C" {
-#include <xsapi.h>
-}
 #include "xenlower.h"
 
 #pragma warning(disable : 4127 ) //conditional expression is constant
@@ -75,24 +71,6 @@ _XenLowerTraceGref(PCSTR Caller, grant_ref_t greft, GRANT_REF gref)
 #define XenLowerTraceGref(g1, g2) do {} while (FALSE)
 #endif
 
-// Memory Allocators (so we don't have to pull in scsiboot.h)
-extern "C" {
-/* Memory allocation functions */
-PVOID _XmAllocateMemory(size_t size, const char *caller);
-PVOID _XmAllocateZeroedMemory(size_t size, const char *caller);
-
-/* Allocate x bytes of non-paged pool.  Guaranteed to be page aligned
- if x >= PAGE_SIZE. */
-#define XmAllocateMemory(x) _XmAllocateMemory((x), __FUNCTION__)
-
-/* Like XmAllocateMemory(), but zero the memory on success. */
-#define XmAllocateZeroedMemory(x) _XmAllocateZeroedMemory((x), __FUNCTION__)
-
-/* XmFreeMemory(x) releases memory obtained via XmAllocateMemory or
- XmAllocatePhysMemory. */
-VOID XmFreeMemory(PVOID ptr);
-}
-
 struct XEN_LOWER
 {
     PVOID XenUpper;
@@ -122,7 +100,7 @@ XenLowerReadXenstoreValue(
 
     plen = (ULONG)strlen(Path);
     vlen = (ULONG)strlen(Value);
-    path = (PCHAR)XmAllocateMemory(plen + vlen + 2);
+    path = (PCHAR)ExAllocatePoolWithTag(NonPagedPool, plen + vlen + 2, XVU9);
     if (path == NULL)
     {
         return NULL;
@@ -132,7 +110,7 @@ XenLowerReadXenstoreValue(
     path[plen] = '/';
     memcpy(path + plen + 1, Value, vlen + 1);
     status = xenbus_read(XBT_NIL, path, &res);
-    XmFreeMemory(path);
+    ExFreePoolWithTag(path, XUV9);
     if (!NT_SUCCESS(status))
     {
         return NULL;
@@ -220,7 +198,7 @@ XenLowerInit(
     status = RtlStringCchCopyA(XenLower->FrontendPath,
         sizeof(XenLower->FrontendPath),
         path);
-    XmFreeMemory(path);
+    ExFreePoolWithTag(path, XUV9);
     if (status != STATUS_SUCCESS)
     {
         XenLower->FrontendPath[0] = 0;
@@ -255,7 +233,7 @@ XenLowerBackendInit(
     status = RtlStringCchCopyA(XenLower->BackendPath,
         sizeof(XenLower->BackendPath),
         path);
-    XmFreeMemory(path);
+    ExFreePoolWithTag(path, XUV9);
     if (status != STATUS_SUCCESS)
     {
         XenLower->BackendPath[0] = 0;
@@ -316,7 +294,7 @@ XenLowerInterfaceVersion(
     }
 
     sscanf_s(vstr, "%d", &version);
-    XmFreeMemory(vstr);
+    ExFreePoolWithTag(vstr, XUV9);
 
     // Need to now write the version we support to the frontend
     status = xenbus_printf(XBT_NIL, XenLower->FrontendPath,
@@ -780,7 +758,7 @@ XenLowerGetBackendState(
     }
 
     sscanf_s(sstr, "%d", &state);
-    XmFreeMemory(sstr);
+    ExFreePoolWithTag(sstr, XUV9);
 
     return (ULONG)state;
 }
@@ -802,9 +780,7 @@ XenLowerGetOnline(
     }
 
     sscanf_s(sstr, "%d", &state);
-    XmFreeMemory(sstr);
+    ExFreePoolWithTag(sstr, XUV9);
 
     return (state == 1);
 }
-
-#endif // 0

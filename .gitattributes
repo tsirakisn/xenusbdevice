@@ -3,9 +3,9 @@
 ###############################################################################
 * text=auto
 
-*.c text eol=lf
-*.cpp text eol=lf
-*.h text eolf=lf
+*.c text eol=crlf
+*.cpp text eol=crlf
+*.h text eolf=crlf
 
 *.sln text eol=crlf
 *.vcxproj text eol=crlf
