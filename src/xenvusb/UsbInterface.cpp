@@ -398,24 +398,8 @@ FdoQueryControllerType(
  * exactly that: one guid multiple versions of the interface structure. So our controller device
  * object has to preprocess the IRP_MN_QUERY_INTERFACE IRP in order to support the USBDI.
  *
- * This function must either handle the IRP in the legacy WDM fashion by either completing the IRP
- * by calling IoCompleteRequest() or deferring the IRP by calling IoMarkIrpPending() and not calling 
- * IoCompleteRequest(), or return the IRP to the framework by calling WdfDeviceWdmDispatchPreprocessedIrp().
- * 
- * *Note* it cannot do both. *Note Also* the return value rules for WDM Irps.
- *
  * @param[in] Device. The handle to the WDFDEVICE object for the controller.
  * @param[in] Irp. The IRP_MN_QUERY_INTERFACE IRP.
- *
- * @retval NTSTATUS STATUS_PENDING iff FdoPreProcessQueryInterface() has called IoMarkIrpPending() and
- * has not called IoCompleteRequest for this IRP.
- * @retval NTSTATUS STATUS_SUCCESS (or any other value for which NT_SUCCESS() equals TRUE) indicates
- * that the IRP has been completed with the *same* NTSTATUS value and has been successfully processed
- * by FdoPreProcessQueryInterface().
- * @retval NTSTATUS STATUS_UNSUCCESSFUL (or any value for which NT_SUCCESS() equals FALSE) indicates
- * that the IRP has been completed with the *same* NTSTATUS value and has been processed with an 
- * error condition by FdoPreProcessQueryInterface().
- * @retval NTSTATUS whatever value the call to WdfDeviceWdmDispatchPreprocessedIrp() returned.
  * 
  */
 NTSTATUS
@@ -426,6 +410,8 @@ FdoPreProcessQueryInterface(
     NTSTATUS Status = Irp->IoStatus.Status;
     PIO_STACK_LOCATION IoStack = IoGetCurrentIrpStackLocation(Irp);
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
+
+    Trace("===> processing irp\n");
 
     if (InlineIsEqualGUID( USB_BUS_INTERFACE_USBDI_GUID,
         *IoStack->Parameters.QueryInterface.InterfaceType))
@@ -551,9 +537,17 @@ FdoPreProcessQueryInterface(
                 fdoContext->FrontEndPath,
                 IoStack->Parameters.QueryInterface.Version);
         }
+
+        Irp->IoStatus.Status = Status;
+        IoCompleteRequest(Irp, IO_NO_INCREMENT);
+        Trace("===> returning 0x%x\n", Status);
+        return Status;
     }
-    Irp->IoStatus.Status = Status;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+    Trace("passing irp to WdfDeviceWdmDispatchPreprocessedIrp()\n");
+    IoSkipCurrentIrpStackLocation(Irp);
+    Status = WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
+    Trace("===> WdfDeviceWdmDispatchPreprocessedIrp returned 0x%x\n", Status);
     return Status;
 }
 

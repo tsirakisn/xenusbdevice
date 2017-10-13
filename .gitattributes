@@ -1,0 +1,17 @@
+###############################################################################
+# Set default behavior to automatically normalize line endings.
+###############################################################################
+* text=auto
+
+*.c text eol=lf
+*.cpp text eol=lf
+*.h text eolf=lf
+
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
+*.vcxproj.user text eol=crlf
+
+*.db binary
+*.sln merge=binary
+*.vcxproj merge=binary
