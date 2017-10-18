@@ -55,7 +55,7 @@ EVT_WDF_DEVICE_FILE_CREATE  FdoEvtDeviceFileCreate;
 EVT_WDF_FILE_CLOSE  FdoEvtFileClose;
 
 // --XT-- New callback type for the DPC
-EVTCHN_HANDLER_CB FdoEvtDeviceDpcFunc;
+KSERVICE_ROUTINE FdoEvtDeviceDpcFunc;
 
 NTSTATUS LateSetup(IN WDFDEVICE);
 NTSTATUS XenConfigure(IN PUSB_FDO_CONTEXT);
@@ -259,7 +259,7 @@ FdoEvtDeviceAdd(
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
         __FUNCTION__": WdfCollectionCreate failed\n");
         return status;
     };
@@ -977,9 +977,10 @@ NTSTATUS FdoEvtChildListCreateDevice(
  * @param[in] Dpc The WDFDPC handle.
  *  
  */
-VOID
+BOOLEAN
 FdoEvtDeviceDpcFunc(
-    IN VOID *Context)
+    _In_ struct _KINTERRUPT *Interrupt,
+    _In_opt_ PVOID Context)
 {
     // --XT-- FDO context passed directly now.
     PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT)Context;
@@ -993,7 +994,7 @@ FdoEvtDeviceDpcFunc(
     {
         fdoContext->DpcOverLapCount++;
         ReleaseFdoLock(fdoContext);
-        return;
+        return FALSE;
     }
     fdoContext->InDpc = TRUE;
 
@@ -1077,6 +1078,8 @@ FdoEvtDeviceDpcFunc(
         __FUNCTION__": exit responses processed %d passes %d\n",
         responseCount,
         passes);
+
+    return TRUE;
 }
 
 //
@@ -1130,7 +1133,7 @@ FdoEvtTimerFunc(
         //
         // --XT-- Now passing the FDO context directly.
         //
-        FdoEvtDeviceDpcFunc(fdoContext);
+        FdoEvtDeviceDpcFunc(NULL, fdoContext);
     }
 }
 

@@ -56,6 +56,8 @@
 typedef struct 
 {
     usbif_request_t req;                 //<! The associated ringbuffer request
+    PXENBUS_GNTTAB_ENTRY ReqGrantEntries[USBIF_URB_MAX_SEGMENTS_PER_REQUEST];
+
     ULONG           Tag;                 //<! must be 'Shdw'
     BOOLEAN         InUse;               //<! Must be FALSE when unallocated.
     WDFREQUEST      Request;             //<! NULL if internal request
@@ -65,6 +67,7 @@ typedef struct
     PVOID           isoPacketDescriptor; //<! allocated page for iso packets
     PMDL            isoPacketMdl;        //<! allocated iso packet MDL
     PVOID           indirectPageMemory;  //<! allocated indirect memory
+    PXENBUS_GNTTAB_ENTRY IndirectGrantEntries[256][INDIRECT_GREF_PAGES]; //256 for max nr_segments
 } usbif_shadow_ex_t;
 
 //
@@ -90,15 +93,8 @@ struct XEN_BUS_PLATFORM_RESOURCE
 //
 struct XEN_INTERFACE
 {
+    PXEN_LOWER                  XenLower;
     PUSB_FDO_CONTEXT            FdoContext;
-	XENBUS_DEBUG_INTERFACE      DebugInterface;
-	XENBUS_SUSPEND_INTERFACE    SuspendInterface;
-	XENBUS_EVTCHN_INTERFACE     EvtchnInterface;
-	XENBUS_STORE_INTERFACE      StoreInterface;
-	XENBUS_RANGE_SET_INTERFACE  RangeSetInterface;
-	XENBUS_CACHE_INTERFACE      CacheInterface;
-	XENBUS_GNTTAB_INTERFACE     GnttabInterface;
-	XENBUS_UNPLUG_INTERFACE     UnplugInterface;
 
     //
     // Xenstore paths
@@ -109,6 +105,7 @@ struct XEN_INTERFACE
     //
     // Xen ringbuffer and grant ref interface.
     //
+    ULONG                     XenifVersion; //!< had better be 3
     ULONG                     DeviceGoneRequestCount;
 
     usbif_sring *             Sring; //!< shared ring
@@ -146,67 +143,13 @@ AllocateXenInterface(
 	RtlZeroMemory(xen, sizeof(XEN_INTERFACE));
 	xen->FdoContext = fdoContext;
 
-    status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
-        &GUID_XENBUS_DEBUG_INTERFACE,
-        (PINTERFACE)&xen->DebugInterface,
-        sizeof(xen->DebugInterface),
-        XENBUS_DEBUG_INTERFACE_VERSION_MAX,
-        NULL);
-
-    if (!NT_SUCCESS(status))
+    xen->XenLower = XenLowerAlloc();
+    if (!xen->XenLower)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus debug interface: %x\n", status);
-        goto fail;
-    }
-
-    Trace("successfully queried xenbus debug interface\n");
-
-	status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
-		&GUID_XENBUS_EVTCHN_INTERFACE,
-		(PINTERFACE)&xen->EvtchnInterface,
-		sizeof(xen->EvtchnInterface),
-		XENBUS_EVTCHN_INTERFACE_VERSION_MAX,
-		NULL);
-
-	if (!NT_SUCCESS(status))
-	{
-		TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus evtchn interface: %x\n", status);
-        goto fail;
-	}
-
-	Trace("successfully queried xenbus evtchn interface\n");
-
-	status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
-		&GUID_XENBUS_GNTTAB_INTERFACE,
-		&xen->GnttabInterface.Interface,
-		sizeof(xen->GnttabInterface),
-		XENBUS_GNTTAB_INTERFACE_VERSION_MAX,
-		NULL);
-
-	if (!NT_SUCCESS(status))
-	{
-		TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus gnttab interface: %x\n", status);
-		ExFreePool(xen);
-		return NULL;
-	}
-
-	TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Successfully queried xenbus gnttab interface\n");
-
-    status = WdfFdoQueryForInterface(fdoContext->WdfDevice,
-        &GUID_XENBUS_STORE_INTERFACE,
-        &xen->StoreInterface.Interface,
-        sizeof(xen->StoreInterface),
-        XENBUS_STORE_INTERFACE_VERSION_MAX,
-        NULL);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to query xenbus store interface: %x\n", status);
         ExFreePool(xen);
         return NULL;
     }
 
-    TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Successfully queried xenbus store interface\n");
 done:	
 	return xen;
 
@@ -235,16 +178,6 @@ static BOOLEAN
 ConnectXenDevice(
     IN PXEN_INTERFACE Xen,
     IN PUCHAR *ptr);
-
-
-static BOOLEAN
-PutGrantOnFreelist(
-    IN PXEN_INTERFACE Xen,
-    IN ULONG       grant);
-
-static ULONG
-GetGrantFromFreelist(
-    IN PXEN_INTERFACE Xen);
 
 static usbif_shadow_ex_t *
 GetShadowFromFreeList(
@@ -368,16 +301,8 @@ static BOOLEAN
 XenCreateSring(
     IN PXEN_INTERFACE Xen)
 {
-    // Unfortunately this had to be yanked out of the xenpci bus driver
-    // but it is needed for the init below.
-    struct dummy_sring {
-        RING_IDX req_prod, req_event;
-        RING_IDX rsp_prod, rsp_event;
-        uint8_t  pad[48];
-    };
-
     PMDL ring = XenAllocatePage();
-    PVOID address;
+    usbif_sring *address;
 
     if (!ring)
     {
@@ -386,8 +311,8 @@ XenCreateSring(
         return FALSE;
     }
 
-    address = MmGetMdlVirtualAddress(ring);
-    SHARED_RING_INIT((struct dummy_sring *)address);
+    address = (usbif_sring *)MmGetMdlVirtualAddress(ring);
+    SHARED_RING_INIT(address);
 
     if (!XenLowerGetSring(Xen->XenLower, (uint32_t)*MmGetMdlPfnArray(ring)))
     {
@@ -431,7 +356,7 @@ XenInterfaceCleanup(
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PEVTCHN_HANDLER_CB DpcCallback)
+    IN PKSERVICE_ROUTINE DpcCallback)
 {
     ULONG version;
     NTSTATUS status = STATUS_SUCCESS;
@@ -450,7 +375,7 @@ XenDeviceInitialize(
         }
 
         // Init XenLower
-        rc = XenLowerInit(Xen->XenLower, Xen, pdo);
+        rc = XenLowerInit(Xen->XenLower, Xen, pdo, Xen->FdoContext->WdfDevice);
         if (!rc)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -614,8 +539,6 @@ XenDeviceInitialize(
     return status;
 }
 
-RESUME_HANDLER_CB XenDeviceResumeConnectBackend;
-
 NTSTATUS
 XenDeviceConnectBackend(
     IN PXEN_INTERFACE Xen)
@@ -625,7 +548,7 @@ XenDeviceConnectBackend(
 
     // Start the backend connect, wait for it to be initialized and
     // ready to proceed. Write the xenstore values and then connect.
-    status = XenLowerConnectBackend(Xen->XenLower, XenDeviceResumeConnectBackend);
+    status = XenLowerConnectBackend(Xen->XenLower, NULL);
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -742,25 +665,30 @@ PutShadowOnFreelist(
                 index2 < indirectPage[index].nr_segments;
                 index2++)
             {
-                if (!PutGrantOnFreelist(Xen, indirectPage[index].gref[index2]))
+                if (!XenLowerGntTblEndAccess(Xen->XenLower, shadow->IndirectGrantEntries[index][index2]))
                 {
                     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                        __FUNCTION__": leaked grant ref %p for indirect data segment\n",
-                        indirectPage[index].gref[index2]);
+                        __FUNCTION__": leaked grant ref %p (%p) for indirect data segment\n",
+                        indirectPage[index].gref[index2], shadow->IndirectGrantEntries[index][index2]);
                 }
+                indirectPage[index].gref[index2] = 0;
+                shadow->IndirectGrantEntries[index][index2] = NULL;
             }
         }
         ExFreePool(shadow->indirectPageMemory);
         shadow->indirectPageMemory = NULL;
     }
-    for(index = 0; index < shadow->req.nr_segments; index++)
+
+    for (index = 0; index < shadow->req.nr_segments; index++)
     {
-        if (!PutGrantOnFreelist(Xen, shadow->req.gref[index]))
+        if (!XenLowerGntTblEndAccess(Xen->XenLower, shadow->ReqGrantEntries[index]))
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": leaked grant ref %p for data segment\n",
-                shadow->req.gref[index]);
+                __FUNCTION__": leaked grant ref %p (%p) for data segment\n",
+                shadow->req.gref[index], shadow->ReqGrantEntries[index]);
         }
+        shadow->req.gref[index] = 0;
+        shadow->ReqGrantEntries[index] = NULL;
     }
     shadow->req.nr_segments = 0;
     shadow->Request = NULL;
@@ -894,31 +822,6 @@ GetShadowFromFreeList(
     return &Xen->Shadows[Xen->ShadowFreeList[Xen->ShadowFree]];
 }
 
-static ULONG
-GetGrantFromFreelist(
-    IN PXEN_INTERFACE Xen)
-{
-    UNREFERENCED_PARAMETER(Xen);
-
-    return XenLowerGntTblGetRef();
-}
-
-static BOOLEAN
-PutGrantOnFreelist(
-    IN PXEN_INTERFACE Xen,
-    IN ULONG       grant)
-{
-    UNREFERENCED_PARAMETER(Xen);
-
-    //
-    // N. B. The underlying implementation for the XT xenbus does nothing
-    // with the keepref parameter. Since it is always FALSE, this is fine.
-    // If it needs to be TRUE at any point, the underlying grant code will 
-    // have to be modified.
-    //
-    return XenLowerGntTblEndAccess(grant);
-}
-
 /**
  * @brief allocates grantrefs for a data transfer for standard (not indirect) ringbuffer transfers.
  * 
@@ -949,25 +852,17 @@ AllocateGrefs(
         index < PagesUsed;
         index++)
     {
+        PXENBUS_GNTTAB_ENTRY entry;
         PFN_NUMBER pfn = pfnArray[index];
-        ULONG gref = GetGrantFromFreelist(Xen);
-        if (gref == INVALID_GRANT_REF)
-        {
-            TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__ "GetGrantFromFreelist failed\n");
-            return FALSE;
-        }     
-        shadow->req.gref[shadow->req.nr_segments] = gref;
 
-        XenLowerGntTblGrantAccess(
-            0,
-            (uint32_t) pfn,
-            0,
-            shadow->req.gref[shadow->req.nr_segments]);
+        entry = XenLowerGntTblGrantAccess(Xen->XenLower, 0, (uint32_t) pfn, FALSE);
+
+        shadow->ReqGrantEntries[shadow->req.nr_segments] = entry;
+        shadow->req.gref[shadow->req.nr_segments] = XenLowerGntTblGetReference(Xen->XenLower, entry);
 
         shadow->req.nr_segments++;
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__ "Mapped PFN(%d): %d (0x%x)\n", index, pfn, pfn);
+            __FUNCTION__ "Mapped PFN(%d): %d (0x%x) - gref = 0x%x (%p)\n", index, pfn, pfn, shadow->req.gref[shadow->req.nr_segments], entry);
     }
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
@@ -1037,16 +932,16 @@ AllocateIndirectGrefs(
         // of the first indirect page. We have to fill in pagesUsed + 1 pages;
         // The first gref of the first page points to the iso packet descriptor page.
         //
-        indirectPages[0].gref[0] = GetGrantFromFreelist(Xen);
-        if (indirectPages[0].gref[0] == INVALID_GRANT_REF)
+        PXENBUS_GNTTAB_ENTRY entry = XenLowerGntTblGrantAccess(Xen->XenLower, 0, (uint32_t)PacketPfnArray[0], FALSE);
+        if (!entry)
         {
+            TraceError("failed to grant access to pfn=0x%x\n", (int)pfnArray[pfnIndex]);
             return FALSE;
         }
-        XenLowerGntTblGrantAccess(
-            0,
-            (uint32_t) PacketPfnArray[0], 
-            0, 
-            indirectPages[0].gref[0]);
+
+        Shadow->IndirectGrantEntries[0][0] = entry;
+        indirectPages[0].gref[0] = XenLowerGntTblGetReference(Xen->XenLower, entry);
+        Trace("added indirect page grant reference: 0x%x (%p)", (int)indirectPages[0].gref[0], entry);
 
         indirectPages[0].nr_segments = 1;
         indirectIndex = 1; 
@@ -1056,18 +951,18 @@ AllocateIndirectGrefs(
     //
     while ( pfnIndex < PagesUsed )
     {
-        indirectPages[indirectArrayIndex].gref[indirectIndex] = GetGrantFromFreelist(Xen);
-        if (indirectPages[indirectArrayIndex].gref[indirectIndex]  == INVALID_GRANT_REF)
+        PXENBUS_GNTTAB_ENTRY entry = XenLowerGntTblGrantAccess(Xen->XenLower, 0, (uint32_t)pfnArray[pfnIndex], FALSE);
+
+        if (!entry)
         {
+            TraceError("failed to grant access to pfn=0x%x\n", (int)pfnArray[pfnIndex]);
             return FALSE;
         }
 
-        XenLowerGntTblGrantAccess(          
-            0, 
-            (uint32_t) pfnArray[pfnIndex], 
-            0, 
-            indirectPages[indirectArrayIndex].gref[indirectIndex]);
-        
+        Shadow->IndirectGrantEntries[indirectArrayIndex][indirectIndex] = entry;
+        indirectPages[indirectArrayIndex].gref[indirectIndex] = XenLowerGntTblGetReference(Xen->XenLower, entry);
+        Trace("added indirect page grant reference: 0x%x", (int)indirectPages[indirectArrayIndex].gref[indirectIndex]);
+
         pfnIndex++;
         indirectPages[indirectArrayIndex].nr_segments++;
         indirectIndex++;

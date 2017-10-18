@@ -301,6 +301,14 @@
     <ClInclude Include="..\..\include\xen-version.h" />
     <ClInclude Include="..\..\include\xen-warnings.h" />
     <ClInclude Include="..\..\include\xen.h" />
+    <ClInclude Include="..\..\include\xen\public\errno.h" />
+    <ClInclude Include="..\..\include\xen\public\grant_table.h" />
+    <ClInclude Include="..\..\include\xen\public\io\ring.h" />
+    <ClInclude Include="..\..\include\xen\public\io\usbif.h" />
+    <ClInclude Include="..\..\include\xen\public\io\xenbus.h" />
+    <ClInclude Include="..\..\include\xen\public\trace.h" />
+    <ClInclude Include="..\..\include\xen\public\xen-compat.h" />
+    <ClInclude Include="..\..\include\xen\public\xen.h" />
     <ClInclude Include="..\..\src\xenvusb\build_ver.h" />
     <ClInclude Include="..\..\src\xenvusb\dbg_print.h" />
     <ClInclude Include="..\..\src\xenvusb\Device.h" />
@@ -316,8 +324,17 @@
     <ClInclude Include="..\..\src\xenvusb\UsbResponse.h" />
     <ClInclude Include="..\..\src\xenvusb\UsbUserKm.h" />
     <ClInclude Include="..\..\src\xenvusb\vciversion.h" />
+    <ClInclude Include="..\..\src\xenvusb\verrc.h" />
+    <ClInclude Include="..\..\src\xenvusb\version.h" />
     <ClInclude Include="..\..\src\xenvusb\xenif.h" />
+    <ClInclude Include="..\..\src\xenvusb\xenlower.h" />
     <ClInclude Include="..\..\src\xenvusb\xenusb.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\xenvusb\Doxyfile" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\src\xenvusb\ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
