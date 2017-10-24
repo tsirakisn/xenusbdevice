@@ -90,6 +90,7 @@ struct XEN_LOWER
     PXENBUS_EVTCHN_CHANNEL Channel;
     PXENBUS_GNTTAB_ENTRY SringGrantRef;
     PXENBUS_GNTTAB_CACHE GnttabCache;
+	KSPIN_LOCK                      GnttabLock;
 
     PXENBUS_SUSPEND_CALLBACK    SuspendCallbackLate;
     XENBUS_SUSPEND_FUNCTION     ResumeCallback;
@@ -339,10 +340,47 @@ XenLowerFree(
     XenLowerUnregisterSuspendHandler(XenLower);
 
     XenLowerDisconnectEvtChnDPC(XenLower);
+	
+	if (XenLower->GnttabCache)
+	{
+		XENBUS_GNTTAB(DestroyCache,
+			&XenLower->GnttabInterface,
+			XenLower->GnttabCache);
+		XenLower->GnttabCache = NULL;
+	}
 
     XenLowerReleaseInterfaces(XenLower);
 
     ExFreePool(XenLower);
+}
+
+#include "assert.h"
+
+static VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
+GranterAcquireLock(
+	IN  PVOID       Argument
+)
+{
+	PXEN_LOWER XenLower = (PXEN_LOWER) Argument;
+
+	ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
+	KeAcquireSpinLockAtDpcLevel(&XenLower->GnttabLock);
+}
+
+static VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
+GranterReleaseLock(
+	IN  PVOID       Argument
+)
+{
+	PXEN_LOWER XenLower = (PXEN_LOWER) Argument;
+
+	ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
+#pragma prefast(disable:26110)
+	KeReleaseSpinLockFromDpcLevel(&XenLower->GnttabLock);
 }
 
 #include <wdmguid.h>
@@ -363,6 +401,15 @@ XenLowerInit(
     XenLower->WdfDevice = WdfDevice;
 
     XenLowerAcquireInterfaces(XenLower);
+
+	status = XENBUS_GNTTAB(CreateCache,
+		&XenLower->GnttabInterface,
+		"usb_0",
+		0,
+		GranterAcquireLock,
+		GranterReleaseLock,
+		XenLower,
+		&XenLower->GnttabCache);
 
     // Get the BUS_INTERFACE_STANDARD for our device so that we can
     // read & write to PCI config space.
@@ -398,11 +445,13 @@ XenLowerInit(
         return FALSE;
     }
 
+	DeviceId = 8214;
+
     status = RtlStringCbPrintfA(
         XenLower->FrontendPath,
         sizeof(XenLower->FrontendPath),
         "device/vusb/%d",
-        8199);
+		DeviceId);
 
     if (status != STATUS_SUCCESS)
     {
@@ -857,15 +906,19 @@ XenLowerConnectBackendInternal(
             &XenLower->StoreInterface,
             &Transaction);
         
+		ULONG ref = XENBUS_GNTTAB(GetReference,
+			&XenLower->GnttabInterface,
+			XenLower->SringGrantRef);
+
+		Trace("ring-ref: %lu\n", ref);
+
         status = XENBUS_STORE(Printf,
             &XenLower->StoreInterface,
             Transaction,
             XenLower->FrontendPath,
             "ring-ref",
             "%u",
-            XENBUS_GNTTAB(GetReference,
-                &XenLower->GnttabInterface,
-                XenLower->SringGrantRef));
+            (int) ref);
 
         if (!NT_SUCCESS(status))
             continue;
@@ -880,14 +933,16 @@ XenLowerConnectBackendInternal(
             XenLower->FrontendPath,
             "event-channel",
             "%u",
-            Port);
+			(int) Port);
+
+		Trace("port: %lu\n", Port);
 
         if (!NT_SUCCESS(status))
             continue;
 
         status = XENBUS_STORE(Printf,
             &XenLower->StoreInterface,
-            NULL,
+			Transaction,
             XenLower->FrontendPath,
             "state",
             "%u",
@@ -908,7 +963,9 @@ XenLowerConnectBackendInternal(
             Transaction,
             TRUE);
 
-        if (status != STATUS_RETRY || ++Attempt > 10)
+		Trace("Transaction End: %d\n", status);
+
+        if (status != STATUS_RETRY || ++Attempt > 1000)
             break;
 
         continue;

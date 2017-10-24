@@ -134,6 +134,35 @@ ReleaseFdoLock(
     WdfObjectReleaseLock(fdoContext->WdfDevice);
 }
 
+static void
+QueryShit(WDFDEVICE device, DEVICE_REGISTRY_PROPERTY code, const char *name)
+{
+	NTSTATUS status;
+	char Buffer[512];
+	ULONG Size;
+	memset(Buffer, 0, sizeof(Buffer));
+	status = WdfDeviceQueryProperty(device,
+		code,
+		sizeof(Buffer),
+		Buffer,
+		&Size);
+
+	Trace("%s: %ls --- %s (size=%ld)\n", name, Buffer, Buffer, Size);
+	for (Size = 0; Size < 64; Size += 8)
+	{
+		Trace("0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n",
+			Buffer[Size],
+			Buffer[Size + 1],
+			Buffer[Size + 2],
+			Buffer[Size + 3],
+			Buffer[Size + 4],
+			Buffer[Size + 5],
+			Buffer[Size + 6],
+			Buffer[Size + 7]);
+	}
+	Trace("\n");
+}
+
 /**
  * @brief Called by the framework when a new PDO has arrived that this driver manages.
  * The device in question is not operational at this point in time.
@@ -169,13 +198,15 @@ FdoEvtDeviceAdd(
     //
     WDF_PNPPOWER_EVENT_CALLBACKS    pnpPowerCallbacks;
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
-    pnpPowerCallbacks.EvtDevicePrepareHardware = FdoEvtDevicePrepareHardware;
+// REMOVEME
+#if 1
+	pnpPowerCallbacks.EvtDevicePrepareHardware = FdoEvtDevicePrepareHardware;
     pnpPowerCallbacks.EvtDeviceReleaseHardware = FdoEvtDeviceReleaseHardware;
     pnpPowerCallbacks.EvtDeviceD0Entry = FdoEvtDeviceD0Entry;
     pnpPowerCallbacks.EvtDeviceD0EntryPostInterruptsEnabled = FdoEvtDeviceD0EntryPostInterruptsEnabled;
     pnpPowerCallbacks.EvtDeviceD0Exit  = FdoEvtDeviceD0Exit;
     pnpPowerCallbacks.EvtDeviceSurpriseRemoval = FdoEvtDeviceSurpriseRemoval;
-    
+#endif    
     WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
     //
     // establish a request context
@@ -245,9 +276,35 @@ FdoEvtDeviceAdd(
         return status;
     }
 
+	QueryShit(device, DevicePropertyDeviceDescription, "DevicePropertyDeviceDescription");
+	QueryShit(device, DevicePropertyHardwareID, "DevicePropertyHardwareID");
+	QueryShit(device, DevicePropertyCompatibleIDs, "DevicePropertyCompatibleIDs");
+	QueryShit(device, DevicePropertyBootConfigurationTranslated, "DevicePropertyBootConfigurationTranslated");
+	QueryShit(device, DevicePropertyClassName, "DevicePropertyClassName");
+	QueryShit(device, DevicePropertyClassGuid, "DevicePropertyClassGuid");
+	QueryShit(device, DevicePropertyDriverKeyName, "DevicePropertyDriverKeyName");
+	QueryShit(device, DevicePropertyManufacturer, "DevicePropertyManufacturer");
+	QueryShit(device, DevicePropertyFriendlyName, "DevicePropertyFriendlyName");
+	QueryShit(device, DevicePropertyLocationInformation, "DevicePropertyLocationInformation");
+	QueryShit(device, DevicePropertyPhysicalDeviceObjectName, "DevicePropertyPhysicalDeviceObjectName");
+	QueryShit(device, DevicePropertyBusTypeGuid, "DevicePropertyBusTypeGuid");
+	QueryShit(device, DevicePropertyLegacyBusType, "DevicePropertyLegacyBusType");
+	QueryShit(device, DevicePropertyBusNumber, "DevicePropertyBusNumber");
+	QueryShit(device, DevicePropertyEnumeratorName, "DevicePropertyEnumeratorName");
+	QueryShit(device, DevicePropertyAddress, "DevicePropertyAddress");
+	QueryShit(device, DevicePropertyUINumber, "DevicePropertyUINumber");
+	QueryShit(device, DevicePropertyInstallState, "DevicePropertyInstallState");
+	QueryShit(device, DevicePropertyRemovalPolicy, "DevicePropertyRemovalPolicy");
+	QueryShit(device, DevicePropertyResourceRequirements, "DevicePropertyResourceRequirements");
+	QueryShit(device, DevicePropertyAllocatedResources, "DevicePropertyAllocatedResources");
+	QueryShit(device, DevicePropertyContainerID, "DevicePropertyContainerID");
+	//return 0;
+
+
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
     RtlZeroMemory(fdoContext, sizeof(USB_FDO_CONTEXT));
     fdoContext->WdfDevice = device;
+
     KeInitializeEvent(&fdoContext->resetCompleteEvent, SynchronizationEvent, FALSE);
     //
     // allocate the dpc request collection.
@@ -401,7 +458,7 @@ FdoEvtDeviceAdd(
     WdfDeviceSetBusInformationForChildren(
         device,
         &busInformation);
-
+	
     if (NT_SUCCESS(status)) {
         status = LateSetup(device);
     }
@@ -424,6 +481,10 @@ FdoEvtDeviceContextCleanup (
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
+
+	// REMOVE
+	return;
+
     CleanupDisconnectedDevice(fdoContext);
 
     //

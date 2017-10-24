@@ -273,6 +273,7 @@
     <ClCompile Include="..\..\src\xenvusb\Driver.cpp" />
     <ClCompile Include="..\..\src\xenvusb\Queue.cpp" />
     <ClCompile Include="..\..\src\xenvusb\RootHubPdo.cpp" />
+    <ClCompile Include="..\..\src\xenvusb\thread.c" />
     <ClCompile Include="..\..\src\xenvusb\Trace.cpp" />
     <ClCompile Include="..\..\src\xenvusb\UsbConfig.cpp" />
     <ClCompile Include="..\..\src\xenvusb\UsbInterface.cpp" />
@@ -309,6 +310,7 @@
     <ClInclude Include="..\..\include\xen\public\trace.h" />
     <ClInclude Include="..\..\include\xen\public\xen-compat.h" />
     <ClInclude Include="..\..\include\xen\public\xen.h" />
+    <ClInclude Include="..\..\src\xenvusb\assert.h" />
     <ClInclude Include="..\..\src\xenvusb\build_ver.h" />
     <ClInclude Include="..\..\src\xenvusb\dbg_print.h" />
     <ClInclude Include="..\..\src\xenvusb\Device.h" />
@@ -318,6 +320,7 @@
     <ClInclude Include="..\..\src\xenvusb\Queue.h" />
     <ClInclude Include="..\..\src\xenvusb\resource.h" />
     <ClInclude Include="..\..\src\xenvusb\RootHubPdo.h" />
+    <ClInclude Include="..\..\src\xenvusb\thread.h" />
     <ClInclude Include="..\..\src\xenvusb\Trace.h" />
     <ClInclude Include="..\..\src\xenvusb\UsbConfig.h" />
     <ClInclude Include="..\..\src\xenvusb\UsbRequest.h" />

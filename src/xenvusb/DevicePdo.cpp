@@ -102,9 +102,9 @@ DevicePdoEvtIoDeviceControl(
 
 
 /**
- * @brief process URB requests for the USB devuce.
+ * @brief process URB requests for the USB device.
  * URBs are simply forwarded down the stack from USB PDO to ROOT HUB to
- * the virutal usb controller..
+ * the virtual usb controller..
  *
  * @param[in] Queue the URB queue.
  * @param[in] Request the URB request handle.

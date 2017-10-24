@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _XENVIF_DBG_PRINT_H
-#define _XENVIF_DBG_PRINT_H
+#ifndef _XENVUSB_DBG_PRINT_H
+#define _XENVUSB_DBG_PRINT_H
 
 #include <ntddk.h>
 #include <stdarg.h>
@@ -150,4 +150,4 @@ __Info(
 #define Info(...)  \
         __Info(__MODULE__ "|"  __FUNCTION__ ": ", __VA_ARGS__)
 
-#endif  // _XENVIF_DBG_PRINT_H
+#endif  // _XENVUSB_DBG_PRINT_H

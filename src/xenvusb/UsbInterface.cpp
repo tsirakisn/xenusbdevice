@@ -2465,31 +2465,3 @@ RootHubPreProcessQueryInterface(
     return Status;
 }
 
-NTSTATUS 
-RootHubIfGetLocationString(
-  _Inout_  PVOID Context,
-  _Out_    PWCHAR *LocationStrings)
-{
-    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(Context);
-    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);  
-    // this is a multi-string so it needs two Nuls at the end.
-    static WCHAR location[]=L"ROOT_HUB\0";
-
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": %s device %p\n",
-                fdoContext->FrontEndPath,
-                hubContext->WdfDevice);
-
-    PWCHAR string = (PWCHAR) ExAllocatePoolWithTag(PagedPool,
-        sizeof(location), XVUF);
-
-    if (string)
-    {
-        RtlCopyMemory(string, location, sizeof(location));
-        *LocationStrings = string;
-        return STATUS_SUCCESS;
-    }
-
-    return STATUS_INSUFFICIENT_RESOURCES;
-
-}

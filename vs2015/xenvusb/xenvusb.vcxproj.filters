@@ -60,6 +60,9 @@
     <ClCompile Include="..\..\src\xenvusb\xenlower.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\xenvusb\thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\xenvusb\xenvusb.rc">
@@ -197,6 +200,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\xen\public\io\xenbus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\xenvusb\thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\xenvusb\assert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
