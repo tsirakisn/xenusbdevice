@@ -32,7 +32,9 @@
 #ifndef _XEN_WARNINGS_H
 #define _XEN_WARNINGS_H
 
+#pragma warning(push, 0)
 #include <ntddk.h>
+#pragma warning(pop)
 
 // Disable warnings necessary to include xen headers
 

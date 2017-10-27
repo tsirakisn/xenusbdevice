@@ -27,7 +27,10 @@
 //
 #ifndef IOCTL_USB_USER_REQUEST
 #define IOCTL_USB_USER_REQUEST USB_CTL(HCD_USER_REQUEST)
+
+#pragma warning(push, 0)
 #include <pshpack1.h>
+#pragma warning(pop)
 /*
     define error codes
 */

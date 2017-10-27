@@ -30,6 +30,7 @@
 #include "Device.h"
 #include "UsbConfig.h"
 
+#pragma warning(push, 0)
 #include <xen.h>
 #include <memory.h>
 #include <debug_interface.h>
@@ -44,6 +45,7 @@
 #include "UsbResponse.h"
 #include "UsbRequest.h"
 #include "xenlower.h"
+#pragma warning(pop)
 #pragma warning(disable : 4127) //conditional expression is constant
 
 #define XEN_BUS L"Xen"
@@ -73,7 +75,7 @@ typedef struct
 //
 /// Device resources allocated for the xen bus interface.
 //
-struct XEN_BUS_PLATFORM_RESOURCE
+typedef struct _XEN_BUS_PLATFORM_RESOURCE
 {
     PHYSICAL_ADDRESS Address;
     PVOID            SystemVA;
@@ -81,7 +83,7 @@ struct XEN_BUS_PLATFORM_RESOURCE
     ULONG            Length;
     ULONG            Alloc;
     USHORT           Flags;
-};
+} XEN_BUS_PLATFORM_RESOURCE, *PXEN_BUS_PLATFORM_RESOURCE;
 
 // XXX: FIXME
 #define XEN_LOWER_MAX_PATH 64
@@ -91,7 +93,7 @@ struct XEN_BUS_PLATFORM_RESOURCE
 /// Theoretically it could be a separate static or dynamic library component.
 /// @todo add a pointer back to the "owner" (e.g. the WDFDEVICE)?
 //
-struct XEN_INTERFACE
+typedef struct _XEN_INTERFACE
 {
     PXEN_LOWER                  XenLower;
     PUSB_FDO_CONTEXT            FdoContext;
@@ -124,7 +126,7 @@ struct XEN_INTERFACE
 
 
     BOOLEAN                   IndirectGrefSupport; //!< has to be true!
-};
+} XEN_INTERFACE, *PXEN_INTERFACE;
 
 PXEN_INTERFACE
 AllocateXenInterface(
@@ -2540,32 +2542,6 @@ XenPostProcessIsoResponse(
                 usbifStatusString,
                 usbdStatusString);
         }
-        if (totalBytes == 0)
-        {
-            if (!gVistaOrLater)
-            {
-                //
-                // xp usbaudio will crash on an iso packet with zero total bytes.
-                // as a workaround for this msft bug, set packet 0 to status success.
-                // Note that an iso packet always has a non-zero length, so simply
-                // converting the status is sufficient. Ignore the fact that we 
-                // are producing garbage as data. This code path is a consequence of an unplug
-                // operation, iso data is not reliable, and we can't fix usbaudio.
-                //
-                Urb->UrbIsochronousTransfer.IsoPacket[0].Status = USBD_STATUS_SUCCESS;
-                if (Urb->UrbIsochronousTransfer.IsoPacket[0].Length)
-                {
-                    totalBytes += Urb->UrbIsochronousTransfer.IsoPacket[0].Length;
-                }
-                else
-                {
-                    totalBytes += Urb->UrbIsochronousTransfer.IsoPacket[1].Offset;
-                }
-                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-                    __FUNCTION__": Urb %p succeed zero length ISO request xp usbaudio bug\n",
-                    Urb);
-            }
-        }
 
         Urb->UrbIsochronousTransfer.TransferBufferLength = totalBytes;
         if (Urb->UrbIsochronousTransfer.ErrorCount != bytesTransferred)
@@ -2601,10 +2577,6 @@ XenPostProcessIsoResponse(
     }
     else
     {
-        if (!gVistaOrLater)
-        {
-            Status = STATUS_SUCCESS;
-        }
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
             __FUNCTION__": Urb %p usbd status %x status %x\n"
             "TransferFlags %x TransferBufferLength %d StartFrame %d NumberOfPackets %d\n",

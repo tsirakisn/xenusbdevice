@@ -32,8 +32,9 @@
 #ifndef _XENVUSB_DBG_PRINT_H
 #define _XENVUSB_DBG_PRINT_H
 
-#include <ntddk.h>
+#pragma warning(push, 0)
 #include <stdarg.h>
+#pragma warning(pop)
 
 #ifdef  _SDV_
 #define __MODULE__ ""

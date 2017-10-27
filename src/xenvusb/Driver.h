@@ -24,8 +24,10 @@
 //
 #define INITGUID
 
+#pragma warning(push, 0)
 #include <ntddk.h>
 #include <wdf.h>
+#pragma warning(pop)
 
 #include "device.h"
 #include "queue.h"
@@ -38,7 +40,6 @@
 //
 // WDFDRIVER Events
 //
-extern "C"
 DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_OBJECT_CONTEXT_CLEANUP EvtDriverContextCleanup;
 
@@ -76,7 +77,3 @@ LONGLONG Uptime();
 #define XVUI 'IUVX' // unused.
 #define XVUJ 'JUVX' // unused.
 #define XVUK 'KUVX' // unused.
-
-
-extern BOOLEAN gVistaOrLater;
-extern BOOLEAN gFakeNxprep;

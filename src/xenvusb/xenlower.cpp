@@ -27,6 +27,7 @@
 
 #define INITGUID
 
+#pragma warning(push, 0)
 #include <xen.h>
 #include "Trace.h"
 #include <ntddk.h>
@@ -45,6 +46,7 @@
 #include <unplug_interface.h>
 #include "xenlower.h"
 #include "Driver.h"
+#pragma warning(pop)
 
 #pragma warning(disable : 4127 ) //conditional expression is constant
 
@@ -105,6 +107,8 @@ struct XEN_LOWER
     //XENBUS_CACHE_INTERFACE      CacheInterface;
     XENBUS_GNTTAB_INTERFACE     GnttabInterface;
     //XENBUS_UNPLUG_INTERFACE     UnplugInterface;
+
+	LIST_ENTRY					ListEntry;
 };
 
 //
@@ -445,7 +449,7 @@ XenLowerInit(
         return FALSE;
     }
 
-	DeviceId = 8214;
+	DeviceId = 8216;
 
     status = RtlStringCbPrintfA(
         XenLower->FrontendPath,
@@ -666,7 +670,7 @@ XenLowerConnectEvtChnDPC(
     XENBUS_EVTCHN(Unmask,
         &XenLower->EvtchnInterface,
         XenLower->Channel,
-        FALSE);
+        TRUE);
 
     return TRUE;
 }
@@ -675,8 +679,11 @@ VOID
 XenLowerScheduleEvtChnDPC(
     PXEN_LOWER XenLower)
 {
-    if (!XenLower->Channel)
-        return;
+	if (!XenLower->Channel)
+	{
+		TraceError("request to schedule evtchn dpc, but no channel exists\n");
+		return;
+	}
 
     XENBUS_EVTCHN(Trigger,
             &XenLower->EvtchnInterface,

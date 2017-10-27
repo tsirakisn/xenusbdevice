@@ -24,9 +24,13 @@
 //
 #include "driver.h"
 #include "RootHubPdo.h"
+
+#pragma warning(push, 0)
 #include <hubbusif.h>
 #include <wdmguid.h>
 #include <HubFpIf.h>
+#pragma warning(pop)
+
 //
 /// @todo Bandwidth calculations are currently bogus.
 //

@@ -237,7 +237,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -268,9 +268,10 @@
     <FilesToPackage Include="@(Inf->'%(CopyOutput)')" Condition="'@(Inf)'!=''" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\xenvusb\bus.c" />
     <ClCompile Include="..\..\src\xenvusb\Device.cpp" />
     <ClCompile Include="..\..\src\xenvusb\DevicePdo.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\Driver.cpp" />
+    <ClCompile Include="..\..\src\xenvusb\driver.c" />
     <ClCompile Include="..\..\src\xenvusb\Queue.cpp" />
     <ClCompile Include="..\..\src\xenvusb\RootHubPdo.cpp" />
     <ClCompile Include="..\..\src\xenvusb\thread.c" />
@@ -311,14 +312,12 @@
     <ClInclude Include="..\..\include\xen\public\xen-compat.h" />
     <ClInclude Include="..\..\include\xen\public\xen.h" />
     <ClInclude Include="..\..\src\xenvusb\assert.h" />
-    <ClInclude Include="..\..\src\xenvusb\build_ver.h" />
+    <ClInclude Include="..\..\src\xenvusb\bus.h" />
     <ClInclude Include="..\..\src\xenvusb\dbg_print.h" />
     <ClInclude Include="..\..\src\xenvusb\Device.h" />
     <ClInclude Include="..\..\src\xenvusb\DevicePdo.h" />
     <ClInclude Include="..\..\src\xenvusb\Driver.h" />
-    <ClInclude Include="..\..\src\xenvusb\drv_build.h" />
     <ClInclude Include="..\..\src\xenvusb\Queue.h" />
-    <ClInclude Include="..\..\src\xenvusb\resource.h" />
     <ClInclude Include="..\..\src\xenvusb\RootHubPdo.h" />
     <ClInclude Include="..\..\src\xenvusb\thread.h" />
     <ClInclude Include="..\..\src\xenvusb\Trace.h" />
@@ -326,8 +325,6 @@
     <ClInclude Include="..\..\src\xenvusb\UsbRequest.h" />
     <ClInclude Include="..\..\src\xenvusb\UsbResponse.h" />
     <ClInclude Include="..\..\src\xenvusb\UsbUserKm.h" />
-    <ClInclude Include="..\..\src\xenvusb\vciversion.h" />
-    <ClInclude Include="..\..\src\xenvusb\verrc.h" />
     <ClInclude Include="..\..\src\xenvusb\version.h" />
     <ClInclude Include="..\..\src\xenvusb\xenif.h" />
     <ClInclude Include="..\..\src\xenvusb\xenlower.h" />

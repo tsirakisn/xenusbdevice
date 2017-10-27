@@ -29,29 +29,49 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _XEN_TYPES_H
-#define _XEN_TYPES_H
+#ifndef _XENVUSB_THREAD_H
+#define _XENVUSB_THREAD_H
 
 #pragma warning(push, 0)
 #include <ntddk.h>
 #pragma warning(pop)
 
-// Define types necessary to include xen headers
+typedef struct _XENVUSB_THREAD XENVUSB_THREAD, *PXENVUSB_THREAD;
 
-typedef CHAR    int8_t;
-typedef SHORT   int16_t;
-typedef LONG    int32_t;
-typedef LONG64  int64_t;
+typedef NTSTATUS (*XENVUSB_THREAD_FUNCTION)(PXENVUSB_THREAD, PVOID);
 
-typedef UCHAR   uint8_t;
-typedef USHORT  uint16_t;
-typedef ULONG   uint32_t;
-typedef ULONG64 uint64_t;
+__drv_requiresIRQL(PASSIVE_LEVEL)
+extern NTSTATUS
+ThreadCreate(
+    IN  XENVUSB_THREAD_FUNCTION  Function,
+    IN  PVOID                   Context,
+    OUT PXENVUSB_THREAD          *Thread
+    );
 
-#define offsetof(_type, _field) FIELD_OFFSET(_type, _field)
+extern PKEVENT
+ThreadGetEvent(
+    IN  PXENVUSB_THREAD  Self
+    );
 
-#define xen_mb()    KeMemoryBarrier()
-#define xen_wmb()   KeMemoryBarrier()
-#define xen_rmb()   KememoryBarrier()
+extern BOOLEAN
+ThreadIsAlerted(
+    IN  PXENVUSB_THREAD  Self
+    );
 
-#endif  // _XEN_TYPES_H
+extern VOID
+ThreadWake(
+    IN  PXENVUSB_THREAD  Thread
+    );
+
+extern VOID
+ThreadAlert(
+    IN  PXENVUSB_THREAD  Thread
+    );
+
+extern VOID
+ThreadJoin(
+    IN  PXENVUSB_THREAD  Thread
+    );
+
+#endif  // _XENVUSB_THREAD_H
+

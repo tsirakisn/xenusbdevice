@@ -8,13 +8,12 @@
 /// Context for the Device PDO.
 //
 //
-struct USB_DEVICE_PDO_CONTEXT
+typedef struct _USB_DEVICE_PDO_CONTEXT
 {
     WDFDEVICE                 WdfDevice;
     WDFDEVICE                 Parent;
     WDFQUEUE                  ParentQueue;
-}; 
-typedef USB_DEVICE_PDO_CONTEXT * PUSB_DEVICE_PDO_CONTEXT;
+} USB_DEVICE_PDO_CONTEXT, *PUSB_DEVICE_PDO_CONTEXT;
 //
 // This macro will generate an inline function called DeviceGetContext
 // which will be used to get a pointer to the device context memory

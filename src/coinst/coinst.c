@@ -37,8 +37,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strsafe.h>
-#include <malloc.h>
-#include <assert.h>
 
 #include <suspend_interface.h>
 #include <shared_info_interface.h>

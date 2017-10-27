@@ -24,10 +24,12 @@
 
 #pragma once
 
+#pragma warning(push, 0)
 #include <stdarg.h>
 #pragma warning(push)
 #pragma warning(disable:6011)
 #include <ntstrsafe.h>
+#pragma warning(pop)
 #pragma warning(pop)
 
 typedef enum {

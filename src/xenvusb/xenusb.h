@@ -21,6 +21,8 @@
 // THE SOFTWARE.
 //
 #pragma once
+
+#pragma warning(push, 0)
 #include "usb.h"
 #include <usbiodef.h>
 #include "wdfusb.h"
@@ -28,6 +30,7 @@
 #include <usbdlib.h>
 #undef _USBD_
 #include "usbbusif.h"
+#pragma warning(pop)
 
 // Cannot include this
 // #include <USBProtocolDefs.h>
@@ -81,28 +84,26 @@ typedef enum _XENUSB_SPEED {
 //
 #define USB_STRING_ARRAY_LENGTH (128+1)
 
-struct USB_STRING 
+typedef struct _USB_STRING 
 {
     UCHAR bLength;
     UCHAR bDescriptorType;
     WCHAR sString[USB_STRING_ARRAY_LENGTH];
-};
-typedef USB_STRING * PUSB_STRING;
+} USB_STRING, *PUSB_STRING;
 
 //
 // Support for Microsoft OS Descriptor APIs see usb.h
 //
 // OS_STRING_DESCRIPTOR_INDEX                  0xEE
 // MS_OS_STRING_SIGNATURE                      L"MSFT100"
-struct OS_DESCRIPTOR_STRING
+typedef struct _OS_DESCRIPTOR_STRING
 {
     union 
     {
         OS_STRING  osDescriptor;
         USB_STRING usbString;
     };
-};
-typedef OS_DESCRIPTOR_STRING *POS_DESCRIPTOR_STRING;
+} OS_DESCRIPTOR_STRING, *POS_DESCRIPTOR_STRING;
 
 inline 
 WDF_USB_CONTROL_SETUP_PACKET
@@ -125,32 +126,31 @@ formatOsFeaturePacket(
     return packet;
 }
 
-struct OS_FEATURE_HEADER
+typedef struct _OS_FEATURE_HEADER
 {
     ULONG  dwLength;
     USHORT bcdVersion; // 0x0100
     USHORT wIndex;     // 0x04
     UCHAR  bCount;
     UCHAR  reserved[7];
-};
+} OS_FEATURE_HEADER;
 
-struct OS_COMPATID_FUNCTION
+typedef struct _OS_COMPATID_FUNCTION
 {
     UCHAR bFirstInterfaceNumber;
     UCHAR reserved;
     UCHAR compatibleID[8];
     UCHAR subCompatibleID[8];
     UCHAR reserved2[6];
-};
+} OS_COMPATID_FUNCTION;
 
-struct OS_COMPAT_ID
+typedef struct _OS_COMPAT_ID
 {
     OS_FEATURE_HEADER header;
     OS_COMPATID_FUNCTION functions[1];
-};
-typedef OS_COMPAT_ID *POS_COMPAT_ID;
+} OS_COMPAT_ID, *POS_COMPAT_ID;
 
-struct PIPE_DESCRIPTOR
+typedef struct _PIPE_DESCRIPTOR
 {
     BOOLEAN valid;
     PUSB_INTERFACE_DESCRIPTOR interfaceDescriptor;
@@ -161,10 +161,10 @@ struct PIPE_DESCRIPTOR
     BOOLEAN abortInProgress;
     ULONG abortWaiters;
     KEVENT abortCompleteEvent;
-};
+} PIPE_DESCRIPTOR;
 
 
-struct USB_CONFIG_INFO
+typedef struct _USB_CONFIG_INFO
 {
     PUSB_CONFIGURATION_DESCRIPTOR m_configurationDescriptor;
     ULONG m_numInterfaces;
@@ -182,7 +182,6 @@ struct USB_CONFIG_INFO
     // one for each possible endpoint in each interface and interface alternate.
     //
     PIPE_DESCRIPTOR * m_pipeDescriptors;
-};
-typedef USB_CONFIG_INFO * PUSB_CONFIG_INFO;
+} USB_CONFIG_INFO, *PUSB_CONFIG_INFO;
 
 #define URB_FROM_REQUEST(_r_) (PURB) URB_FROM_IRP(WdfRequestWdmGetIrp(_r_))

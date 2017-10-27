@@ -23,8 +23,8 @@
 // THE SOFTWARE.
 //
 
-typedef struct XEN_INTERFACE * PXEN_INTERFACE;
-typedef struct USB_FDO_CONTEXT *PUSB_FDO_CONTEXT;
+typedef struct _XEN_INTERFACE *PXEN_INTERFACE;
+typedef struct _USB_FDO_CONTEXT *PUSB_FDO_CONTEXT;
 
 typedef VOID EVTCHN_HANDLER_CB(VOID *Context);
 typedef EVTCHN_HANDLER_CB *PEVTCHN_HANDLER_CB;
@@ -40,7 +40,8 @@ DeallocateXenInterface(
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PKSERVICE_ROUTINE DpcCallback);
+    IN PKSERVICE_ROUTINE 
+);
 
 NTSTATUS
 XenDeviceConnectBackend(

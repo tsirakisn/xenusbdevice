@@ -22,11 +22,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#pragma warning(push, 0)
 #include "driver.h"
 #include "UsbConfig.h"
 #include <wdmguid.h>
 #include <devguid.h>
 #include <initguid.h>
+#pragma warning(pop)
+
 #include "RootHubPdo.h"
 
 struct USB_FDO_INTERRUPT_CONTEXT
@@ -174,12 +178,13 @@ QueryShit(WDFDEVICE device, DEVICE_REGISTRY_PROPERTY code, const char *name)
  * 
  */
 NTSTATUS
-FdoEvtDeviceAdd(
-    _In_    WDFDRIVER       Driver,    
-    _Inout_ PWDFDEVICE_INIT DeviceInit 
-    )
+XXX(
+	_In_    WDFDRIVER       Driver,
+	_Inout_ PWDFDEVICE_INIT DeviceInit
+)
 {
-    UNREFERENCED_PARAMETER(Driver);
+	UNREFERENCED_PARAMETER(Driver);
+
     WDF_OBJECT_ATTRIBUTES   attributes;
     NTSTATUS status;
 
@@ -198,15 +203,12 @@ FdoEvtDeviceAdd(
     //
     WDF_PNPPOWER_EVENT_CALLBACKS    pnpPowerCallbacks;
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
-// REMOVEME
-#if 1
 	pnpPowerCallbacks.EvtDevicePrepareHardware = FdoEvtDevicePrepareHardware;
     pnpPowerCallbacks.EvtDeviceReleaseHardware = FdoEvtDeviceReleaseHardware;
     pnpPowerCallbacks.EvtDeviceD0Entry = FdoEvtDeviceD0Entry;
     pnpPowerCallbacks.EvtDeviceD0EntryPostInterruptsEnabled = FdoEvtDeviceD0EntryPostInterruptsEnabled;
     pnpPowerCallbacks.EvtDeviceD0Exit  = FdoEvtDeviceD0Exit;
     pnpPowerCallbacks.EvtDeviceSurpriseRemoval = FdoEvtDeviceSurpriseRemoval;
-#endif    
     WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
     //
     // establish a request context

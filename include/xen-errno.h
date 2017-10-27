@@ -32,7 +32,9 @@
 #ifndef _XEN_ERRNO_H
 #define _XEN_ERRNO_H
 
+#pragma warning(push, 0)
 #include <ntddk.h>
+#pragma warning(pop)
 
 #include <xen/errno.h>
 

@@ -32,7 +32,9 @@
 #ifndef _XEN_H
 #define _XEN_H
 
+#pragma warning(push, 0)
 #include <ntddk.h>
+#pragma warning(pop)
 
 #include <xen-version.h>
 #include <xen-types.h>

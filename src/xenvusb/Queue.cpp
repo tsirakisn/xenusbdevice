@@ -988,8 +988,7 @@ UrbEvtIoInternalDeviceControl(
         if ((!fdoContext->XenConfigured) ||
             (fdoContext->DeviceUnplugged))
         {   
-            if ((gVistaOrLater) ||
-                (IoControlCode != IOCTL_INTERNAL_USB_SUBMIT_URB))
+            if (IoControlCode != IOCTL_INTERNAL_USB_SUBMIT_URB)
             {
                 Status = STATUS_DEVICE_DOES_NOT_EXIST;
             }

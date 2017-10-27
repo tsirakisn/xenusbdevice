@@ -30,11 +30,9 @@
 #include "DevicePdo.h"
 #include <hubbusif.h>
 
-
 #define NO_INTERFACE_LENGTH (ULONG) (sizeof(_URB_SELECT_CONFIGURATION) - sizeof(USBD_INTERFACE_INFORMATION))
-   
 
-struct SCRATCHPAD
+typedef struct _SCRATCHPAD
 {
     PVOID                        Buffer;
     PMDL                         Mdl;
@@ -45,14 +43,14 @@ struct SCRATCHPAD
     XENUSBD_PIPE_COMMAND         Request;
     ULONG                        FrameNumber;
     ULONG                        Data; //!< response from scratch request
-};
+} SCRATCHPAD, *PSCRATCHPAD;
 
 //
 /// The device context performs the same job as
 /// a WDM device extension in the driver frameworks
 //
 //
-struct USB_FDO_CONTEXT
+typedef struct _USB_FDO_CONTEXT
 {
     WDFDEVICE                 WdfDevice;
     // --XT-- WDFINTERRUPT              WdfInterrupt;
@@ -215,7 +213,8 @@ struct USB_FDO_CONTEXT
     ULONG                    maxDpcPasses;
     ULONG                    maxRequestsProcessed;
     ULONG                    maxRequeuedRequestsProcessed;
-}; 
+} USB_FDO_CONTEXT, *PUSB_FDO_CONTEXT;
+
 //
 // This macro will generate an inline function called DeviceGetContext
 // which will be used to get a pointer to the device context memory
@@ -226,12 +225,11 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(USB_FDO_CONTEXT, DeviceGetFdoContext)
 //
 // Request Context
 //
-struct FDO_REQUEST_CONTEXT
+typedef struct _FDO_REQUEST_CONTEXT
 {
     LONG CancelSet;
     LONG RequestCompleted;
-};
-typedef FDO_REQUEST_CONTEXT *PFDO_REQUEST_CONTEXT;
+} FDO_REQUEST_CONTEXT, *PFDO_REQUEST_CONTEXT;
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FDO_REQUEST_CONTEXT, RequestGetRequestContext)
 
 
@@ -245,13 +243,12 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FDO_REQUEST_CONTEXT, RequestGetRequestContext
 //
 /// All WorkItems share a generic context.
 //
-struct USB_FDO_WORK_ITEM_CONTEXT
+typedef struct _USB_FDO_WORK_ITEM_CONTEXT
 {
     PUSB_FDO_CONTEXT    FdoContext; //<! back pointer to device context.
     PFN_WDF_WORKITEM    CallBack;   //<! task specific worker function.
     ULONG_PTR           Params[WORK_ITEM_PARAMS];  //<! task specific parameters.
-};
-typedef USB_FDO_WORK_ITEM_CONTEXT *PUSB_FDO_WORK_ITEM_CONTEXT;
+} USB_FDO_WORK_ITEM_CONTEXT, *PUSB_FDO_WORK_ITEM_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(USB_FDO_WORK_ITEM_CONTEXT, WorkItemGetContext)
 
@@ -281,7 +278,7 @@ EVT_WDF_CHILD_LIST_CREATE_DEVICE FdoEvtChildListCreateDevice;
 NTSTATUS
 SetPdoDescriptors(
     IN PWDFDEVICE_INIT DeviceInit,
-    USB_DEVICE_DESCRIPTOR& descriptor,
+    USB_DEVICE_DESCRIPTOR descriptor,
     PUSB_CONFIGURATION_DESCRIPTOR config,
     PUSB_INTERFACE_DESCRIPTOR interfaceDescriptor,
     POS_COMPAT_ID compatIds);
