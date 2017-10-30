@@ -66,6 +66,14 @@ typedef struct _FDO_DEVICE_CONTEXT
 	XENBUS_UNPLUG_INTERFACE     UnplugInterface;
 
 	PXENBUS_SUSPEND_CALLBACK    SuspendCallbackLate;
+
+	HANDLE						XenstoreWatchThreadHandle;
+	KEVENT                      XenstoreWatchThreadEvent;
+	PXENBUS_STORE_WATCH         XenstoreWatchThreadWatch;
+	BOOLEAN						XenstoreWatchThreadAlert;
+
+	WDFSPINLOCK					XenstoreWatchLock;
+
 } FDO_DEVICE_CONTEXT, *PFDO_DEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FDO_DEVICE_CONTEXT, BusFdoGetContext)
@@ -80,6 +88,12 @@ BusCreatePdo(
 	_In_ PWDFDEVICE_INIT DeviceInit,
 	_In_ ULONG           DeviceId
 );
+
+//EVT_WDF_DEVICE_PREPARE_HARDWARE  BusEvtDevicePrepareHardware;
+//EVT_WDF_DEVICE_RELEASE_HARDWARE  BusEvtDeviceReleaseHardware;
+
+EVT_WDF_DEVICE_D0_ENTRY BusEvtDeviceD0Entry;
+EVT_WDF_DEVICE_D0_EXIT_PRE_INTERRUPTS_DISABLED BusEvtDeviceD0ExitPreInterruptsDisabled;
 
 #if 0
 static BOOLEAN
@@ -280,6 +294,160 @@ BusEvtIoDeviceControl(
 	Trace("<===>\n");
 }
 
+VOID
+BusXenstoreWatchThread(IN WDFDEVICE Device)
+{
+	NTSTATUS					status;
+	PFDO_DEVICE_CONTEXT			Fdo;
+
+	Trace("====>\n");
+
+	Fdo = BusFdoGetContext(Device);
+
+	if (!Fdo)
+	{
+		Error("Failed to retrieve FDO context\n");
+		return;
+	}
+
+	status = XENBUS_STORE(WatchAdd,
+		&Fdo->StoreInterface,
+		"device",
+		"vusb",
+		&Fdo->XenstoreWatchThreadEvent,
+		&Fdo->XenstoreWatchThreadWatch);
+
+	while (!Fdo->XenstoreWatchThreadAlert)
+	{
+		//LARGE_INTEGER Timeout;
+
+		Trace(".\n");
+
+		status = KeWaitForSingleObject(&Fdo->XenstoreWatchThreadEvent,
+			Executive,
+			KernelMode,
+			TRUE,
+			NULL);
+
+		if (status != STATUS_TIMEOUT)
+		{
+			Warning("Timeout on wait?\n");
+		}
+		else if (!NT_SUCCESS(status))
+		{
+			Warning("KeWaitForSingleObject failure: 0x%x", status);
+		}
+
+		WDFCHILDLIST ChildList = WdfFdoGetDefaultChildList(Device);
+		if (!ChildList)
+		{
+			Error("Failed to retrieve default child list.\n");
+			break;
+		}
+
+		BusEvtChildListScanForChildren(ChildList);
+
+		KeClearEvent(&Fdo->XenstoreWatchThreadEvent);
+	}
+
+	(VOID)XENBUS_STORE(WatchRemove,
+		&Fdo->StoreInterface,
+		Fdo->XenstoreWatchThreadWatch);
+	Fdo->XenstoreWatchThreadWatch = NULL;
+
+	Trace("<====\n");
+
+	PsTerminateSystemThread(status);
+}
+
+VOID
+BusDestroyXenstoreWatchThread(IN WDFDEVICE Device)
+{
+	PFDO_DEVICE_CONTEXT			Fdo;
+
+	Trace("====>\n");
+
+	Fdo = BusFdoGetContext(Device);
+
+	if (!Fdo)
+	{
+		Error("Failed to retrieve FDO context\n");
+		return;
+	}
+
+	if (Fdo->XenstoreWatchThreadHandle != NULL)
+	{
+		LARGE_INTEGER Timeout;
+
+		Timeout.QuadPart = 1000;
+
+		// alert thread to exit
+		Fdo->XenstoreWatchThreadAlert = TRUE;
+		KeSetEvent(&Fdo->XenstoreWatchThreadEvent, IO_NO_INCREMENT, FALSE);
+
+		// wait for thread to exit
+		(VOID)KeWaitForSingleObject(Fdo->XenstoreWatchThreadHandle,
+			Executive,
+			KernelMode,
+			FALSE,
+			NULL);
+
+		ObDereferenceObject(Fdo->XenstoreWatchThreadHandle);
+		Fdo->XenstoreWatchThreadHandle = NULL;
+	}
+
+	Trace("<====\n");
+}
+
+NTSTATUS
+BusCreateXenstoreWatchThread(IN WDFDEVICE Device)
+{
+	NTSTATUS					status;
+	PFDO_DEVICE_CONTEXT			Fdo;
+	OBJECT_ATTRIBUTES   ObjectAttributes;
+	HANDLE              ThreadHandle = 0;
+
+	Trace("====>\n");
+
+	Fdo = BusFdoGetContext(Device);
+
+	if (!Fdo)
+	{
+		Error("Failed to retrieve FDO context\n");
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	InitializeObjectAttributes(&ObjectAttributes, NULL,
+		OBJ_KERNEL_HANDLE, NULL, NULL);
+
+	KeInitializeEvent(&Fdo->XenstoreWatchThreadEvent, NotificationEvent, FALSE);
+
+	status = PsCreateSystemThread(&ThreadHandle,
+		THREAD_ALL_ACCESS,
+		&ObjectAttributes,
+		NULL,
+		NULL,
+		BusXenstoreWatchThread,
+		Device);
+	
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to create xenstore watch thread\n");
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	ObReferenceObjectByHandle(ThreadHandle, THREAD_ALL_ACCESS, NULL,
+		KernelMode, (PVOID*)&Fdo->XenstoreWatchThreadHandle, NULL);
+
+	ZwClose(ThreadHandle);
+
+	KeSetEvent(&Fdo->XenstoreWatchThreadEvent, IO_NO_INCREMENT, FALSE);
+
+	Trace("<====\n");
+
+	return STATUS_SUCCESS;
+}
+
 NTSTATUS
 BusEvtDeviceAdd(
 	IN WDFDRIVER        Driver,
@@ -294,6 +462,7 @@ BusEvtDeviceAdd(
 	PNP_BUS_INFORMATION        BusInfo;
 	WDFQUEUE                   Queue;
 	PFDO_DEVICE_CONTEXT		   Fdo;
+	WDF_PNPPOWER_EVENT_CALLBACKS    pnpPowerCallbacks;
 
 	UNREFERENCED_PARAMETER(Driver);
 
@@ -367,6 +536,16 @@ BusEvtDeviceAdd(
 	// for storing device context.
 	//
 	WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attributes, FDO_DEVICE_CONTEXT);
+	//Attributes.EvtCleanupCallback = BusEvtDestroyCallback;
+	Attributes.ExecutionLevel = WdfExecutionLevelDispatch;
+
+	WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
+	//pnpPowerCallbacks.EvtDevicePrepareHardware = BusEvtDevicePrepareHardware;
+	//pnpPowerCallbacks.EvtDeviceReleaseHardware = BusEvtDeviceReleaseHardware;
+	pnpPowerCallbacks.EvtDeviceD0Entry = BusEvtDeviceD0Entry;
+	pnpPowerCallbacks.EvtDeviceD0ExitPreInterruptsDisabled = BusEvtDeviceD0ExitPreInterruptsDisabled;
+
+	WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
 
 	//
 	// Create a framework device object. In response to this call, framework
@@ -463,15 +642,12 @@ BusEvtDeviceAdd(
 
 	Info("successfully acquired xenbus store interface\n");
 
-	//
-	// Check the registry to see if we need to enumerate child devices during
-	// start.
-	//
-	//status = BusDoStaticEnumeration(Device);
+	//BusEvtDevicePrepareHardware(Device, NULL, NULL);
 
 	return status;
 }
 
+#if 0
 NTSTATUS
 BusPlugInDevice(
 	IN WDFDEVICE       Device,
@@ -820,16 +996,14 @@ fail1:
 
 	return NULL;
 }
-
+#endif
 VOID
 BusEvtChildListScanForChildren(
 	_In_ WDFCHILDLIST ChildList
 )
 {
 	NTSTATUS		status;
-	ULONG			Index;
-	ULONG			Count;
-	PANSI_STRING    XenUsbDevices;
+	size_t			Index;
 	PFDO_DEVICE_CONTEXT Fdo;
 	WDFDEVICE       Device;
 	PCHAR           Buffer;
@@ -880,7 +1054,7 @@ BusEvtChildListScanForChildren(
 	{
 		PDO_IDENTIFICATION_DESCRIPTION Description;
 		PCHAR           DeviceString = &Buffer[Index];
-		ULONG			Length;
+		size_t			Length;
 		ULONG			DeviceId;
 
 		if (DeviceString[0] == 0)
@@ -946,7 +1120,7 @@ BusEvtChildListScanForChildren(
 #if 0
 	BusFreeAnsi(XenUsbDevices);
 #endif
-fail:
+
 	XENBUS_STORE(Free,
 		&Fdo->StoreInterface,
 		Buffer);
@@ -1139,6 +1313,47 @@ NT Status code.
 	return status;
 }
 
+NTSTATUS
+BusEvtDeviceD0Entry(
+	_In_ WDFDEVICE Device,
+	IN  WDF_POWER_DEVICE_STATE PreviousState
+)
+{
+	//UNREFERENCED_PARAMETER(ResourcesRaw);
+	//UNREFERENCED_PARAMETER(ResourcesTranslated); 
+	
+	NTSTATUS status;
+
+	Trace("====>\n");
+
+	status = BusCreateXenstoreWatchThread(Device);
+
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to create xenstore watch thread.\n");
+	}
+
+	Trace("<====\n");
+
+	return status;
+}
+
+NTSTATUS
+BusEvtDeviceD0ExitPreInterruptsDisabled(
+	_In_ WDFDEVICE Device,
+	IN  WDF_POWER_DEVICE_STATE TargetState
+)
+{
+//	UNREFERENCED_PARAMETER(ResourcesTranslated);
+
+	Trace("====>\n");
+
+	BusDestroyXenstoreWatchThread(Device);
+
+	Trace("<====\n");
+
+	return STATUS_SUCCESS;
+}
 
 NTSTATUS
 BusCreatePdo(

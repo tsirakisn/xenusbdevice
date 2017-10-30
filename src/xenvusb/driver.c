@@ -73,6 +73,7 @@ DriverEntry(
 
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.EvtCleanupCallback = DriverUnload;
+	//attributes.EvtDestroyCallback = BusEvtDestroyCallback;
 
     WDF_DRIVER_CONFIG_INIT(&config,
 		BusEvtDeviceAdd);

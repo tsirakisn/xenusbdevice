@@ -41,5 +41,7 @@ BusEvtDeviceAdd(
 	IN PWDFDEVICE_INIT  DeviceInit
 );
 
+//EVT_WDF_DEVICE_CONTEXT_DESTROY BusEvtDestroyCallback;
+
 #endif
 
