@@ -132,7 +132,6 @@ PXEN_INTERFACE
 AllocateXenInterface(
 	PUSB_FDO_CONTEXT fdoContext)
 {
-	NTSTATUS status;
 	PXEN_INTERFACE xen = (PXEN_INTERFACE)
 		ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_INTERFACE), XVU9);
 
@@ -152,13 +151,7 @@ AllocateXenInterface(
         return NULL;
     }
 
-done:	
 	return xen;
-
-fail:
-    if (xen)
-        ExFreePool(xen);
-    return NULL;
 }
 
 VOID

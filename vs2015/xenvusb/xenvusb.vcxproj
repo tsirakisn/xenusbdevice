@@ -270,7 +270,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\xenvusb\bus.c" />
     <ClCompile Include="..\..\src\xenvusb\Device.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\DevicePdo.cpp" />
     <ClCompile Include="..\..\src\xenvusb\driver.c" />
     <ClCompile Include="..\..\src\xenvusb\Queue.cpp" />
     <ClCompile Include="..\..\src\xenvusb\RootHubPdo.cpp" />
@@ -315,7 +314,6 @@
     <ClInclude Include="..\..\src\xenvusb\bus.h" />
     <ClInclude Include="..\..\src\xenvusb\dbg_print.h" />
     <ClInclude Include="..\..\src\xenvusb\Device.h" />
-    <ClInclude Include="..\..\src\xenvusb\DevicePdo.h" />
     <ClInclude Include="..\..\src\xenvusb\Driver.h" />
     <ClInclude Include="..\..\src\xenvusb\Queue.h" />
     <ClInclude Include="..\..\src\xenvusb\RootHubPdo.h" />

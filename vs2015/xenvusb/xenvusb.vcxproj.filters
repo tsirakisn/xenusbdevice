@@ -27,9 +27,6 @@
     <ClCompile Include="..\..\src\xenvusb\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\DevicePdo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\xenvusb\Queue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -74,9 +71,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\xenvusb\Device.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\DevicePdo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\xenvusb\Driver.h">
