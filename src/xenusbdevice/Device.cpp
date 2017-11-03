@@ -205,10 +205,12 @@ FdoEvtDeviceAdd(
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
 	pnpPowerCallbacks.EvtDevicePrepareHardware = FdoEvtDevicePrepareHardware;
     pnpPowerCallbacks.EvtDeviceReleaseHardware = FdoEvtDeviceReleaseHardware;
+#if 1
     pnpPowerCallbacks.EvtDeviceD0Entry = FdoEvtDeviceD0Entry;
     pnpPowerCallbacks.EvtDeviceD0EntryPostInterruptsEnabled = FdoEvtDeviceD0EntryPostInterruptsEnabled;
     pnpPowerCallbacks.EvtDeviceD0Exit  = FdoEvtDeviceD0Exit;
     pnpPowerCallbacks.EvtDeviceSurpriseRemoval = FdoEvtDeviceSurpriseRemoval;
+#endif
     WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
     //
     // establish a request context
@@ -307,6 +309,33 @@ FdoEvtDeviceAdd(
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
     RtlZeroMemory(fdoContext, sizeof(USB_FDO_CONTEXT));
     fdoContext->WdfDevice = device;
+
+
+	// STORE_INTERFACE
+	status = WdfFdoQueryForInterface(device,
+		&GUID_XENBUS_STORE_INTERFACE,
+		&fdoContext->StoreInterface.Interface,
+		sizeof(fdoContext->StoreInterface),
+		XENBUS_STORE_INTERFACE_VERSION_MAX,
+		NULL);
+
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to query xenbus store interface: 0x%x\n", status);
+		return STATUS_SUCCESS;
+	}
+
+	status = XENBUS_STORE(Acquire, &fdoContext->StoreInterface);
+
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to acquire xenbus store interface: 0x%x\n", status);
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	Info("successfully acquired xenbus store interface\n");
+
+#if 1
 
 	ULONG Size;
 	status = WdfDeviceQueryProperty(device,
@@ -417,7 +446,7 @@ FdoEvtDeviceAdd(
 
     WDF_OBJECT_ATTRIBUTES_INIT(&timerAttributes);
     timerAttributes.ParentObject = device;
-    timerAttributes.ExecutionLevel = WdfExecutionLevelPassive;
+    timerAttributes.ExecutionLevel = WdfExecutionLevelDispatch;
 
     status = WdfTimerCreate(
         &timerConfig,
@@ -482,6 +511,7 @@ FdoEvtDeviceAdd(
     }
 
     return status;
+#endif
 }
 
 /**
@@ -500,8 +530,7 @@ FdoEvtDeviceContextCleanup (
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
 
-	// REMOVE
-	return;
+#if 1
 
     CleanupDisconnectedDevice(fdoContext);
 
@@ -521,6 +550,7 @@ FdoEvtDeviceContextCleanup (
         ExFreePool(fdoContext->CompatIds);
         fdoContext->CompatIds = NULL;
     }
+#endif
 }
 
 
@@ -536,20 +566,50 @@ FdoEvtDeviceContextCleanup (
  */
 NTSTATUS
 FdoEvtDevicePrepareHardware (
-    _In_ WDFDEVICE,
+    _In_ WDFDEVICE Device,
     WDFCMRESLIST,
     _In_ WDFCMRESLIST)
 {    
-    // --XT-- PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
+	NTSTATUS status;
+	PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
+
+
+	Trace("====>\n");
+
+	// STORE_INTERFACE
+	status = WdfFdoQueryForInterface(Device,
+		&GUID_XENBUS_STORE_INTERFACE,
+		&fdoContext->StoreInterface.Interface,
+		sizeof(fdoContext->StoreInterface),
+		XENBUS_STORE_INTERFACE_VERSION_MAX,
+		NULL);
+
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to query xenbus store interface: 0x%x\n", status);
+		return STATUS_SUCCESS;
+	}
+
+	status = XENBUS_STORE(Acquire, &fdoContext->StoreInterface);
+
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to acquire xenbus store interface: 0x%x\n", status);
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	Info("successfully acquired xenbus store interface\n");
+
     //
     // map the hardware resources
     //
     
     // --XT-- Removed call to MapXenDeviceRegisters and args to this call.
 
+	Trace("<====\n");
     return STATUS_SUCCESS;
 }
 
@@ -570,7 +630,9 @@ FdoEvtDeviceReleaseHardware(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
+#if 1
     FreeUsbConfigData(fdoContext);
+#endif
     return STATUS_SUCCESS;
 }
 
@@ -685,6 +747,8 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
+
+#if 1
     BOOLEAN online = XenCheckOnline(fdoContext->Xen);
 
     if (!online)
@@ -703,6 +767,7 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
         }
         WdfTimerStart(fdoContext->WatchdogTimer, WDF_REL_TIMEOUT_IN_SEC(2));
     }
+#endif
 
     return status;
 }

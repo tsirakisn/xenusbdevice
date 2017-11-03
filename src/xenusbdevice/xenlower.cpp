@@ -645,10 +645,13 @@ XenLowerConnectEvtChnDPC(
         return FALSE;
     }
 
+	KIRQL irql;
+	//KeRaiseIrql(DISPATCH_LEVEL, &irql);
     XENBUS_EVTCHN(Unmask,
         &XenLower->EvtchnInterface,
         XenLower->Channel,
-        TRUE);
+        FALSE);
+	//KeLowerIrql(irql);
 
     return TRUE;
 }

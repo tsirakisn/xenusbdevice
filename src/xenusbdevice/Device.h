@@ -45,6 +45,7 @@ typedef struct _SCRATCHPAD
     ULONG                        Data; //!< response from scratch request
 } SCRATCHPAD, *PSCRATCHPAD;
 
+#include <store_interface.h>
 //
 /// The device context performs the same job as
 /// a WDM device extension in the driver frameworks
@@ -215,6 +216,8 @@ typedef struct _USB_FDO_CONTEXT
     ULONG                    maxDpcPasses;
     ULONG                    maxRequestsProcessed;
     ULONG                    maxRequeuedRequestsProcessed;
+
+	XENBUS_STORE_INTERFACE      StoreInterface;
 } USB_FDO_CONTEXT, *PUSB_FDO_CONTEXT;
 
 //

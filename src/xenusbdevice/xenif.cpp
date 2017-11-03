@@ -484,6 +484,7 @@ XenDeviceInitialize(
             status = STATUS_NO_MEMORY;
             break;
         }
+		RtlZeroMemory(Xen->Shadows, sizeof(usbif_shadow_ex_t)* SHADOW_ENTRIES);
 
         Xen->ShadowFreeList = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool,
             sizeof(USHORT)* SHADOW_ENTRIES,
@@ -495,6 +496,7 @@ XenDeviceInitialize(
             status = STATUS_NO_MEMORY;
             break;
         }
+		RtlZeroMemory(Xen->ShadowFreeList, sizeof(USHORT)* SHADOW_ENTRIES);
 
         //
         // set up the mapping from shadow request to request/respons through
@@ -636,13 +638,17 @@ PutShadowOnFreelist(
 
     if (shadow->isoPacketMdl)
     {
+		Trace("freeing shadow->isoPacketMdl\n");
         IoFreeMdl(shadow->isoPacketMdl);
         shadow->isoPacketMdl = NULL;
+		Trace("freed shadow->isoPacketMdl\n");
     }
     if (shadow->allocatedMdl)
     {
+		Trace("freeing shadow->allocatedMdl\n");
         IoFreeMdl(shadow->allocatedMdl);
         shadow->allocatedMdl = NULL;
+		Trace("freed shadow->allocatedMdl\n");
     }
     if (shadow->isoPacketDescriptor)
     {
