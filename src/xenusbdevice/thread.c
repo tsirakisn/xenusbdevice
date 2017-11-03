@@ -39,8 +39,8 @@
 
 #define THREAD_POOL 'ERHT'
 
-struct _XENVUSB_THREAD {
-    XENVUSB_THREAD_FUNCTION  Function;
+struct _XENUSBDEVICE_THREAD {
+    XENUSBDEVICE_THREAD_FUNCTION  Function;
     PVOID                   Context;
     KEVENT                  Event;
     BOOLEAN                 Alerted;
@@ -66,7 +66,7 @@ __ThreadFree(
 
 static FORCEINLINE VOID
 __ThreadWake(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     KeSetEvent(&Thread->Event, IO_NO_INCREMENT, FALSE);
@@ -74,7 +74,7 @@ __ThreadWake(
 
 VOID
 ThreadWake(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     __ThreadWake(Thread);
@@ -82,7 +82,7 @@ ThreadWake(
 
 static FORCEINLINE VOID
 __ThreadAlert(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     Thread->Alerted = TRUE;
@@ -91,7 +91,7 @@ __ThreadAlert(
 
 VOID
 ThreadAlert(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     __ThreadAlert(Thread);
@@ -104,7 +104,7 @@ ThreadFunction(
     IN  PVOID       Argument
     )
 {
-    PXENVUSB_THREAD  Self = Argument;
+    PXENUSBDEVICE_THREAD  Self = Argument;
     NTSTATUS        status;
 
     status = Self->Function(Self, Self->Context);
@@ -119,9 +119,9 @@ ThreadFunction(
 __drv_requiresIRQL(PASSIVE_LEVEL)
 NTSTATUS
 ThreadCreate(
-    IN  XENVUSB_THREAD_FUNCTION  Function,
+    IN  XENUSBDEVICE_THREAD_FUNCTION  Function,
     IN  PVOID                   Context,
-    OUT PXENVUSB_THREAD          *Thread
+    OUT PXENUSBDEVICE_THREAD          *Thread
     )
 {
     HANDLE                      Handle;
@@ -129,7 +129,7 @@ ThreadCreate(
 
     ASSERT3U(KeGetCurrentIrql(), ==, PASSIVE_LEVEL);
 
-    (*Thread) = __ThreadAllocate(sizeof (XENVUSB_THREAD));
+    (*Thread) = __ThreadAllocate(sizeof (XENUSBDEVICE_THREAD));
 
     status = STATUS_NO_MEMORY;
     if (*Thread == NULL)
@@ -189,7 +189,7 @@ fail1:
 
 PKEVENT
 ThreadGetEvent(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     return &Thread->Event;
@@ -197,7 +197,7 @@ ThreadGetEvent(
 
 BOOLEAN
 ThreadIsAlerted(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     return Thread->Alerted;
@@ -205,7 +205,7 @@ ThreadIsAlerted(
 
 VOID
 ThreadJoin(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     )
 {
     LONG                References;

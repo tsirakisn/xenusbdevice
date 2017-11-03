@@ -20,7 +20,7 @@ def regenerate_kdfiles(filename, arch, pkg, source):
 	file.close()
 
 if __name__ == '__main__':
-	pkg = 'xenvusb'
+	pkg = 'xenusbdevice'
 	source = os.getcwd()
 	regenerate_kdfiles('kdfiles32.txt', 'x86', pkg, source)
 	regenerate_kdfiles('kdfiles64.txt', 'x64', pkg, source)

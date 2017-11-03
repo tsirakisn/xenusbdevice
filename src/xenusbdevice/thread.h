@@ -29,49 +29,49 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _XENVUSB_THREAD_H
-#define _XENVUSB_THREAD_H
+#ifndef _XENUSBDEVICE_THREAD_H
+#define _XENUSBDEVICE_THREAD_H
 
 #pragma warning(push, 0)
 #include <ntddk.h>
 #pragma warning(pop)
 
-typedef struct _XENVUSB_THREAD XENVUSB_THREAD, *PXENVUSB_THREAD;
+typedef struct _XENUSBDEVICE_THREAD XENUSBDEVICE_THREAD, *PXENUSBDEVICE_THREAD;
 
-typedef NTSTATUS (*XENVUSB_THREAD_FUNCTION)(PXENVUSB_THREAD, PVOID);
+typedef NTSTATUS (*XENUSBDEVICE_THREAD_FUNCTION)(PXENUSBDEVICE_THREAD, PVOID);
 
 __drv_requiresIRQL(PASSIVE_LEVEL)
 extern NTSTATUS
 ThreadCreate(
-    IN  XENVUSB_THREAD_FUNCTION  Function,
+    IN  XENUSBDEVICE_THREAD_FUNCTION  Function,
     IN  PVOID                   Context,
-    OUT PXENVUSB_THREAD          *Thread
+    OUT PXENUSBDEVICE_THREAD          *Thread
     );
 
 extern PKEVENT
 ThreadGetEvent(
-    IN  PXENVUSB_THREAD  Self
+    IN  PXENUSBDEVICE_THREAD  Self
     );
 
 extern BOOLEAN
 ThreadIsAlerted(
-    IN  PXENVUSB_THREAD  Self
+    IN  PXENUSBDEVICE_THREAD  Self
     );
 
 extern VOID
 ThreadWake(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     );
 
 extern VOID
 ThreadAlert(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     );
 
 extern VOID
 ThreadJoin(
-    IN  PXENVUSB_THREAD  Thread
+    IN  PXENUSBDEVICE_THREAD  Thread
     );
 
-#endif  // _XENVUSB_THREAD_H
+#endif  // _XENUSBDEVICE_THREAD_H
 

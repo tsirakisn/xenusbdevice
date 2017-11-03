@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 //
 
-#define __DRIVER_NAME "xenvusb"
+#define __DRIVER_NAME "xenusbdevice"
 #include "Driver.h"
 #include "Device.h"
 #include "UsbConfig.h"
@@ -103,6 +103,7 @@ typedef struct _XEN_INTERFACE
     //
     CHAR FrontendPath[XEN_LOWER_MAX_PATH]; // --XT-- pulled out of vectors struct
     CHAR BackendPath[XEN_LOWER_MAX_PATH];  // --XT-- pulled out of vectors struct
+	ULONG DeviceId;
 
     //
     // Xen ringbuffer and grant ref interface.
@@ -351,7 +352,8 @@ XenInterfaceCleanup(
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PKSERVICE_ROUTINE DpcCallback)
+    IN PKSERVICE_ROUTINE DpcCallback,
+	ULONG DeviceId)
 {
     ULONG version;
     NTSTATUS status = STATUS_SUCCESS;
@@ -370,7 +372,8 @@ XenDeviceInitialize(
         }
 
         // Init XenLower
-        rc = XenLowerInit(Xen->XenLower, Xen, pdo, Xen->FdoContext->WdfDevice);
+		Xen->DeviceId = DeviceId;
+		rc = XenLowerInit(Xen->XenLower, Xen, pdo, Xen->FdoContext->WdfDevice, Xen->DeviceId);
         if (!rc)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,

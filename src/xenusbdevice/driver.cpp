@@ -29,6 +29,7 @@
 #include "bus.h"
 #include "dbg_print.h"
 #include "version.h"
+#include "Device.h"
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
@@ -57,10 +58,10 @@ DriverEntry(
 
 	WDF_DRIVER_CONFIG_INIT(
 		&config,
-		BusEvtDeviceAdd
+		FdoEvtDeviceAdd
 	);
 
-	Info("XENVUSB %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
+	Info("XENUSBDEVICE %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
 		MAJOR_VERSION,
 		MINOR_VERSION,
 		MICRO_VERSION,
@@ -76,7 +77,7 @@ DriverEntry(
 	//attributes.EvtDestroyCallback = BusEvtDestroyCallback;
 
     WDF_DRIVER_CONFIG_INIT(&config,
-		BusEvtDeviceAdd);
+		FdoEvtDeviceAdd);
 
     status = WdfDriverCreate(DriverObject,
                              RegistryPath,

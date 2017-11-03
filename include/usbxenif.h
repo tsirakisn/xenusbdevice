@@ -24,7 +24,7 @@
 //
 // turn on ISO support
 //
-#define XENVUSB_ISO 1
+#define XENUSBDEVICE_ISO 1
 //
 // usb specific error codes returned from the backend
 //
@@ -125,7 +125,7 @@ struct usbif_request {
     usbif_request_len_t length;       /* of data not including setup packet  */ 
     uint8_t             nr_segments;  /* number of segments                  */
     uint8_t             flags;        /* 0x01 == SHORT_PACKET_OK             */
-#ifdef XENVUSB_ISO
+#ifdef XENUSBDEVICE_ISO
     uint16_t            nr_packets;
     uint32_t            startframe;
 #else
@@ -150,7 +150,7 @@ struct usbifv2_request {
     usbif_request_len_t length;       /* of data not including setup packet  */ 
     uint8_t             nr_segments;  /* number of segments                  */
     uint8_t             flags;        /* 0x01 == SHORT_PACKET_OK             */
-#ifdef XENVUSB_ISO
+#ifdef XENUSBDEVICE_ISO
     uint16_t            nr_packets;
     uint32_t            startframe;
 #else
@@ -163,7 +163,7 @@ typedef struct usbifv2_request usbifv2_request_t;
 struct usbif_response {
     uint64_t            id;              /* copied from request */
     usbif_request_len_t bytesTransferred; /* for ISO packets - number of error packets */
-#ifdef XENVUSB_ISO  
+#ifdef XENUSBDEVICE_ISO  
     uint32_t            data;      /* for ISO ASAP - the first frame sent */
                                    /* for get speed request - the speed. rename? */
 #endif

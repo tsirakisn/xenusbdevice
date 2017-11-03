@@ -20,7 +20,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\coinst\xenvusb_coinst.def">
+    <None Include="..\..\src\coinst\xenusbdevice.def">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

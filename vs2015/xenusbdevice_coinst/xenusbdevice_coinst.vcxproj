@@ -41,7 +41,7 @@
     <ClCompile Include="..\..\src\coinst\coinst.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\coinst\xenvusb_coinst.def" />
+    <None Include="..\..\src\coinst\xenusbdevice.def" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3DCBF74B-CAD2-49B4-9AC5-13E4844DE9D0}</ProjectGuid>
@@ -50,8 +50,9 @@
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
-    <RootNamespace>xenvusb_coinst</RootNamespace>
+    <RootNamespace>xenusbdevice_coinst</RootNamespace>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+    <ProjectName>xenusbdevice_coinst</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -110,48 +111,48 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenvusb;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\include;..\..\include\xen;..\..\src\xenusbdevice;$(IncludePath)</IncludePath>
     <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
     <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -159,7 +160,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -167,7 +168,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -175,7 +176,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -183,7 +184,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -191,7 +192,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -199,7 +200,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -207,7 +208,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE_COINST";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>

@@ -24,12 +24,12 @@
 #include "Trace.h"
 
 /* TODO the debug level and flag are not really controlling logging
- * behavior outside of the xenvusb device itself. And clearly the routine
+ * behavior outside of the xenusbdevice device itself. And clearly the routine
  * for getting debug settings is a nop ATM.
  */
 ULONG gDebugLevel;
 ULONG gDebugFlag;
-PCHAR gDriverName = "xenvusb";
+PCHAR gDriverName = "xenusbdevice";
 
 void
 GetDebugSettings(IN PUNICODE_STRING RegistryPath)

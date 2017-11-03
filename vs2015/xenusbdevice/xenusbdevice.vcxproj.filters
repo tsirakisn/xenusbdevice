@@ -19,88 +19,75 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="..\xenvusb.inf">
-      <Filter>Driver Files</Filter>
-    </Inf>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\src\xenvusb\Device.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\Queue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\Queue.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\RootHubPdo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\RootHubPdo.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\Trace.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\Trace.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\UsbConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\UsbConfig.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\UsbInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\UsbInterface.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\UsbRequest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\UsbRequest.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\UsbResponse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\UsbResponse.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\xenif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\xenif.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\xenlower.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\xenlower.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\thread.c">
+    <ClCompile Include="..\..\src\xenusbdevice\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\bus.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\xenvusb\driver.c">
+    <ClCompile Include="..\..\src\xenusbdevice\driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\src\xenvusb\xenvusb.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\xenvusb\Device.h">
+    <ClInclude Include="..\..\src\xenusbdevice\Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\Driver.h">
+    <ClInclude Include="..\..\src\xenusbdevice\Driver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\Queue.h">
+    <ClInclude Include="..\..\src\xenusbdevice\Queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\RootHubPdo.h">
+    <ClInclude Include="..\..\src\xenusbdevice\RootHubPdo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\Trace.h">
+    <ClInclude Include="..\..\src\xenusbdevice\Trace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\UsbConfig.h">
+    <ClInclude Include="..\..\src\xenusbdevice\UsbConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\UsbRequest.h">
+    <ClInclude Include="..\..\src\xenusbdevice\UsbRequest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\UsbResponse.h">
+    <ClInclude Include="..\..\src\xenusbdevice\UsbResponse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\UsbUserKm.h">
+    <ClInclude Include="..\..\src\xenusbdevice\UsbUserKm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\xenif.h">
+    <ClInclude Include="..\..\src\xenusbdevice\xenif.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\xenusb.h">
+    <ClInclude Include="..\..\src\xenusbdevice\xenusb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\cache_interface.h">
@@ -151,13 +138,13 @@
     <ClInclude Include="..\..\include\xen-warnings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\dbg_print.h">
+    <ClInclude Include="..\..\src\xenusbdevice\dbg_print.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\version.h">
+    <ClInclude Include="..\..\src\xenusbdevice\version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\xenlower.h">
+    <ClInclude Include="..\..\src\xenusbdevice\xenlower.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\xen\public\errno.h">
@@ -184,20 +171,30 @@
     <ClInclude Include="..\..\include\xen\public\io\xenbus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\thread.h">
+    <ClInclude Include="..\..\src\xenusbdevice\thread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\assert.h">
+    <ClInclude Include="..\..\src\xenusbdevice\assert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\xenvusb\bus.h">
+    <ClInclude Include="..\..\src\xenusbdevice\bus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\xenvusb\Doxyfile" />
+    <None Include="..\..\src\xenusbdevice\Doxyfile" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\src\xenvusb\ReadMe.txt" />
+    <Text Include="..\..\src\xenusbdevice\ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="..\xenusbdevice.inf">
+      <Filter>Driver Files</Filter>
+    </Inf>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\src\xenusbdevice\xenusbdevice.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

@@ -178,7 +178,7 @@ QueryShit(WDFDEVICE device, DEVICE_REGISTRY_PROPERTY code, const char *name)
  * 
  */
 NTSTATUS
-XXX(
+FdoEvtDeviceAdd(
 	_In_    WDFDRIVER       Driver,
 	_Inout_ PWDFDEVICE_INIT DeviceInit
 )
@@ -278,6 +278,7 @@ XXX(
         return status;
     }
 
+#if 0
 	QueryShit(device, DevicePropertyDeviceDescription, "DevicePropertyDeviceDescription");
 	QueryShit(device, DevicePropertyHardwareID, "DevicePropertyHardwareID");
 	QueryShit(device, DevicePropertyCompatibleIDs, "DevicePropertyCompatibleIDs");
@@ -300,12 +301,27 @@ XXX(
 	QueryShit(device, DevicePropertyResourceRequirements, "DevicePropertyResourceRequirements");
 	QueryShit(device, DevicePropertyAllocatedResources, "DevicePropertyAllocatedResources");
 	QueryShit(device, DevicePropertyContainerID, "DevicePropertyContainerID");
-	//return 0;
+#endif
 
 
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
     RtlZeroMemory(fdoContext, sizeof(USB_FDO_CONTEXT));
     fdoContext->WdfDevice = device;
+
+	ULONG Size;
+	status = WdfDeviceQueryProperty(device,
+		DevicePropertyAddress,
+		sizeof(fdoContext->DeviceId),
+		&fdoContext->DeviceId,
+		&Size);
+
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to query device id.\n");
+		return status;
+	}
+
+	Trace("Creating vusb with device id: %lu (0x%x)", fdoContext->DeviceId, fdoContext->DeviceId);
 
     KeInitializeEvent(&fdoContext->resetCompleteEvent, SynchronizationEvent, FALSE);
     //
@@ -716,7 +732,7 @@ XenConfigure(
         return STATUS_UNSUCCESSFUL;
     }
 
-    status = XenDeviceInitialize(fdoContext->Xen, FdoEvtDeviceDpcFunc);
+    status = XenDeviceInitialize(fdoContext->Xen, FdoEvtDeviceDpcFunc, fdoContext->DeviceId);
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,

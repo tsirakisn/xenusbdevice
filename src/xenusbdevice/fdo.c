@@ -72,7 +72,7 @@ typedef struct _FDO_RESOURCE {
     CM_PARTIAL_RESOURCE_DESCRIPTOR Translated;
 } FDO_RESOURCE, *PFDO_RESOURCE;
 
-struct _XENVUSB_FDO {
+struct _XENUSBDEVICE_FDO {
     PXENVIF_DX                  Dx;
     PDEVICE_OBJECT              LowerDeviceObject;
     PDEVICE_OBJECT              PhysicalDeviceObject;

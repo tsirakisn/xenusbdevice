@@ -41,8 +41,9 @@
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
-    <RootNamespace>xenvusb</RootNamespace>
+    <RootNamespace>xenusbdevice</RootNamespace>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+    <ProjectName>xenusbdevice</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -172,7 +173,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -184,7 +185,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -196,7 +197,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -208,7 +209,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -220,7 +221,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -232,7 +233,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -244,7 +245,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -256,11 +257,11 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__MODULE__="XENVUSB";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Inf Include="..\xenvusb.inf" />
+    <Inf Include="..\xenusbdevice.inf" />
   </ItemGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
@@ -268,22 +269,21 @@
     <FilesToPackage Include="@(Inf->'%(CopyOutput)')" Condition="'@(Inf)'!=''" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\xenvusb\bus.c" />
-    <ClCompile Include="..\..\src\xenvusb\Device.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\driver.c" />
-    <ClCompile Include="..\..\src\xenvusb\Queue.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\RootHubPdo.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\thread.c" />
-    <ClCompile Include="..\..\src\xenvusb\Trace.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\UsbConfig.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\UsbInterface.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\UsbRequest.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\UsbResponse.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\xenif.cpp" />
-    <ClCompile Include="..\..\src\xenvusb\xenlower.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\Device.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\driver.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\Queue.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\RootHubPdo.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\thread.c" />
+    <ClCompile Include="..\..\src\xenusbdevice\Trace.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbConfig.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbInterface.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbRequest.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbResponse.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\xenif.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\xenlower.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\src\xenvusb\xenvusb.rc" />
+    <ResourceCompile Include="..\..\src\xenusbdevice\xenusbdevice.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\cache_interface.h" />
@@ -310,29 +310,29 @@
     <ClInclude Include="..\..\include\xen\public\trace.h" />
     <ClInclude Include="..\..\include\xen\public\xen-compat.h" />
     <ClInclude Include="..\..\include\xen\public\xen.h" />
-    <ClInclude Include="..\..\src\xenvusb\assert.h" />
-    <ClInclude Include="..\..\src\xenvusb\bus.h" />
-    <ClInclude Include="..\..\src\xenvusb\dbg_print.h" />
-    <ClInclude Include="..\..\src\xenvusb\Device.h" />
-    <ClInclude Include="..\..\src\xenvusb\Driver.h" />
-    <ClInclude Include="..\..\src\xenvusb\Queue.h" />
-    <ClInclude Include="..\..\src\xenvusb\RootHubPdo.h" />
-    <ClInclude Include="..\..\src\xenvusb\thread.h" />
-    <ClInclude Include="..\..\src\xenvusb\Trace.h" />
-    <ClInclude Include="..\..\src\xenvusb\UsbConfig.h" />
-    <ClInclude Include="..\..\src\xenvusb\UsbRequest.h" />
-    <ClInclude Include="..\..\src\xenvusb\UsbResponse.h" />
-    <ClInclude Include="..\..\src\xenvusb\UsbUserKm.h" />
-    <ClInclude Include="..\..\src\xenvusb\version.h" />
-    <ClInclude Include="..\..\src\xenvusb\xenif.h" />
-    <ClInclude Include="..\..\src\xenvusb\xenlower.h" />
-    <ClInclude Include="..\..\src\xenvusb\xenusb.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\assert.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\bus.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\dbg_print.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Device.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Driver.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Queue.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\RootHubPdo.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\thread.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Trace.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbConfig.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbRequest.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbResponse.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbUserKm.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\version.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\xenif.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\xenlower.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\xenusb.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\xenvusb\Doxyfile" />
+    <None Include="..\..\src\xenusbdevice\Doxyfile" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\src\xenvusb\ReadMe.txt" />
+    <Text Include="..\..\src\xenusbdevice\ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

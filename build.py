@@ -378,7 +378,7 @@ def getVsVersion():
 if __name__ == '__main__':
     debug = { 'checked': True, 'free': False }
     sdv = { 'nosdv': False, None: True }
-    driver = 'xenvusb'
+    driver = 'xenusbdevice'
     vs = getVsVersion()
 
     if 'VENDOR_NAME' not in os.environ.keys():
@@ -432,7 +432,7 @@ if __name__ == '__main__':
     symstore_add(driver, release[vs], 'x64', debug[sys.argv[1]], vs)
 
     if len(sys.argv) <= 2 or sdv[sys.argv[2]]:
-        run_sdv('xenvusb', driver, vs)
+        run_sdv('xenusbdevice', driver, vs)
 
     archive(driver + '\\source.tgz', manifest().splitlines(), tgz=True)
     archive(driver + '.tar', [driver,'revision'])

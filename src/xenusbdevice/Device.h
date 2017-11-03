@@ -56,6 +56,8 @@ typedef struct _USB_FDO_CONTEXT
     // --XT-- WDFINTERRUPT              WdfInterrupt;
     // --XT-- WDFDPC                    WdfDpc;
     CHAR                      FrontEndPath[128];
+	ULONG					  DeviceId;
+
     //
     // Device state
     //
@@ -268,7 +270,7 @@ FreeWorkItem(
 
 EVT_WDF_WORKITEM  EvtFdoDeviceGenericWorkItem;
 
-EVT_WDF_DRIVER_DEVICE_ADD FdoEvtDeviceAdd; 
+EVT_WDF_DRIVER_DEVICE_ADD FdoEvtDeviceAdd;
 
 EVT_WDFDEVICE_WDM_IRP_PREPROCESS  FdoPreProcessQueryInterface;
 

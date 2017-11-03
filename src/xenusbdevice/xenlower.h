@@ -52,7 +52,8 @@ XenLowerInit(
     PXEN_LOWER XenLower,
     PVOID XenUpper,
     PDEVICE_OBJECT Pdo,
-    WDFDEVICE Device);
+    WDFDEVICE Device,
+	ULONG DeviceId);
 
 BOOLEAN
 XenLowerBackendInit(

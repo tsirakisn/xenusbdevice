@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _XENVUSB_DBG_PRINT_H
-#define _XENVUSB_DBG_PRINT_H
+#ifndef _XENUSBDEVICE_DBG_PRINT_H
+#define _XENUSBDEVICE_DBG_PRINT_H
 
 #pragma warning(push, 0)
 #include <stdarg.h>
@@ -151,4 +151,4 @@ __Info(
 #define Info(...)  \
         __Info(__MODULE__ "|"  __FUNCTION__ ": ", __VA_ARGS__)
 
-#endif  // _XENVUSB_DBG_PRINT_H
+#endif  // _XENUSBDEVICE_DBG_PRINT_H

@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _XENVUSB_FDO_H
-#define _XENVUSB_FDO_H
+#ifndef _XENUSBDEVICE_FDO_H
+#define _XENUSBDEVICE_FDO_H
 
 #include <ntddk.h>
 #include <debug_interface.h>
@@ -154,4 +154,4 @@ FdoDestroy(
     IN  PXENVIF_FDO    Fdo
     );
 
-#endif  // _XENVUSB_FDO_H
+#endif  // _XENUSBDEVICE_FDO_H

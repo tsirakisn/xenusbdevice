@@ -11,15 +11,15 @@
 #define MICRO_VERSION		0
 #define MICRO_VERSION_STR	"0"
 
-#define BUILD_NUMBER		1
-#define BUILD_NUMBER_STR	"1"
+#define BUILD_NUMBER		2
+#define BUILD_NUMBER_STR	"2"
 
 #define YEAR			2017
 #define YEAR_STR		"2017"
 
-#define MONTH			10
-#define MONTH_STR		"10"
+#define MONTH			11
+#define MONTH_STR		"11"
 
-#define DAY			12
-#define DAY_STR			"12"
+#define DAY			2
+#define DAY_STR			"2"
 

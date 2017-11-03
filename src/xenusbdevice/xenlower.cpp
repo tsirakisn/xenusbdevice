@@ -88,6 +88,7 @@ struct XEN_LOWER
     CHAR FrontendPath[XEN_LOWER_MAX_PATH];
     CHAR BackendPath[XEN_LOWER_MAX_PATH];
     USHORT BackendDomid;
+	ULONG DeviceId;
 
     PXENBUS_EVTCHN_CHANNEL Channel;
     PXENBUS_GNTTAB_ENTRY SringGrantRef;
@@ -393,18 +394,25 @@ XenLowerInit(
     PXEN_LOWER XenLower,
     PVOID XenUpper,
     PDEVICE_OBJECT Pdo,
-    WDFDEVICE WdfDevice)
+    WDFDEVICE WdfDevice,
+	ULONG DeviceId)
 {
     NTSTATUS status;
-    BUS_INTERFACE_STANDARD BusInterface;
-    USHORT DeviceId = 0;
-    int BytesRead;
+
+	int BytesRead;
 
     XenLower->XenUpper = XenUpper;
     XenLower->Pdo = Pdo;
     XenLower->WdfDevice = WdfDevice;
+	XenLower->DeviceId = DeviceId;
 
-    XenLowerAcquireInterfaces(XenLower);
+	Trace("XenLowerInit for device id = %lu\n", XenLower->DeviceId);
+
+	if (!XenLowerAcquireInterfaces(XenLower))
+	{
+		Error("Failed to acquire xenbus interfaces.\n");
+		return FALSE;
+	}
 
 	status = XENBUS_GNTTAB(CreateCache,
 		&XenLower->GnttabInterface,
@@ -415,47 +423,17 @@ XenLowerInit(
 		XenLower,
 		&XenLower->GnttabCache);
 
-    // Get the BUS_INTERFACE_STANDARD for our device so that we can
-    // read & write to PCI config space.
-    status = WdfFdoQueryForInterface(WdfDevice,
-        &GUID_BUS_INTERFACE_STANDARD,
-        (PINTERFACE)&BusInterface,
-        sizeof(BUS_INTERFACE_STANDARD),
-        1, // Version
-        NULL);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceError("failed to query interface for pci bus\n");
-        return FALSE;
-    }
-
-    Trace("succesfully queried bus interface - reading PCI bus data...\n");
-
-    BytesRead = BusInterface.GetBusData(
-        BusInterface.Context,
-        PCI_WHICHSPACE_CONFIG, //READ
-        &DeviceId,
-        FIELD_OFFSET(PCI_COMMON_HEADER, DeviceID),
-        FIELD_SIZE(PCI_COMMON_HEADER, DeviceID));
-
-    Trace("DeviceId = 0x%x\n", DeviceId);
-
-    // release bus interface
-    BusInterface.InterfaceDereference(BusInterface.Context);
-
-    if (BytesRead != sizeof(DeviceId)) {
-        TraceError("GetBusData failed for DeviceId\n");
-        return FALSE;
-    }
-
-	DeviceId = 8216;
+	if (!NT_SUCCESS(status))
+	{
+		Error("Failed to create gnttab cache.\n");
+		return FALSE;
+	}
 
     status = RtlStringCbPrintfA(
         XenLower->FrontendPath,
         sizeof(XenLower->FrontendPath),
         "device/vusb/%d",
-		DeviceId);
+		XenLower->DeviceId);
 
     if (status != STATUS_SUCCESS)
     {

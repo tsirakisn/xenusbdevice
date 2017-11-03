@@ -21,10 +21,10 @@
 ;
 [Version]
 Signature="$Windows NT$"
-Class=System
-ClassGUID={4d36e97d-e325-11ce-bfc1-08002be10318}
+Class=USB
+ClassGuid={36FC9E60-C465-11CF-8056-444553540000}
 Provider=%Vendor%
-CatalogFile=xenvusb.cat
+CatalogFile=xenusbdevice.cat
 DriverVer=01/01/1900,0.0.0.0
 DriverPackageDisplayName=%DiskDesc%
 
@@ -36,11 +36,11 @@ CoInst_CopyFiles=11
 0=%DiskDesc%
 
 [SourceDisksFiles]
-xenvusb.sys=0,,
-xenvusb_coinst.dll=0,,
+xenusbdevice.sys=0,,
+xenusbdevice_coinst.dll=0,,
 
 [CoInst_CopyFiles]
-xenvusb_coinst_9_0_0_1.dll,xenvusb_coinst.dll
+xenusbdevice_coinst_@MAJOR_VERSION@_@MINOR_VERSION@_@MICRO_VERSION@_@BUILD_NUMBER@.dll,xenusbdevice_coinst.dll
 
 [Manufacturer]
 %Vendor%=Inst,NT$ARCH$
@@ -49,38 +49,39 @@ xenvusb_coinst_9_0_0_1.dll,xenvusb_coinst.dll
 ; DisplayName		Section		DeviceID
 ; -----------		-------		--------
 
-%XenVusbName%		=XenVusb_Inst,	XENBUS\VEN_XP0001&DEV_VUSB&REV_09000002
-%XenVusbName%		=XenVusb_Inst,	XENBUS\VEN_XP0002&DEV_VUSB&REV_09000002
+%XenUsbDeviceName%		=XenUsbDevice_Inst,	XENVUSB\VEN_@VENDOR_PREFIX@@VENDOR_DEVICE_ID@&DEV_VUSB&REV_09000000
+%XenUsbDeviceName%		=XenUsbDevice_Inst,	XENVUSB\VEN_@VENDOR_PREFIX@0001&DEV_VUSB&REV_09000000
+%XenUsbDeviceName%		=XenUsbDevice_Inst,	XENVUSB\VEN_@VENDOR_PREFIX@0002&DEV_VUSB&REV_09000000
 
-[XenVusb_Inst]
-CopyFiles=XenVusb_Copyfiles
+[XenUsbDevice_Inst]
+CopyFiles=XenUsbDevice_Copyfiles
 
-[XenVusb_Copyfiles]
-xenvusb.sys
+[XenUsbDevice_Copyfiles]
+xenusbdevice.sys
 
-[XenVusb_Inst.Services]
-AddService=xenvusb,0x02,XenVusb_Service,
+[XenUsbDevice_Inst.Services]
+AddService=xenusbdevice,0x02,XenUsbDevice_Service,
 
-[XenVusb_Service]
-DisplayName=%XenVusbName%
+[XenUsbDevice_Service]
+DisplayName=%XenUsbDeviceName%
 ServiceType=%SERVICE_KERNEL_DRIVER%
 StartType=%SERVICE_DEMAND_START%
 ErrorControl=%SERVICE_ERROR_NORMAL%
-ServiceBinary=%12%\xenvusb.sys
+ServiceBinary=%12%\xenusbdevice.sys
 LoadOrderGroup = Extended Base
 
-[XenVusb_Inst.CoInstallers]
+[XenUsbDevice_Inst.CoInstallers]
 CopyFiles=CoInst_CopyFiles
 AddReg=CoInst_AddReg
 
 [CoInst_AddReg]
-HKR,,CoInstallers32,0x00010000,"xenvusb_coinst_9_0_0_1.dll,Entry"
+HKR,,CoInstallers32,0x00010000,"xenusbdevice_coinst_@MAJOR_VERSION@_@MINOR_VERSION@_@MICRO_VERSION@_@BUILD_NUMBER@.dll,Entry"
 
 [Strings]
 
-Vendor="Xen Project"
-DiskDesc="Xen PV USB Package"
-XenVusbName="Xen PV USB"
+Vendor="@VENDOR_NAME@"
+DiskDesc="@PRODUCT_NAME@ PV USB Package"
+XenUsbDeviceName="@PRODUCT_NAME@ PV USB"
 
 SERVICE_BOOT_START=0x0
 SERVICE_SYSTEM_START=0x1

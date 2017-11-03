@@ -40,7 +40,8 @@ DeallocateXenInterface(
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PKSERVICE_ROUTINE 
+    IN PKSERVICE_ROUTINE,
+	ULONG DeviceId
 );
 
 NTSTATUS

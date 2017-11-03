@@ -35,10 +35,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\xenvusb\xenvusb.vcxproj">
+    <ProjectReference Include="..\xenusbdevice\xenusbdevice.vcxproj">
       <Project>{faf03749-94fb-4569-be66-ca68149f838e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\xenvusb_coinst\xenvusb_coinst.vcxproj">
+    <ProjectReference Include="..\xenusbdevice_coinst\xenusbdevice_coinst.vcxproj">
       <Project>{3dcbf74b-cad2-49b4-9ac5-13e4844de9d0}</Project>
     </ProjectReference>
   </ItemGroup>
