@@ -344,7 +344,7 @@ XenLowerFree(
 
     XenLowerDisconnectEvtChnDPC(XenLower);
 
-	XenLowerRevokeGrantRef(XenLower);
+    XenLowerRevokeGrantRef(XenLower);
 
     if (XenLower->GnttabCache)
     {
@@ -1057,12 +1057,12 @@ XenLowerDisonnectBackend(
     while (bestate != XenbusStateClosing && bestate != XenbusStateClosed && XenbusStateClosing != XenbusStateUnknown)
     {
         status = XENBUS_STORE(Printf,
-                                       &XenLower->StoreInterface,
-                                       NULL,
-                                       XenLower->FrontendPath,
-                                       "state",
-                                       "%u",
-                                       XenbusStateClosing);
+                              &XenLower->StoreInterface,
+                              NULL,
+                              XenLower->FrontendPath,
+                              "state",
+                              "%u",
+                              XenbusStateClosing);
 
         if (!NT_SUCCESS(status))
         {
@@ -1253,5 +1253,5 @@ XenLowerGetOnline(
     if (state == 1)
         return TRUE;
 
-	return FALSE;
+    return FALSE;
 }
