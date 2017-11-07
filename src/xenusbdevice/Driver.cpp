@@ -23,7 +23,6 @@
 // THE SOFTWARE.
 //
 #include "driver.h"
-#include "resource.h"
 #include "Device.h"
 #include <initguid.h>
 #include <ndisguid.h>
