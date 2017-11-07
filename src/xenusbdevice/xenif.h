@@ -40,7 +40,8 @@ DeallocateXenInterface(
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PEVTCHN_HANDLER_CB DpcCallback);
+    IN PKSERVICE_ROUTINE DpcCallback,
+    IN ULONG DeviceId);
 
 NTSTATUS
 XenDeviceConnectBackend(
