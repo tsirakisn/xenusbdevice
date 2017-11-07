@@ -273,7 +273,6 @@
     <ClCompile Include="..\..\src\xenusbdevice\driver.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\Queue.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\RootHubPdo.cpp" />
-    <ClCompile Include="..\..\src\xenusbdevice\thread.c" />
     <ClCompile Include="..\..\src\xenusbdevice\Trace.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\UsbConfig.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\UsbInterface.cpp" />
