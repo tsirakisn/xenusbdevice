@@ -24,8 +24,10 @@
 //
 #define INITGUID
 
+#pragma warning(push, 0)
 #include <ntddk.h>
 #include <wdf.h>
+#pragma warning(pop)
 
 #include "device.h"
 #include "queue.h"
