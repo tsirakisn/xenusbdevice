@@ -1,0 +1,96 @@
+;
+; Copyright (c) 2014 Citrix Systems, Inc.
+;
+; Permission is hereby granted, free of charge, to any person obtaining a copy
+; of this software and associated documentation files (the "Software"), to deal
+; in the Software without restriction, including without limitation the rights
+; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+; copies of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+;
+; The above copyright notice and this permission notice shall be included in
+; all copies or substantial portions of the Software.
+;
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+; THE SOFTWARE.
+;
+[Version]
+Signature="$Windows NT$"
+Class=USB
+ClassGuid={36FC9E60-C465-11CF-8056-444553540000}
+Provider=%Vendor%
+CatalogFile=xenusbdevice.cat
+DriverVer=01/01/1900,0.0.0.0
+DriverPackageDisplayName=%DiskDesc%
+
+[DestinationDirs]
+DefaultDestDir=12
+CoInst_CopyFiles=11
+
+[SourceDisksNames]
+0=%DiskDesc%
+
+[SourceDisksFiles]
+xenusbdevice.sys=0,,
+xenusbdevice_coinst.dll=0,,
+
+[CoInst_CopyFiles]
+xenusbdevice_coinst_@MAJOR_VERSION@_@MINOR_VERSION@_@MICRO_VERSION@_@BUILD_NUMBER@.dll,xenusbdevice_coinst.dll
+
+[Manufacturer]
+%Vendor%=Inst,NT$ARCH$
+
+[Inst.NT$ARCH$]
+; DisplayName		Section		DeviceID
+; -----------		-------		--------
+
+%XenUsbDeviceName%		=XenUsbDevice_Inst,	XENVUSB\VEN_@VENDOR_PREFIX@@VENDOR_DEVICE_ID@&DEV_VUSB&REV_09000000
+%XenUsbDeviceName%		=XenUsbDevice_Inst,	XENVUSB\VEN_@VENDOR_PREFIX@0001&DEV_VUSB&REV_09000000
+%XenUsbDeviceName%		=XenUsbDevice_Inst,	XENVUSB\VEN_@VENDOR_PREFIX@0002&DEV_VUSB&REV_09000000
+
+[XenUsbDevice_Inst]
+CopyFiles=XenUsbDevice_Copyfiles
+
+[XenUsbDevice_Copyfiles]
+xenusbdevice.sys
+
+[XenUsbDevice_Inst.Services]
+AddService=xenusbdevice,0x02,XenUsbDevice_Service,
+
+[XenUsbDevice_Service]
+DisplayName=%XenUsbDeviceName%
+ServiceType=%SERVICE_KERNEL_DRIVER%
+StartType=%SERVICE_DEMAND_START%
+ErrorControl=%SERVICE_ERROR_NORMAL%
+ServiceBinary=%12%\xenusbdevice.sys
+LoadOrderGroup = Extended Base
+
+[XenUsbDevice_Inst.CoInstallers]
+CopyFiles=CoInst_CopyFiles
+AddReg=CoInst_AddReg
+
+[CoInst_AddReg]
+HKR,,CoInstallers32,0x00010000,"xenusbdevice_coinst_@MAJOR_VERSION@_@MINOR_VERSION@_@MICRO_VERSION@_@BUILD_NUMBER@.dll,Entry"
+
+[Strings]
+
+Vendor="@VENDOR_NAME@"
+DiskDesc="@PRODUCT_NAME@ PV USB Package"
+XenUsbDeviceName="@PRODUCT_NAME@ PV USB"
+
+SERVICE_BOOT_START=0x0
+SERVICE_SYSTEM_START=0x1
+SERVICE_AUTO_START=0x2
+SERVICE_DEMAND_START=0x3
+SERVICE_DISABLED=0x4
+
+SERVICE_KERNEL_DRIVER=0x1
+SERVICE_ERROR_IGNORE=0x0
+SERVICE_ERROR_NORMAL=0x1
+SERVICE_ERROR_SEVERE=0x2
+SERVICE_ERROR_CRITICAL=0x3
