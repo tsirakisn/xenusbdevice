@@ -24,44 +24,44 @@
 //
 // turn on ISO support
 //
-#define XENVUSB_ISO 1
+#define XENUSBDEVICE_ISO 1
 //
 // usb specific error codes returned from the backend
 //
-#define USBIF_RSP_USB_ERROR	-10
+#define USBIF_RSP_USB_ERROR -10
 
-#define USBIF_USB_CANCELED	-1
-#define USBIF_RSP_USB_CANCELED	(USBIF_RSP_USB_ERROR + USBIF_USB_CANCELED)
-#define USBIF_USB_PENDING	-2
-#define USBIF_RSP_USB_PENDING	(USBIF_RSP_USB_ERROR + USBIF_USB_PENDING)
-#define USBIF_USB_PROTO	-3
-#define USBIF_RSP_USB_PROTO	(USBIF_RSP_USB_ERROR + USBIF_USB_PROTO)
-#define USBIF_USB_CRC	-4
-#define USBIF_RSP_USB_CRC	(USBIF_RSP_USB_ERROR + USBIF_USB_CRC)
-#define USBIF_USB_TIMEOUT	-5
-#define USBIF_RSP_USB_TIMEOUT	(USBIF_RSP_USB_ERROR + USBIF_USB_TIMEOUT)
-#define USBIF_USB_STALLED	-6
-#define USBIF_RSP_USB_STALLED	(USBIF_RSP_USB_ERROR + USBIF_USB_STALLED)
-#define USBIF_USB_INBUFF	-7
-#define USBIF_RSP_USB_INBUFF	(USBIF_RSP_USB_ERROR + USBIF_USB_INBUFF)
-#define USBIF_USB_OUTBUFF	-8
-#define USBIF_RSP_USB_OUTBUFF	(USBIF_RSP_USB_ERROR + USBIF_USB_OUTBUFF)
-#define USBIF_USB_OVERFLOW	-9
-#define USBIF_RSP_USB_OVERFLOW	(USBIF_RSP_USB_ERROR + USBIF_USB_OVERFLOW)
-#define USBIF_USB_SHORTPKT	-10
-#define USBIF_RSP_USB_SHORTPKT	(USBIF_RSP_USB_ERROR + USBIF_USB_SHORTPKT)
-#define USBIF_USB_DEVRMVD	-11
-#define USBIF_RSP_USB_DEVRMVD	(USBIF_RSP_USB_ERROR + USBIF_USB_DEVRMVD)
-#define USBIF_USB_PARTIAL	-12
-#define USBIF_RSP_USB_PARTIAL	(USBIF_RSP_USB_ERROR + USBIF_USB_PARTIAL)
-#define USBIF_USB_INVALID	-13
-#define USBIF_RSP_USB_INVALID	(USBIF_RSP_USB_ERROR + USBIF_USB_INVALID)
-#define USBIF_USB_RESET	-14
-#define USBIF_RSP_USB_RESET	(USBIF_RSP_USB_ERROR + USBIF_USB_RESET)
-#define USBIF_USB_SHUTDOWN	-15
-#define USBIF_RSP_USB_SHUTDOWN	(USBIF_RSP_USB_ERROR + USBIF_USB_SHUTDOWN)
-#define USBIF_USB_UNKNOWN	-16
-#define USBIF_RSP_USB_UNKNOWN	(USBIF_RSP_USB_ERROR + USBIF_USB_UNKNOWN)
+#define USBIF_USB_CANCELED  -1
+#define USBIF_RSP_USB_CANCELED  (USBIF_RSP_USB_ERROR + USBIF_USB_CANCELED)
+#define USBIF_USB_PENDING   -2
+#define USBIF_RSP_USB_PENDING   (USBIF_RSP_USB_ERROR + USBIF_USB_PENDING)
+#define USBIF_USB_PROTO -3
+#define USBIF_RSP_USB_PROTO (USBIF_RSP_USB_ERROR + USBIF_USB_PROTO)
+#define USBIF_USB_CRC   -4
+#define USBIF_RSP_USB_CRC   (USBIF_RSP_USB_ERROR + USBIF_USB_CRC)
+#define USBIF_USB_TIMEOUT   -5
+#define USBIF_RSP_USB_TIMEOUT   (USBIF_RSP_USB_ERROR + USBIF_USB_TIMEOUT)
+#define USBIF_USB_STALLED   -6
+#define USBIF_RSP_USB_STALLED   (USBIF_RSP_USB_ERROR + USBIF_USB_STALLED)
+#define USBIF_USB_INBUFF    -7
+#define USBIF_RSP_USB_INBUFF    (USBIF_RSP_USB_ERROR + USBIF_USB_INBUFF)
+#define USBIF_USB_OUTBUFF   -8
+#define USBIF_RSP_USB_OUTBUFF   (USBIF_RSP_USB_ERROR + USBIF_USB_OUTBUFF)
+#define USBIF_USB_OVERFLOW  -9
+#define USBIF_RSP_USB_OVERFLOW  (USBIF_RSP_USB_ERROR + USBIF_USB_OVERFLOW)
+#define USBIF_USB_SHORTPKT  -10
+#define USBIF_RSP_USB_SHORTPKT  (USBIF_RSP_USB_ERROR + USBIF_USB_SHORTPKT)
+#define USBIF_USB_DEVRMVD   -11
+#define USBIF_RSP_USB_DEVRMVD   (USBIF_RSP_USB_ERROR + USBIF_USB_DEVRMVD)
+#define USBIF_USB_PARTIAL   -12
+#define USBIF_RSP_USB_PARTIAL   (USBIF_RSP_USB_ERROR + USBIF_USB_PARTIAL)
+#define USBIF_USB_INVALID   -13
+#define USBIF_RSP_USB_INVALID   (USBIF_RSP_USB_ERROR + USBIF_USB_INVALID)
+#define USBIF_USB_RESET -14
+#define USBIF_RSP_USB_RESET (USBIF_RSP_USB_ERROR + USBIF_USB_RESET)
+#define USBIF_USB_SHUTDOWN  -15
+#define USBIF_RSP_USB_SHUTDOWN  (USBIF_RSP_USB_ERROR + USBIF_USB_SHUTDOWN)
+#define USBIF_USB_UNKNOWN   -16
+#define USBIF_RSP_USB_UNKNOWN   (USBIF_RSP_USB_ERROR + USBIF_USB_UNKNOWN)
 
 
 //
@@ -99,7 +99,7 @@ typedef uint32_t usbif_request_len_t;
 #define INDIRECT_GREF_PAGES 1023
 struct usbif_indirect_page {
     uint32_t          nr_segments; // valid data grefs in this page.
-    grant_ref_t       gref[INDIRECT_GREF_PAGES];  // the data grefs.
+    ULONG             gref[INDIRECT_GREF_PAGES];  // the data grefs.
 };
 typedef struct usbif_indirect_page usbif_indirect_page_t;
 //
@@ -125,13 +125,13 @@ struct usbif_request {
     usbif_request_len_t length;       /* of data not including setup packet  */
     uint8_t             nr_segments;  /* number of segments                  */
     uint8_t             flags;        /* 0x01 == SHORT_PACKET_OK             */
-#ifdef XENVUSB_ISO
+#ifdef XENUSBDEVICE_ISO
     uint16_t            nr_packets;
     uint32_t            startframe;
 #else
     uint16_t            pad;
 #endif
-    grant_ref_t         gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST];
+    ULONG               gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST];
     uint32_t            pad;
 };
 typedef struct usbif_request usbif_request_t;
@@ -150,20 +150,20 @@ struct usbifv2_request {
     usbif_request_len_t length;       /* of data not including setup packet  */
     uint8_t             nr_segments;  /* number of segments                  */
     uint8_t             flags;        /* 0x01 == SHORT_PACKET_OK             */
-#ifdef XENVUSB_ISO
+#ifdef XENUSBDEVICE_ISO
     uint16_t            nr_packets;
     uint32_t            startframe;
 #else
     uint16_t            pad;
 #endif
-    grant_ref_t         gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST_V2];
+    ULONG               gref[USBIF_URB_MAX_SEGMENTS_PER_REQUEST_V2];
 };
 typedef struct usbifv2_request usbifv2_request_t;
 
 struct usbif_response {
     uint64_t            id;              /* copied from request */
     usbif_request_len_t bytesTransferred; /* for ISO packets - number of error packets */
-#ifdef XENVUSB_ISO
+#ifdef XENUSBDEVICE_ISO
     uint32_t            data;      /* for ISO ASAP - the first frame sent */
                                    /* for get speed request - the speed. rename? */
 #endif
