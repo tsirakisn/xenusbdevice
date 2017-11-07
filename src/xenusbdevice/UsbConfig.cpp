@@ -23,8 +23,11 @@
 // THE SOFTWARE.
 //
 #include "Driver.h"
+
+#pragma warning(push, 0)
 #include <hidport.h>
 #include "UsbConfig.h"
+#pragma warning(pop)
 
 //
 // local function declarations
