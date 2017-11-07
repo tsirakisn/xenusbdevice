@@ -11,9 +11,9 @@ use certmgr to install it. (It is not password protected).
 
 xenusbdevice.sys binds to one of three devices which may be created by XenBus:
 
-1. XENUSB\\VEN_XP000&DEV_USB&REV_00000001
-2. XENUSB\\VEN_XP0001&DEV_USB&REV_00000001
-3. XENUSB\\VEN_XP0002&DEV_USB&REV_00000001
+1. XENUSB\\VEN_XP000&DEV_VUSB&REV_00000001
+2. XENUSB\\VEN_XP0001&DEV_VUSB&REV_00000001
+3. XENUSB\\VEN_XP0002&DEV_VUSB&REV_00000001
 
 The particular device present in your VM will be determined by the binding
 of the XenBus driver. The DeviceID of the PCI device to which it is bound is
