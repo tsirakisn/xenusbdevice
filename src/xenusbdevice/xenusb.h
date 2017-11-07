@@ -21,6 +21,8 @@
 // THE SOFTWARE.
 //
 #pragma once
+
+#pragma warning(push, 0)
 #include "usb.h"
 #include <usbiodef.h>
 #include "wdfusb.h"
@@ -28,6 +30,7 @@
 #include <usbdlib.h>
 #undef _USBD_
 #include "usbbusif.h"
+#pragma warning(pop)
 
 // Cannot include this
 // #include <USBProtocolDefs.h>
