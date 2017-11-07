@@ -1,203 +1,114 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Win8 Debug|Win32">
-      <Configuration>Win8 Debug</Configuration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Release|Win32">
-      <Configuration>Win8 Release</Configuration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Debug|Win32">
-      <Configuration>Win7 Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Release|Win32">
-      <Configuration>Win7 Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Vista Debug|Win32">
-      <Configuration>Vista Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Vista Release|Win32">
-      <Configuration>Vista Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Debug|x64">
-      <Configuration>Win8 Debug</Configuration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Release|x64">
-      <Configuration>Win8 Release</Configuration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Debug|x64">
-      <Configuration>Win7 Debug</Configuration>
-      <Platform>x64</Platform>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Release|x64">
-      <Configuration>Win7 Release</Configuration>
-      <Platform>x64</Platform>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Vista Debug|x64">
-      <Configuration>Vista Debug</Configuration>
-      <Platform>x64</Platform>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Vista Release|x64">
-      <Configuration>Vista Release</Configuration>
-      <Platform>x64</Platform>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
     </ProjectConfiguration>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
-    <None Include="Doxyfile" />
-    <None Include="ReadMe.txt" />
-    <None Include="xenvusb.inf" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Device.cpp" />
-    <ClCompile Include="Driver.cpp" />
-    <ClCompile Include="Queue.cpp" />
-    <ClCompile Include="RootHubPdo.cpp" />
-    <ClCompile Include="Trace.cpp" />
-    <ClCompile Include="UsbConfig.cpp" />
-    <ClCompile Include="UsbInterface.cpp" />
-    <ClCompile Include="UsbRequest.cpp" />
-    <ClCompile Include="UsbResponse.cpp" />
-    <ClCompile Include="xenif.cpp" />
-    <ClCompile Include="xenlower.cpp">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Device.h" />
-    <ClInclude Include="Driver.h" />
-    <ClInclude Include="Queue.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="RootHubPdo.h" />
-    <ClInclude Include="Trace.h" />
-    <ClInclude Include="UsbConfig.h" />
-    <ClInclude Include="UsbRequest.h" />
-    <ClInclude Include="UsbResponse.h" />
-    <ClInclude Include="UsbUserKm.h" />
-    <ClInclude Include="xenif.h" />
-    <ClInclude Include="xenlower.h" />
-    <ClInclude Include="xenusb.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{448A24E4-F274-4224-BEE1-77F75836148B}</ProjectGuid>
-    <TemplateGuid>{497e31cb-056b-4f31-abb8-447fd55ee5a5}</TemplateGuid>
+    <ProjectGuid>{FAF03749-94FB-4569-BE66-CA68149F838E}</ProjectGuid>
+    <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
-    <Configuration>Win8 Debug</Configuration>
+    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
+    <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
-  </PropertyGroup>
-  <PropertyGroup Label="Globals">
-    <RootNamespace>xenvusb</RootNamespace>
-    <VCTargetsPath Condition="'$(VCTargetsPath11)' != '' and '$(VisualStudioVersion)' == '11.0'">$(VCTargetsPath11)</VCTargetsPath>
-  </PropertyGroup>
-  <PropertyGroup Label="PropertySheets">
-    <PlatformToolset>WindowsKernelModeDriver8.0</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
+    <RootNamespace>xenusbdevice</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+    <ProjectName>xenusbdevice</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'" Label="Configuration">
-    <TargetVersion>Vista</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'" Label="Configuration">
-    <TargetVersion>Vista</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'" Label="Configuration">
-    <TargetVersion>Vista</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'" Label="Configuration">
-    <TargetVersion>Vista</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
-    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
-    <KMDF_VERSION_MINOR>9</KMDF_VERSION_MINOR>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -206,203 +117,222 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
-  </PropertyGroup>
-  <PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <EnableInf2cat>false</EnableInf2cat>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <EnableInf2cat>false</EnableInf2cat>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <EnableInf2cat>false</EnableInf2cat>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <EnableInf2cat>false</EnableInf2cat>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <EnableInf2cat>false</EnableInf2cat>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <EnableInf2cat>false</EnableInf2cat>
+    <OutDir>..\$(ConfigurationName)\$(Platform)\</OutDir>
+    <IntDir>..\$(ProjectName)\$(ConfigurationName)\$(Platform)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">
-    <IncludePath>..\inc;..\..\inc;$(ProjectDir)\..\..\..\xenhdrs;$(ProjectDir)\..\..\..\inc;$(IncludePath)</IncludePath>
-    <TargetName>xenvusb</TargetName>
-  </PropertyGroup>
-  <ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <WppEnabled>false</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">true</IntrinsicFunctions>
-      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">true</IntrinsicFunctions>
-      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">true</IntrinsicFunctions>
-      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">true</IntrinsicFunctions>
-      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">true</IntrinsicFunctions>
-      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <EnablePREfast Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">true</EnablePREfast>
-      <EnablePREfast Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">true</EnablePREfast>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">_X86_=1;i386=1;STD_CALL;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">_X86_=1;i386=1;STD_CALL;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">_X86_=1;i386=1;STD_CALL;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">_X86_=1;i386=1;STD_CALL;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">_X86_=1;i386=1;STD_CALL;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">_X86_=1;i386=1;STD_CALL;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">_WIN64;_AMD64_;AMD64;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">_WIN64;_AMD64_;AMD64;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">_WIN64;_AMD64_;AMD64;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">_WIN64;_AMD64_;AMD64;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">_WIN64;_AMD64_;AMD64;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">_WIN64;_AMD64_;AMD64;XENTARGET="XENVUSB";XENXT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
     </ClCompile>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\amd64\xenutil.lib;$(ProjectDir)\..\..\..\build\amd64\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\amd64\xenutil.lib;$(ProjectDir)\..\..\..\build\amd64\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\amd64\xenutil.lib;$(ProjectDir)\..\..\..\build\amd64\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\amd64\xenutil.lib;$(ProjectDir)\..\..\..\build\amd64\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\amd64\xenutil.lib;$(ProjectDir)\..\..\..\build\amd64\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\amd64\xenutil.lib;$(ProjectDir)\..\..\..\build\amd64\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\i386\xenutil.lib;$(ProjectDir)\..\..\..\build\i386\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\i386\xenutil.lib;$(ProjectDir)\..\..\..\build\i386\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\i386\xenutil.lib;$(ProjectDir)\..\..\..\build\i386\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\i386\xenutil.lib;$(ProjectDir)\..\..\..\build\i386\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\i386\xenutil.lib;$(ProjectDir)\..\..\..\build\i386\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">RtlVer.lib;Wdmsec.lib;libcntpr.lib;$(ProjectDir)\..\..\..\build\i386\xenutil.lib;$(ProjectDir)\..\..\..\build\i386\xevtchn.lib;</AdditionalDependencies>
-    </Link>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Vista Debug|Win32'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Vista Release|Win32'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Vista Debug|x64'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Vista Release|x64'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
-    <Inf>
-      <KmdfVersionNumber Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">1.9</KmdfVersionNumber>
-      <VersionHeaderPath Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">$(ProjectDir)..\..\..\inc\ver</VersionHeaderPath>
-      <SpecifyDriverVerDirectiveVersion Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">false</SpecifyDriverVerDirectiveVersion>
-    </Inf>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\..\include;..\..\include\xen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__MODULE__="XENUSBDEVICE";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Inf Include="..\xenusbdevice.inf" />
+  </ItemGroup>
+  <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
+    <FilesToPackage Include="$(OutDir)$(TargetName).pdb" />
     <FilesToPackage Include="@(Inf->'%(CopyOutput)')" Condition="'@(Inf)'!=''" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="xenvusb.rc" />
+    <ClCompile Include="..\..\src\xenusbdevice\Device.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\driver.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\Queue.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\RootHubPdo.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\thread.c" />
+    <ClCompile Include="..\..\src\xenusbdevice\Trace.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbConfig.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbInterface.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbRequest.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\UsbResponse.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\xenif.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\xenlower.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="xenvusb64.inf" />
+    <ResourceCompile Include="..\..\src\xenusbdevice\xenusbdevice.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\cache_interface.h" />
+    <ClInclude Include="..\..\include\debug_interface.h" />
+    <ClInclude Include="..\..\include\evtchn_interface.h" />
+    <ClInclude Include="..\..\include\gnttab_interface.h" />
+    <ClInclude Include="..\..\include\HubFpIf.h" />
+    <ClInclude Include="..\..\include\range_set_interface.h" />
+    <ClInclude Include="..\..\include\shared_info_interface.h" />
+    <ClInclude Include="..\..\include\store_interface.h" />
+    <ClInclude Include="..\..\include\suspend_interface.h" />
+    <ClInclude Include="..\..\include\unplug_interface.h" />
+    <ClInclude Include="..\..\include\usbxenif.h" />
+    <ClInclude Include="..\..\include\xen-errno.h" />
+    <ClInclude Include="..\..\include\xen-types.h" />
+    <ClInclude Include="..\..\include\xen-version.h" />
+    <ClInclude Include="..\..\include\xen-warnings.h" />
+    <ClInclude Include="..\..\include\xen.h" />
+    <ClInclude Include="..\..\include\xen\public\errno.h" />
+    <ClInclude Include="..\..\include\xen\public\grant_table.h" />
+    <ClInclude Include="..\..\include\xen\public\io\ring.h" />
+    <ClInclude Include="..\..\include\xen\public\io\usbif.h" />
+    <ClInclude Include="..\..\include\xen\public\io\xenbus.h" />
+    <ClInclude Include="..\..\include\xen\public\trace.h" />
+    <ClInclude Include="..\..\include\xen\public\xen-compat.h" />
+    <ClInclude Include="..\..\include\xen\public\xen.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\assert.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\bus.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\dbg_print.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Device.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Driver.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Queue.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\RootHubPdo.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\thread.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\Trace.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbConfig.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbRequest.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbResponse.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\UsbUserKm.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\version.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\xenif.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\xenlower.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\xenusb.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\xenusbdevice\Doxyfile" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\src\xenusbdevice\ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
