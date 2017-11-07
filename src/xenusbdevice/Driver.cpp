@@ -124,20 +124,20 @@ DriverEntry(
     CHAR * buildType = "Release";
 #endif
 
-	Info("XENUSBDEVICE %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
-		MAJOR_VERSION,
-		MINOR_VERSION,
-		MICRO_VERSION,
-		BUILD_NUMBER,
-		__DATE__,
-		__TIME__,
-		DAY,
-		MONTH,
-		YEAR);
+    Info("XENUSBDEVICE %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
+         MAJOR_VERSION,
+         MINOR_VERSION,
+         MICRO_VERSION,
+         BUILD_NUMBER,
+         __DATE__,
+         __TIME__,
+         DAY,
+         MONTH,
+         YEAR);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER,
-        "DebugLevel %x DebugFlag %x\n",
-        gDebugLevel, gDebugFlag);
+                "DebugLevel %x DebugFlag %x\n",
+                gDebugLevel, gDebugFlag);
 
     //
     // Setup a cleanup callback for the WDFDRIVER object we are creating.
@@ -164,7 +164,7 @@ DriverEntry(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "WdfDriverCreate failed %x\n",
-            status);
+                    status);
         return status;
     }
     return status;
@@ -179,7 +179,7 @@ DriverEntry(
 VOID
 EvtDriverContextCleanup(
     _In_ WDFOBJECT DriverObject
-    )
+)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
