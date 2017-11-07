@@ -27,10 +27,15 @@
 //
 #include "driver.h"
 #include "UsbConfig.h"
+
+#pragma warning(push, 0)
 #include <wdmguid.h>
 #include <devguid.h>
+#include <Usbioctl.h>
+#pragma warning(pop)
+
 #include "RootHubPdo.h"
-#include <Usbioctl.h >
+
 #include "xenusb.h"
 
 //
