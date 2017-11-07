@@ -51,7 +51,9 @@ BOOLEAN
 XenLowerInit(
     PXEN_LOWER XenLower,
     PVOID XenUpper,
-    PDEVICE_OBJECT Pdo);
+    PDEVICE_OBJECT Pdo,
+    WDFDEVICE Device,
+    ULONG DeviceId);
 
 BOOLEAN
 XenLowerBackendInit(
@@ -76,12 +78,12 @@ XenLowerGetBackendPath(
 BOOLEAN
 XenLowerGetSring(
     PXEN_LOWER XenLower,
-    uint32_t Pfn);
+    PFN_NUMBER Pfn);
 
 BOOLEAN
 XenLowerConnectEvtChnDPC(
     PXEN_LOWER XenLower,
-    PEVTCHN_HANDLER_CB DpcCallback,
+    PKSERVICE_ROUTINE DpcCallback,
     VOID *Context);
 
 VOID
@@ -95,7 +97,7 @@ XenLowerDisconnectEvtChnDPC(
 NTSTATUS
 XenLowerConnectBackend(
     PXEN_LOWER XenLower,
-    PRESUME_HANDLER_CB ResumeCallback);
+    XENBUS_SUSPEND_FUNCTION ResumeCallback);
 
 NTSTATUS
 XenLowerResumeConnectBackend(
@@ -112,26 +114,29 @@ XenLowerDisonnectBackend(
 
 NTSTATUS
 XenLowerEvtChnNotify(
-    PVOID Context);
+    PXEN_LOWER XenLower);
 
-grant_ref_t
-XenLowerGntTblGetRef(VOID);
+ULONG
+XenLowerGntTblGetReference(
+    PXEN_LOWER XenLower,
+    PXENBUS_GNTTAB_ENTRY Entry);
 
-grant_ref_t
+PXENBUS_GNTTAB_ENTRY
 XenLowerGntTblGrantAccess(
-    domid_t Domid,
-    uint32_t Frame,
-    int Readonly,
-    grant_ref_t Ref);
+    PXEN_LOWER XenLower,
+    uint16_t Domid,
+    uint32_t Pfn,
+    BOOLEAN Readonly);
 
 BOOLEAN
 XenLowerGntTblEndAccess(
-    grant_ref_t Ref);
+    PXEN_LOWER XenLower,
+    PXENBUS_GNTTAB_ENTRY Entry);
 
-ULONG
+XenbusState
 XenLowerGetBackendState(
-    PVOID Context);
+    PXEN_LOWER Context);
 
 BOOLEAN
 XenLowerGetOnline(
-    PVOID Context);
+    PXEN_LOWER Context);
