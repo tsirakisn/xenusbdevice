@@ -27,7 +27,6 @@
 #include "xenusb.h"
 #include "xenif.h"
 #include <usbioctl.h>
-#include "DevicePdo.h"
 #include <hubbusif.h>
 
 
