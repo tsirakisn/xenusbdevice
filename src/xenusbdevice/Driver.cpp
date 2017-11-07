@@ -28,6 +28,7 @@
 #include <ndisguid.h>
 #include <wdmguid.h>
 #include <string.h>
+#include "version.h"
 
 /** \mainpage XCE Virtual USB Driver.
 
@@ -123,13 +124,17 @@ DriverEntry(
     CHAR * buildType = "Release";
 #endif
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER,
-        "OpenXT Virtual USB Controller Version %s.\n",
-        VER_PRODUCTVERSION_STR);
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER,
-        "%s build created on %s at %s\n",
-        buildType,
-        __DATE__, __TIME__);
+	Info("XENUSBDEVICE %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
+		MAJOR_VERSION,
+		MINOR_VERSION,
+		MICRO_VERSION,
+		BUILD_NUMBER,
+		__DATE__,
+		__TIME__,
+		DAY,
+		MONTH,
+		YEAR);
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER,
         "DebugLevel %x DebugFlag %x\n",
         gDebugLevel, gDebugFlag);
