@@ -12,10 +12,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,21 +24,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
 #define INITGUID
 
+#pragma warning(push, 0)
+#include <xen.h>
+#include "Trace.h"
 #include <ntddk.h>
 #include <wdf.h>
+#include <wdmguid.h>
 #pragma warning(push)
 #pragma warning(disable:6011)
 #include <ntstrsafe.h>
 #pragma warning(pop)
-#include <event_channel.h>
-#include <grant_table.h>
-#include <xenbus.h>
-extern "C" {
-#include <xsapi.h>
-}
+#include <stdlib.h>
+#include <debug_interface.h>
+#include <evtchn_interface.h>
+#include <gnttab_interface.h>
+#include <range_set_interface.h>
+#include <store_interface.h>
+#include <suspend_interface.h>
+#include <unplug_interface.h>
 #include "xenlower.h"
+#include "Driver.h"
+#include "assert.h"
+
+#pragma warning(pop)
 
 #pragma warning(disable : 4127 ) //conditional expression is constant
 
@@ -61,9 +72,9 @@ _XenLowerTraceGref(PCSTR Caller, grant_ref_t greft, GRANT_REF gref)
     grant_ref_t greftun = xen_GRANT_REF(gref);
 
     TraceInfo(("%s: GRANT_REF greft: %d (0x%x) greftun: %d (0x%x) wrapped: %2.2x:%2.2x:%2.2x:%2.2x\n",
-        Caller, greft, greft, greftun, greftun,
-        gref.__wrapped_data[0], gref.__wrapped_data[1],
-        gref.__wrapped_data[2], gref.__wrapped_data[3]));
+               Caller, greft, greft, greftun, greftun,
+               gref.__wrapped_data[0], gref.__wrapped_data[1],
+               gref.__wrapped_data[2], gref.__wrapped_data[3]));
 }
 
 #define XenLowerTraceGref(g1, g2) \
@@ -72,70 +83,239 @@ _XenLowerTraceGref(PCSTR Caller, grant_ref_t greft, GRANT_REF gref)
 #define XenLowerTraceGref(g1, g2) do {} while (FALSE)
 #endif
 
-// Memory Allocators (so we don't have to pull in scsiboot.h)
-extern "C" {
-/* Memory allocation functions */
-PVOID _XmAllocateMemory(size_t size, const char *caller);
-PVOID _XmAllocateZeroedMemory(size_t size, const char *caller);
-
-/* Allocate x bytes of non-paged pool.  Guaranteed to be page aligned
- if x >= PAGE_SIZE. */
-#define XmAllocateMemory(x) _XmAllocateMemory((x), __FUNCTION__)
-
-/* Like XmAllocateMemory(), but zero the memory on success. */
-#define XmAllocateZeroedMemory(x) _XmAllocateZeroedMemory((x), __FUNCTION__)
-
-/* XmFreeMemory(x) releases memory obtained via XmAllocateMemory or
- XmAllocatePhysMemory. */
-VOID XmFreeMemory(PVOID ptr);
-}
-
 struct XEN_LOWER
 {
+    WDFDEVICE WdfDevice;
     PVOID XenUpper;
     PDEVICE_OBJECT Pdo;
     CHAR FrontendPath[XEN_LOWER_MAX_PATH];
     CHAR BackendPath[XEN_LOWER_MAX_PATH];
-    DOMAIN_ID BackendDomid;
-    EVTCHN_PORT EvtchnPort;
-    GRANT_REF SringGrantRef;
-    PRESUME_HANDLER_CB ResumeCallback;
-    struct SuspendHandler *LateSuspendHandler;
+    USHORT BackendDomid;
+    ULONG DeviceId;
+
+    PXENBUS_EVTCHN_CHANNEL Channel;
+    PXENBUS_GNTTAB_ENTRY SringGrantRef;
+    PXENBUS_GNTTAB_CACHE GnttabCache;
+    KSPIN_LOCK                      GnttabLock;
+
+    PXENBUS_SUSPEND_CALLBACK    SuspendCallbackLate;
+    XENBUS_SUSPEND_FUNCTION     ResumeCallback;
+
+    PXENBUS_DEBUG_CALLBACK      DebugCallback;
+
+    XENBUS_DEBUG_INTERFACE      DebugInterface;
+    XENBUS_SUSPEND_INTERFACE    SuspendInterface;
+    XENBUS_EVTCHN_INTERFACE     EvtchnInterface;
+    XENBUS_STORE_INTERFACE      StoreInterface;
+    XENBUS_GNTTAB_INTERFACE     GnttabInterface;
+
+    LIST_ENTRY                  ListEntry;
 };
 
 //
 // Xen Lower helpers
 //
 
-static PCHAR
-XenLowerReadXenstoreValue(
-    PCHAR Path,
-    PCHAR Value)
+static VOID
+XenLowerUnregisterSuspendHandler(
+    PXEN_LOWER XenLower)
 {
-    ULONG plen, vlen;
-    PCHAR path;
-    PCHAR res = NULL;
+    if (!XenLower->SuspendCallbackLate)
+        return;
+
+    XENBUS_SUSPEND(Deregister,
+                   &XenLower->SuspendInterface,
+                   XenLower->SuspendCallbackLate);
+    XenLower->SuspendCallbackLate = NULL;
+}
+
+static VOID
+XenLowerRevokeGrantRef(
+    PXEN_LOWER XenLower)
+{
+    if (!XenLower->SringGrantRef)
+        return;
+
+    XENBUS_GNTTAB(RevokeForeignAccess,
+                  &XenLower->GnttabInterface,
+                  XenLower->GnttabCache,
+                  TRUE,
+                  XenLower->SringGrantRef);
+
+    XenLower->SringGrantRef = NULL;
+}
+
+static BOOLEAN
+XenLowerAcquireInterfaces(
+    PXEN_LOWER XenLower)
+{
     NTSTATUS status;
 
-    plen = (ULONG)strlen(Path);
-    vlen = (ULONG)strlen(Value);
-    path = (PCHAR)XmAllocateMemory(plen + vlen + 2);
-    if (path == NULL)
-    {
-        return NULL;
-    }
+    // DEBUG_INTERFACE
 
-    memcpy(path, Path, plen);
-    path[plen] = '/';
-    memcpy(path + plen + 1, Value, vlen + 1);
-    status = xenbus_read(XBT_NIL, path, &res);
-    XmFreeMemory(path);
+    status = WdfFdoQueryForInterface(XenLower->WdfDevice,
+                                     &GUID_XENBUS_DEBUG_INTERFACE,
+                                     (PINTERFACE)&XenLower->DebugInterface,
+                                     sizeof(XenLower->DebugInterface),
+                                     XENBUS_DEBUG_INTERFACE_VERSION_MAX,
+                                     NULL);
+
     if (!NT_SUCCESS(status))
     {
+        TraceError("Failed to query xenbus debug interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    status = XENBUS_DEBUG(Acquire, &XenLower->DebugInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus debug interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus debug interface\n");
+
+    // EVTCHN_INTERFACE
+
+    status = WdfFdoQueryForInterface(XenLower->WdfDevice,
+                                     &GUID_XENBUS_EVTCHN_INTERFACE,
+                                     (PINTERFACE)&XenLower->EvtchnInterface,
+                                     sizeof(XenLower->EvtchnInterface),
+                                     XENBUS_EVTCHN_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus evtchn interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    status = XENBUS_EVTCHN(Acquire, &XenLower->EvtchnInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus evtchn interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus evtchn interface\n");
+
+    // GNTTAB_INTERFACE
+
+    status = WdfFdoQueryForInterface(XenLower->WdfDevice,
+                                     &GUID_XENBUS_GNTTAB_INTERFACE,
+                                     &XenLower->GnttabInterface.Interface,
+                                     sizeof(XenLower->GnttabInterface),
+                                     XENBUS_GNTTAB_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus gnttab interface: 0x%x\n", status);
         return NULL;
     }
 
-    return res;
+    status = XENBUS_GNTTAB(Acquire, &XenLower->GnttabInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to acquire xenbus gnttab interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus gnttab interface\n");
+
+    // STORE_INTERFACE
+
+    status = WdfFdoQueryForInterface(XenLower->WdfDevice,
+                                     &GUID_XENBUS_STORE_INTERFACE,
+                                     &XenLower->StoreInterface.Interface,
+                                     sizeof(XenLower->StoreInterface),
+                                     XENBUS_STORE_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus store interface: 0x%x\n", status);
+        return NULL;
+    }
+
+    status = XENBUS_STORE(Acquire, &XenLower->StoreInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to acquire xenbus store interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus store interface\n");
+
+    // SUSPEND_INTERFACE
+
+    status = WdfFdoQueryForInterface(XenLower->WdfDevice,
+                                     &GUID_XENBUS_SUSPEND_INTERFACE,
+                                     &XenLower->SuspendInterface.Interface,
+                                     sizeof(XenLower->SuspendInterface),
+                                     XENBUS_SUSPEND_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus suspend interface: 0x%x\n", status);
+        return NULL;
+    }
+
+    status = XENBUS_SUSPEND(Acquire, &XenLower->SuspendInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to acquire xenbus suspend interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus suspend interface\n");
+
+    return TRUE;
+fail:
+    return FALSE;
+}
+
+static VOID
+XenLowerReleaseInterfaces(
+    PXEN_LOWER XenLower)
+{
+    NTSTATUS status;
+
+    // DEBUG_INTERFACE
+
+    XENBUS_DEBUG(Release, &XenLower->DebugInterface);
+
+    Trace("successfully released xenbus debug interface\n");
+
+    // EVTCHN_INTERFACE
+
+    XENBUS_EVTCHN(Release, &XenLower->EvtchnInterface);
+
+    Trace("successfully released xenbus evtchn interface\n");
+
+    // GNTTAB_INTERFACE
+
+    XENBUS_GNTTAB(Release, &XenLower->GnttabInterface);
+
+    Trace("successfully released xenbus gnttab interface\n");
+
+    // STORE_INTERFACE
+
+    XENBUS_STORE(Release, &XenLower->StoreInterface);
+
+    Trace("successfully released xenbus store interface\n");
+
+    // SUSPEND_INTERFACE
+
+    XENBUS_SUSPEND(Release, &XenLower->SuspendInterface);
+
+    Trace("successfully released xenbus suspend interface\n");
 }
 
 //
@@ -147,7 +327,7 @@ XenLowerAlloc(
     VOID)
 {
     PXEN_LOWER p =
-        (PXEN_LOWER)ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_LOWER), '9UVX');
+        (PXEN_LOWER)ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_LOWER), XVU9);
     if (p)
     {
         RtlZeroMemory(p, sizeof(XEN_LOWER));
@@ -160,79 +340,116 @@ XenLowerFree(
     PXEN_LOWER XenLower)
 {
     if (!XenLower)
-    {
         return;
+
+    XenLowerUnregisterSuspendHandler(XenLower);
+
+    XenLowerDisconnectEvtChnDPC(XenLower);
+
+    if (XenLower->GnttabCache)
+    {
+        XENBUS_GNTTAB(DestroyCache,
+                      &XenLower->GnttabInterface,
+                      XenLower->GnttabCache);
+        XenLower->GnttabCache = NULL;
     }
 
-    if (XenLower->LateSuspendHandler)
-    {
-        EvtchnUnregisterSuspendHandler(XenLower->LateSuspendHandler);
-    }
-
-    if (!is_null_EVTCHN_PORT(XenLower->EvtchnPort))
-    {
-        EvtchnPortStop(XenLower->EvtchnPort);
-        EvtchnClose(XenLower->EvtchnPort);
-    }
-
-    if (!is_null_GRANT_REF(XenLower->SringGrantRef))
-    {
-        (VOID)GnttabEndForeignAccess(XenLower->SringGrantRef);
-    }
+    XenLowerReleaseInterfaces(XenLower);
 
     ExFreePool(XenLower);
+}
+
+static VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
+GranterAcquireLock(
+    IN  PVOID       Argument
+)
+{
+    PXEN_LOWER XenLower = (PXEN_LOWER) Argument;
+
+    ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
+    KeAcquireSpinLockAtDpcLevel(&XenLower->GnttabLock);
+}
+
+static VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
+GranterReleaseLock(
+    IN  PVOID       Argument
+)
+{
+    PXEN_LOWER XenLower = (PXEN_LOWER) Argument;
+
+    ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
+#pragma prefast(disable:26110)
+    KeReleaseSpinLockFromDpcLevel(&XenLower->GnttabLock);
 }
 
 BOOLEAN
 XenLowerInit(
     PXEN_LOWER XenLower,
     PVOID XenUpper,
-    PDEVICE_OBJECT Pdo)
+    PDEVICE_OBJECT Pdo,
+    WDFDEVICE WdfDevice,
+    ULONG DeviceId)
 {
-    PCHAR path;
     NTSTATUS status;
+
+    int BytesRead;
 
     XenLower->XenUpper = XenUpper;
     XenLower->Pdo = Pdo;
+    XenLower->WdfDevice = WdfDevice;
+    XenLower->DeviceId = DeviceId;
 
-    //
-    // Wait for xenbus to come up.  SMP guests sometimes try and
-    // initialise xennet and xenvbd in parallel when they come back
-    // from hibernation, and that causes problems.
-    //
+    Trace("XenLowerInit for device id = %lu\n", XenLower->DeviceId);
 
-    if (!xenbus_await_initialisation())
+    if (!XenLowerAcquireInterfaces(XenLower))
     {
-        TraceError((__FUNCTION__ ": xenbus_await_initialisation() failed?\n"));
+        Error("Failed to acquire xenbus interfaces.\n");
         return FALSE;
     }
 
-    path = xenbus_find_frontend(Pdo);
-    if (path == NULL)
+    status = XENBUS_GNTTAB(CreateCache,
+                           &XenLower->GnttabInterface,
+                           "usb_0",
+                           0,
+                           GranterAcquireLock,
+                           GranterReleaseLock,
+                           XenLower,
+                           &XenLower->GnttabCache);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__
-            ": xenbus_find_frontend() failed to return the front end path, fatal.\n"));
+        Error("Failed to create gnttab cache.\n");
         return FALSE;
     }
-    status = RtlStringCchCopyA(XenLower->FrontendPath,
-        sizeof(XenLower->FrontendPath),
-        path);
-    XmFreeMemory(path);
+
+    status = RtlStringCbPrintfA(
+                 XenLower->FrontendPath,
+                 sizeof(XenLower->FrontendPath),
+                 "device/vusb/%d",
+                 XenLower->DeviceId);
+
     if (status != STATUS_SUCCESS)
     {
         XenLower->FrontendPath[0] = 0;
-        TraceError((__FUNCTION__ ": Failed to copy front end path - status: 0x%x\n", status));
+        TraceError("Failed to copy front end path - status: 0x%x\n", status);
         return FALSE;
     }
 
+    Trace("device path: %s\n", XenLower->FrontendPath);
+
     return TRUE;
 }
+
 
 BOOLEAN
 XenLowerBackendInit(
     PXEN_LOWER XenLower)
 {
-    PCHAR path;
+    PCHAR Buffer;
     NTSTATUS status;
 
     // Note this is split from the XenLowerInit so it can be called on the resume
@@ -242,49 +459,63 @@ XenLowerBackendInit(
     // XXX TODO all the backend path handling assumes dom0 is the backend. This will
     // not necessarily be true with device domains. The changes to support this go
     // beyond this module though.
-    path = XenLowerReadXenstoreValue(XenLower->FrontendPath, "backend");
-    if (path == NULL)
+    status = XENBUS_STORE(Read,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->FrontendPath,
+                          "backend",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__
-            ": XenLowerReadXenstoreValue() failed to return the back end path, fatal.\n"));
-        return FALSE;
-    }
-    status = RtlStringCchCopyA(XenLower->BackendPath,
-        sizeof(XenLower->BackendPath),
-        path);
-    XmFreeMemory(path);
-    if (status != STATUS_SUCCESS)
-    {
-        XenLower->BackendPath[0] = 0;
-        TraceError((__FUNCTION__
-            ": Failed to copy back end path - status: 0x%x\n", status));
+        TraceError("XENBUS_STORE READ failed to return the back end path, fatal.\n");
         return FALSE;
     }
 
-    status = xenbus_read_domain_id(XBT_NIL, XenLower->FrontendPath,
-        "backend-id", &XenLower->BackendDomid);
+    status = RtlStringCchCopyA(XenLower->BackendPath,
+                               sizeof(XenLower->BackendPath),
+                               Buffer);
+
+    XENBUS_STORE(Free,
+                 &XenLower->StoreInterface,
+                 Buffer);
+
+    // READ DOMAIN ID
+    status = XENBUS_STORE(Read,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->FrontendPath,
+                          "backend-id",
+                          &Buffer);
+
     if (!NT_SUCCESS(status))
     {
-        TraceWarning((__FUNCTION__
-            ": Failed to read backend id from %s (%x), setting to dom0\n",
-            XenLower->FrontendPath, status));
-        XenLower->BackendDomid = DOMAIN_ID_0();
+        TraceError("XENBUS_STORE READ failed to return the backend-id, fatal.\n");
+        return FALSE;
     }
+
+    if (sscanf_s(Buffer, "%hu", &XenLower->BackendDomid) != 1)
+    {
+        TraceError("failed to parse backend domid\n");
+        return FALSE;
+    }
+
+    XENBUS_STORE(Free,
+                 &XenLower->StoreInterface,
+                 Buffer);
 
     // XXX TODO for now we only support a dom0 backend so check that here. Later
     // when we support a device domain for vusb, other domids will be fine.
     XXX_TODO("--XT-- For now we only support a dom0 backend so check that here");
-    if (unwrap_DOMAIN_ID(XenLower->BackendDomid) != unwrap_DOMAIN_ID(DOMAIN_ID_0()))
+    if (XenLower->BackendDomid != 0)
     {
-        TraceError((XENTARGET
-            ": cannot connect to backend Domid: %d, only dom0 supported currently\n",
-            XenLower->BackendDomid));
+        TraceError("cannot connect to backend Domid: %d, only dom0 supported currently\n",
+                   XenLower->BackendDomid);
         return FALSE;
     }
 
-    TraceInfo((__FUNCTION__
-        ": XenLower initialized - FrontendPath: %s  BackendPath: %s BackendDomid: %d\n",
-        XenLower->FrontendPath, XenLower->BackendPath, unwrap_DOMAIN_ID(XenLower->BackendDomid)));
+    Trace("XenLower initialized - FrontendPath: %s  BackendPath: %s BackendDomid: %hd\n",
+          XenLower->FrontendPath, XenLower->BackendPath, XenLower->BackendDomid);
 
     return TRUE;
 }
@@ -301,35 +532,51 @@ XenLowerInterfaceVersion(
     PXEN_LOWER XenLower)
 {
     NTSTATUS status;
-    PCHAR vstr;
-    int version;
+    ULONG version = 0;
+    PCHAR Buffer;
 
-	vstr = XenLowerReadXenstoreValue(XenLower->BackendPath, "version");
-    if (vstr == NULL)
-    {
-        TraceError((__FUNCTION__\
-            ": XenLowerReadXenstoreValue() failed to return the vusb version.\n"));
-        return 0;
-    }
+    status = XENBUS_STORE(Read,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->BackendPath,
+                          "version",
+                          &Buffer);
 
-    sscanf_s(vstr, "%d", &version);
-    XmFreeMemory(vstr);
-
-    // Need to now write the version we support to the frontend
-    status = xenbus_printf(XBT_NIL, XenLower->FrontendPath,
-        "version", "%d", XEN_LOWER_INTERFACE_VERSION);
     if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__\
-            ": xenbus_printf(frontend/version) failed.\n"));
+        TraceError("XENBUS_STORE READ failed to return the back end version, fatal.\n");
         return 0;
     }
 
-    TraceInfo((__FUNCTION__
-        ": Read backend version: %d  -  Wrote frontend version: %d\n",
-        version, XEN_LOWER_INTERFACE_VERSION));
+    if (sscanf_s(Buffer, "%lu", &version) != 1)
+    {
+        TraceError("failed to parse interface version\n");
+        return 0;
+    }
 
-    return (ULONG)version;
+    XENBUS_STORE(Free,
+                 &XenLower->StoreInterface,
+                 Buffer);
+
+    // Need to now write the version we support to the frontend
+    status = XENBUS_STORE(Printf,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->FrontendPath,
+                          "version",
+                          "%d",
+                          XEN_LOWER_INTERFACE_VERSION);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("xenstore printf for version failed.\n");
+        return 0;
+    }
+
+    Trace("Read backend version: %d  -  Wrote frontend version: %d\n",
+          version, XEN_LOWER_INTERFACE_VERSION);
+
+    return version;
 }
 
 PCHAR
@@ -349,16 +596,22 @@ XenLowerGetBackendPath(
 BOOLEAN
 XenLowerGetSring(
     PXEN_LOWER XenLower,
-    uint32_t Pfn)
+    PFN_NUMBER Pfn)
 {
-    XenLower->SringGrantRef =
-        GnttabGrantForeignAccess(XenLower->BackendDomid,
-        (ULONG_PTR)Pfn,
-        GRANT_MODE_RW);
-    if (is_null_GRANT_REF(XenLower->SringGrantRef))
+    NTSTATUS status;
+
+    status = XENBUS_GNTTAB(PermitForeignAccess,
+                           &XenLower->GnttabInterface,
+                           XenLower->GnttabCache,
+                           TRUE,
+                           XenLower->BackendDomid,
+                           Pfn,
+                           FALSE,
+                           &XenLower->SringGrantRef);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__\
-            ": GnttabGrantForeignAccess() failed to return shared ring grant ref.\n"));
+        TraceError("GnttabGrantForeignAccess() failed to return shared ring grant ref.\n");
         return FALSE;
     }
 
@@ -370,17 +623,32 @@ XenLowerGetSring(
 BOOLEAN
 XenLowerConnectEvtChnDPC(
     PXEN_LOWER XenLower,
-    PEVTCHN_HANDLER_CB DpcCallback,
+    PKSERVICE_ROUTINE DpcCallback,
     VOID *Context)
 {
-    XenLower->EvtchnPort =
-        EvtchnAllocUnboundDpc(XenLower->BackendDomid, DpcCallback, Context);
+    NTSTATUS status;
 
-    if (is_null_EVTCHN_PORT(XenLower->EvtchnPort))
+    XenLower->Channel = XENBUS_EVTCHN(Open,
+                                      &XenLower->EvtchnInterface,
+                                      XENBUS_EVTCHN_TYPE_UNBOUND,
+                                      DpcCallback,
+                                      Context,
+                                      XenLower->BackendDomid,
+                                      FALSE);
+
+    if (XenLower->Channel == NULL)
     {
-        TraceError((__FUNCTION__ ": failed to allocate DPC for Event Channel.\n"));
+        TraceError("failed to allocate DPC for Event Channel.\n");
         return FALSE;
     }
+
+    KIRQL irql;
+
+    XENBUS_EVTCHN(Unmask,
+                  &XenLower->EvtchnInterface,
+                  XenLower->Channel,
+                  FALSE);
+
 
     return TRUE;
 }
@@ -389,37 +657,188 @@ VOID
 XenLowerScheduleEvtChnDPC(
     PXEN_LOWER XenLower)
 {
-    if (!is_null_EVTCHN_PORT(XenLower->EvtchnPort))
+    if (!XenLower->Channel)
     {
-        EvtchnRaiseLocally(XenLower->EvtchnPort);
+        TraceError("request to schedule evtchn dpc, but no channel exists\n");
+        return;
     }
+
+    XENBUS_EVTCHN(Trigger,
+                  &XenLower->EvtchnInterface,
+                  XenLower->Channel);
 }
 
 VOID
 XenLowerDisconnectEvtChnDPC(
     PXEN_LOWER XenLower)
 {
-    if (!is_null_EVTCHN_PORT(XenLower->EvtchnPort))
-    {
-        EvtchnPortStop(XenLower->EvtchnPort);
-        EvtchnClose(XenLower->EvtchnPort);
-        XenLower->EvtchnPort = null_EVTCHN_PORT();
+    if (!XenLower->Channel)
+        return;
+
+    XENBUS_EVTCHN(Close,
+                  &XenLower->EvtchnInterface,
+                  XenLower->Channel);
+
+    XenLower->Channel = NULL;
+}
+
+static VOID
+FrontendWaitForBackendXenbusStateChange(
+    IN      PXEN_LOWER          XenLower,
+    IN OUT  XenbusState         *State
+)
+{
+    KEVENT                      Event;
+    PXENBUS_STORE_WATCH         Watch;
+    LARGE_INTEGER               Start;
+    ULONGLONG                   TimeDelta;
+    LARGE_INTEGER               Timeout;
+    XenbusState                 Old = *State;
+    NTSTATUS                    status;
+
+    Trace("%s: ====> %d\n", XenLower->BackendPath, *State);
+
+    //xxx ASSERT(FrontendIsOnline(Frontend));
+
+    KeInitializeEvent(&Event, NotificationEvent, FALSE);
+
+    status = XENBUS_STORE(WatchAdd,
+                          &XenLower->StoreInterface,
+                          XenLower->BackendPath,
+                          "state",
+                          &Event,
+                          &Watch);
+
+    if (!NT_SUCCESS(status))
+        Watch = NULL;
+
+    KeQuerySystemTime(&Start);
+    TimeDelta = 0;
+
+    Timeout.QuadPart = 0;
+
+    while (*State == Old && TimeDelta < 120000) {
+        PCHAR           Buffer;
+        LARGE_INTEGER   Now;
+
+        if (Watch != NULL) {
+            ULONG   Attempt = 0;
+
+            while (++Attempt < 1000) {
+                status = KeWaitForSingleObject(&Event,
+                                               Executive,
+                                               KernelMode,
+                                               FALSE,
+                                               &Timeout);
+
+                if (status != STATUS_TIMEOUT)
+                    break;
+
+                // We are waiting for a watch event at DISPATCH_LEVEL so
+                // it is our responsibility to poll the store ring.
+                XENBUS_STORE(Poll,
+                             &XenLower->StoreInterface);
+
+                KeStallExecutionProcessor(1000);   // 1ms
+            }
+
+            KeClearEvent(&Event);
+        }
+
+        status = XENBUS_STORE(Read,
+                              &XenLower->StoreInterface,
+                              NULL,
+                              XenLower->BackendPath,
+                              "state",
+                              &Buffer);
+
+        if (!NT_SUCCESS(status)) {
+            *State = XenbusStateUnknown;
+        }
+        else {
+            if (sscanf_s(Buffer, "%d", State) != 1)
+            {
+                TraceError("failed to parse xenbus state\n");
+                continue;
+            }
+
+            XENBUS_STORE(Free,
+                         &XenLower->StoreInterface,
+                         Buffer);
+        }
+
+        KeQuerySystemTime(&Now);
+
+        TimeDelta = (Now.QuadPart - Start.QuadPart) / 10000ull;
     }
+
+    if (Watch != NULL)
+        (VOID) XENBUS_STORE(WatchRemove,
+                            &XenLower->StoreInterface,
+                            Watch);
+
+    Trace("%s: <==== (%d)\n", XenLower->BackendPath, *State);
+}
+
+#if 0
+static VOID
+XenLowerDebugCallback(
+    IN  PVOID               Argument,
+    IN  BOOLEAN             Crashing
+)
+{
+    PXEN_LOWER XenLower = (PXEN_LOWER) Argument;
+
+    XENBUS_DEBUG(Printf,
+                 &XenLower->DebugInterface,
+                 "PATH: %s\n",
+                 XenLower->FrontendPath);
 }
 
 static NTSTATUS
-XenLowerConnectBackendInternal(
-    PXEN_LOWER XenLower,
-    SUSPEND_TOKEN Token)
+XenLowerFrontendConnect(
+    IN  PXEN_LOWER XenLower
+)
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    XENBUS_STATE state;
-    xenbus_transaction_t xbt;
-    PCHAR fepath;
+    XenbusState             State;
+    ULONG                   Attempt;
+    NTSTATUS                status;
 
-    if (is_null_EVTCHN_PORT(XenLower->EvtchnPort))
+    Trace("====>\n");
+
+    status = XENBUS_DEBUG(Acquire, &XenLower->DebugInterface);
+    if (!NT_SUCCESS(status))
+        goto fail1;
+
+    status = XENBUS_DEBUG(Register,
+                          &XenLower->DebugInterface,
+                          __MODULE__ "|FRONTEND",
+                          XenLowerDebugCallback,
+                          XenLower,
+                          &XenLower->DebugCallback);
+
+
+    ///
+
+    XENBUS_DEBUG(Deregister,
+                 &XenLower->DebugInterface,
+                 XenLower->DebugCallback);
+    XenLower->DebugCallback = NULL;
+
+}
+#endif
+
+static NTSTATUS
+XenLowerConnectBackendInternal(
+    PXEN_LOWER XenLower)
+{
+    NTSTATUS                        status = STATUS_SUCCESS;
+    XenbusState                     state;
+    ULONG                           Port;
+
+    if (!XenLower->Channel)
     {
-        TraceError((__FUNCTION__ ": no event channel port, this routine must be called after event channel initialization\n"));
+        TraceError("no event channel port, this routine must be called after event channel initialization\n");
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -428,167 +847,181 @@ XenLowerConnectBackendInternal(
     // Wait for backend to get ready for initialization.
     //
 
-    status = xenbus_change_state(XBT_NIL,
-        XenLower->FrontendPath,
-        "state",
-        XENBUS_STATE_INITIALISING);
+    status = XENBUS_STORE(Printf,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->FrontendPath,
+                          "state",
+                          "%u",
+                          XenbusStateInitialising);
+
     if (!NT_SUCCESS(status))
     {
-        TraceWarning((__FUNCTION__
-            ": Failed to change front end state to XENBUS_STATE_INITIALISING(%d) status: 0x%x\n",
-            XENBUS_STATE_INITIALISING, status));
-        // Go on, best effort, chin up
+        TraceError("Failed to change front end state to XenbusStateInitialising(%d) status: 0x%x\n",
+                   XenbusStateInitialising, status);
+        return STATUS_UNSUCCESSFUL;
     }
 
-    TraceInfo((__FUNCTION__
-        ": Front end state set to XENBUS_STATE_INITIALISING(%d)\n",
-        XENBUS_STATE_INITIALISING));
+    Trace("Front end state set to XenbusStateInitialising(%d)\n", XenbusStateInitialising);
 
-    state = null_XENBUS_STATE();
-    for ( ; ; )
+    for (state = XenbusStateUnknown; state != XenbusStateInitWait; )
     {
-        // Turns out suspend tokens are not even used.
-        state = XenbusWaitForBackendStateChange(XenLower->BackendPath,
-            state, NULL, Token);
+        FrontendWaitForBackendXenbusStateChange(XenLower, &state);
 
-        if (same_XENBUS_STATE(state, XENBUS_STATE_INITWAIT))
+        if (state == XenbusStateClosing || state == XenbusStateUnknown)
         {
-            break;
-        }
-
-        if (same_XENBUS_STATE(state, XENBUS_STATE_CLOSING) ||
-            is_null_XENBUS_STATE(state))
-        {
-            TraceError((__FUNCTION__ ": backend '%s' went away before we could connect to it?\n",
-                XenLower->BackendPath));
-
-            status = STATUS_UNSUCCESSFUL;
-            break;
+            TraceError("backend '%s' went away before we could connect to it?\n", XenLower->BackendPath);
+            return STATUS_UNSUCCESSFUL;
         }
     }
 
-    if (status != STATUS_SUCCESS)
-    {
-        return status;
-    }
+    Trace("Back end state went to XenbusStateInitWait(%d)\n", XenbusStateInitWait);
 
-    TraceInfo((__FUNCTION__
-        ": Back end state went to XENBUS_STATE_INITWAIT(%d)\n",
-        XENBUS_STATE_INITWAIT));
-    
-    //----------------------------Backend Connect---------------------------------//    
+    //----------------------------Backend Connect---------------------------------//
 
     //
     // Communicate configuration to backend.
     //
+    ULONG Attempt = 0;
+    do
+    {
+        PXENBUS_STORE_TRANSACTION   Transaction;
 
-    fepath = XenLower->FrontendPath;
-    do {
-        xenbus_transaction_start(&xbt);
-        xenbus_write_grant_ref(xbt, fepath, "ring-ref", XenLower->SringGrantRef);
-        xenbus_write_evtchn_port(xbt, fepath, "event-channel", XenLower->EvtchnPort);
-        xenbus_change_state(xbt, fepath, "state", XENBUS_STATE_CONNECTED);
-        status = xenbus_transaction_end(xbt, 0);
+        status = XENBUS_STORE(TransactionStart,
+                              &XenLower->StoreInterface,
+                              &Transaction);
+
+        ULONG ref = XENBUS_GNTTAB(GetReference,
+                                  &XenLower->GnttabInterface,
+                                  XenLower->SringGrantRef);
+
+        Trace("ring-ref: %lu\n", ref);
+
+        status = XENBUS_STORE(Printf,
+                              &XenLower->StoreInterface,
+                              Transaction,
+                              XenLower->FrontendPath,
+                              "ring-ref",
+                              "%u",
+                              (int) ref);
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        Port = XENBUS_EVTCHN(GetPort,
+                             &XenLower->EvtchnInterface,
+                             XenLower->Channel);
+
+        status = XENBUS_STORE(Printf,
+                              &XenLower->StoreInterface,
+                              Transaction,
+                              XenLower->FrontendPath,
+                              "event-channel",
+                              "%u",
+                              (int) Port);
+
+        Trace("port: %lu\n", Port);
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        status = XENBUS_STORE(Printf,
+                              &XenLower->StoreInterface,
+                              Transaction,
+                              XenLower->FrontendPath,
+                              "state",
+                              "%u",
+                              XenbusStateConnected);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("Failed to change front end state to XenbusStateConnected(%d) status: 0x%x\n",
+                       XenbusStateConnected, status);
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        if (!NT_SUCCESS(status))
+            goto abort;
+
+        status = XENBUS_STORE(TransactionEnd,
+                              &XenLower->StoreInterface,
+                              Transaction,
+                              TRUE);
+
+        Trace("Transaction End: %d\n", status);
+
+        if (status != STATUS_RETRY || ++Attempt > 1000)
+            break;
+
+        continue;
+
+abort:
+        (VOID)XENBUS_STORE(TransactionEnd,
+                           &XenLower->StoreInterface,
+                           Transaction,
+                           FALSE);
+        break;
     } while (status == STATUS_RETRY);
 
-    if (status != STATUS_SUCCESS)
-    {
-        TraceError((__FUNCTION__ ": failed to configure xenstore frontend values.\n"));
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    TraceInfo((__FUNCTION__
-        ": Front end state set to XENBUS_STATE_CONNECTED(%d)\n",
-        XENBUS_STATE_CONNECTED));
+    Trace("Front end state set to XenbusStateConnected(%d)\n", XenbusStateConnected);
 
     //
     // Wait for backend to accept configuration and complete initialization.
     //
 
-    state = null_XENBUS_STATE();
-    for ( ; ; )
+    for (state = XenbusStateUnknown; state != XenbusStateConnected; )
     {
-        state = XenbusWaitForBackendStateChange(XenLower->BackendPath,
-            state, NULL, Token);
+        FrontendWaitForBackendXenbusStateChange(XenLower, &state);
 
-        if (is_null_XENBUS_STATE(state) ||
-            same_XENBUS_STATE(state, XENBUS_STATE_CLOSING) ||
-            same_XENBUS_STATE(state, XENBUS_STATE_CLOSED))
+        if (state == XenbusStateClosing || state == XenbusStateClosed || state == XenbusStateUnknown)
         {
+            TraceError("Failed to connect '%s' <-> '%s' backend state: %d\n",
+                       XenLower->FrontendPath,
+                       XenLower->BackendPath,
+                       state);
 
-            TraceError((__FUNCTION__ ": Failed to connected '%s' <-> '%s' backend state: %d\n",
-                XenLower->FrontendPath,
-                XenLower->BackendPath,
-                state));
-
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
-
-        if (same_XENBUS_STATE(state, XENBUS_STATE_CONNECTED))
-        {
-            TraceNotice((__FUNCTION__ ": Connected '%s' <-> '%s' \n",
-                XenLower->FrontendPath,
-                XenLower->BackendPath));
-            TraceInfo((__FUNCTION__
-                ": Back end final state went to XENBUS_STATE_CONNECTED(%d)\n",
-                XENBUS_STATE_CONNECTED));
-            break;
+            return STATUS_UNSUCCESSFUL;
         }
     }
 
-    return status;
+    Trace("Connected '%s' <-> '%s' \n", XenLower->FrontendPath, XenLower->BackendPath);
+    return STATUS_SUCCESS;
 }
 
-VOID
-XenLowerResumeLate(
-    PVOID Context,
-    SUSPEND_TOKEN Token)
-{
-    PXEN_LOWER XenLower = (PXEN_LOWER)Context;
-
-    XenLower->ResumeCallback(XenLower, &Token);
-}
-
+// XXX: not even used
 static VOID
 XenLowerRegisterSuspendHandler(
     PXEN_LOWER XenLower,
-    PRESUME_HANDLER_CB ResumeCallback)
+    XENBUS_SUSPEND_FUNCTION ResumeCallback)
 {
-    XenLower->ResumeCallback = ResumeCallback;
+    NTSTATUS status;
 
-    XenLower->LateSuspendHandler =
-        EvtchnRegisterSuspendHandler(XenLowerResumeLate,
-            XenLower,
-            "RestartVusbifLate",
-            SUSPEND_CB_LATE);
-    if (!XenLower->LateSuspendHandler)
+    if (!ResumeCallback)
+        return;
+
+    status = XENBUS_SUSPEND(Register,
+                            &XenLower->SuspendInterface,
+                            SUSPEND_CALLBACK_LATE,
+                            ResumeCallback,
+                            XenLower,
+                            &XenLower->SuspendCallbackLate);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__ ": failed to register suspend handler.\n"));
+        TraceError("failed to register suspend handler.\n");
     }
 }
 
 NTSTATUS
 XenLowerConnectBackend(
     PXEN_LOWER XenLower,
-    PRESUME_HANDLER_CB ResumeCallback)
+    XENBUS_SUSPEND_FUNCTION ResumeCallback)
 {
     NTSTATUS status;
-    SUSPEND_TOKEN token;
 
-    token = EvtchnAllocateSuspendToken("xenvusb");
-    if (is_null_SUSPEND_TOKEN(token))
-    {
-        TraceError((__FUNCTION__ ": failed to get supsend token\n"));
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
+    status = XenLowerConnectBackendInternal(XenLower);
 
-    status = XenLowerConnectBackendInternal(XenLower, token);
-
-    // Register resume callback, already holding a suspend token.
     XenLowerRegisterSuspendHandler(XenLower, ResumeCallback);
-
-    EvtchnReleaseSuspendToken(token);
 
     return status;
 }
@@ -598,62 +1031,73 @@ XenLowerResumeConnectBackend(
     PXEN_LOWER XenLower,
     VOID *Internal)
 {
-    SUSPEND_TOKEN *pt = (SUSPEND_TOKEN*)Internal;
-
-    return XenLowerConnectBackendInternal(XenLower, *pt);
+    return XenLowerConnectBackendInternal(XenLower);
 }
 
 VOID
 XenLowerDisonnectBackend(
     PXEN_LOWER XenLower)
 {
-    SUSPEND_TOKEN token;
-    XENBUS_STATE festate;
-    XENBUS_STATE bestate;
+    NTSTATUS status;
+    XenbusState festate;
+    XenbusState bestate;
 
     if (strlen(XenLower->BackendPath) == 0)
     {
-        TraceError((__FUNCTION__ ": shutting down an adapter %s which wasn't properly created?\n",
-            XenLower->FrontendPath));
-        return;        
+        TraceError("shutting down an adapter %s which wasn't properly created?\n", XenLower->FrontendPath);
+        return;
     }
-
-    // Give disconnect a go even if by some chance we cannot get a token.
-    token = EvtchnAllocateSuspendToken("xenvusb-disconnect");
 
     // Wait for the backend to stabilise before we close it
-    bestate = null_XENBUS_STATE();
-    do {
-        bestate = XenbusWaitForBackendStateChange(XenLower->BackendPath,
-            bestate, NULL, null_SUSPEND_TOKEN());
-    } while (same_XENBUS_STATE(bestate, XENBUS_STATE_INITIALISING));
-
-    // Now close the frontend
-    festate = XENBUS_STATE_CLOSING;
-    while (!same_XENBUS_STATE(bestate, XENBUS_STATE_CLOSING) &&
-           !same_XENBUS_STATE(bestate, XENBUS_STATE_CLOSED) &&
-           !is_null_XENBUS_STATE(bestate))
+    bestate = XenbusStateUnknown;
+    for (bestate = XenbusStateUnknown; bestate != XenbusStateInitialising; )
     {
-        xenbus_change_state(XBT_NIL, XenLower->FrontendPath, "state", festate);
-        bestate = XenbusWaitForBackendStateChange(XenLower->BackendPath,
-            bestate, NULL, null_SUSPEND_TOKEN());
+        FrontendWaitForBackendXenbusStateChange(XenLower, &bestate);
     }
 
-    festate = XENBUS_STATE_CLOSED;
-    while (!same_XENBUS_STATE(bestate, XENBUS_STATE_CLOSED) &&
-           !is_null_XENBUS_STATE(bestate))
+    // Now close the frontend
+    festate = XenbusStateClosing;
+    while (bestate != XenbusStateClosing && bestate != XenbusStateClosed && XenbusStateClosing != XenbusStateUnknown)
     {
-        xenbus_change_state(XBT_NIL, XenLower->FrontendPath, "state", festate);
-        bestate = XenbusWaitForBackendStateChange(XenLower->BackendPath,
-            bestate, NULL, null_SUSPEND_TOKEN());
+        NTSTATUS status = XENBUS_STORE(Printf,
+                                       &XenLower->StoreInterface,
+                                       NULL,
+                                       XenLower->FrontendPath,
+                                       "state",
+                                       "%u",
+                                       XenbusStateClosing);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("Failed to change front end state to XenbusStateClosing(%d) status: 0x%x\n",
+                       XenbusStateClosing, status);
+        }
+
+        FrontendWaitForBackendXenbusStateChange(XenLower, &bestate);
+    }
+
+    festate = XenbusStateClosed;
+    while (bestate != XenbusStateClosed && XenbusStateClosing != XenbusStateUnknown)
+    {
+        status = XENBUS_STORE(Printf,
+                              &XenLower->StoreInterface,
+                              NULL,
+                              XenLower->FrontendPath,
+                              "state",
+                              "%u",
+                              XenbusStateClosed);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("Failed to change front end state to XenbusStateClosed(%d) status: 0x%x\n",
+                       XenbusStateClosed, status);
+        }
+
+        FrontendWaitForBackendXenbusStateChange(XenLower, &bestate);
     }
 
     // Unhook this here since there will be no reconnecting at this point.
-    if (XenLower->LateSuspendHandler)
-    {
-        EvtchnUnregisterSuspendHandler(XenLower->LateSuspendHandler);
-        XenLower->LateSuspendHandler = NULL;
-    }
+    XenLowerUnregisterSuspendHandler(XenLower);
 
     // Clear the XenLower->BackendPath which sort of indicates shutdown or
     // not properly initialized.
@@ -661,11 +1105,6 @@ XenLowerDisonnectBackend(
     // --XT-- keep backend path, useful on resume to check whether device was
     //        unplugged during suspend
     // memset(&XenLower->BackendPath[0], 0, XEN_LOWER_MAX_PATH);
-
-    if (!is_null_SUSPEND_TOKEN(token))
-    {
-        EvtchnReleaseSuspendToken(token);
-    }
 }
 
 //
@@ -674,132 +1113,145 @@ XenLowerDisonnectBackend(
 
 NTSTATUS
 XenLowerEvtChnNotify(
-    PVOID Context)
+    PXEN_LOWER XenLower)
 {
-    PXEN_LOWER XenLower = (PXEN_LOWER)Context;
-
-    if (is_null_EVTCHN_PORT(XenLower->EvtchnPort))
+    if (!XenLower->Channel)
     {
-        TraceError((__FUNCTION__ ": no event channel port, cannot notory anything.\n"));
+        TraceError("no event channel port, cannot notify anything.\n");
         return STATUS_UNSUCCESSFUL;
     }
 
-    EvtchnNotifyRemote(XenLower->EvtchnPort);
+    XENBUS_EVTCHN(Send,
+                  &XenLower->EvtchnInterface,
+                  XenLower->Channel);
 
     return STATUS_SUCCESS;
 }
 
-grant_ref_t
-XenLowerGntTblGetRef(VOID)
+ULONG
+XenLowerGntTblGetReference(
+    PXEN_LOWER XenLower,
+    PXENBUS_GNTTAB_ENTRY Entry)
 {
-    GRANT_REF gref;
-    grant_ref_t greft;
-    
-    gref = GnttabGetGrantRef();
-    greft = xen_GRANT_REF(gref);
-    if (greft == xen_GRANT_REF(null_GRANT_REF()))
-    {
-        TraceError((__FUNCTION__ ": failed to get free grant ref.\n"));
-        return INVALID_GRANT_REF;
-    }
-
-    XenLowerTraceGref(greft, gref);
-
-    return greft;
+    return XENBUS_GNTTAB(GetReference,
+                         &XenLower->GnttabInterface,
+                         Entry);
 }
 
-grant_ref_t
+PXENBUS_GNTTAB_ENTRY
 XenLowerGntTblGrantAccess(
+    PXEN_LOWER XenLower,
     uint16_t Domid,
-    uint32_t Frame,
-    int Readonly,
-    grant_ref_t Ref)
+    uint32_t Pfn,
+    BOOLEAN Readonly)
 {
-    GRANT_MODE mode = (Readonly ? GRANT_MODE_RO : GRANT_MODE_RW);
-    DOMAIN_ID domain = wrap_DOMAIN_ID(Domid);
-    GRANT_REF gref = wrap_GRANT_REF(Ref, 0);
+    NTSTATUS status;
+    PXENBUS_GNTTAB_ENTRY entry;
 
-    if (Ref == INVALID_GRANT_REF)
+    status = XENBUS_GNTTAB(PermitForeignAccess,
+                           &XenLower->GnttabInterface,
+                           XenLower->GnttabCache,
+                           TRUE,
+                           Domid,
+                           Pfn,
+                           Readonly,
+                           &entry);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__ ": invalid grant ref specified, cannot continue.\n"));
-        return INVALID_GRANT_REF;
+        TraceError("failed to permit foreign access for pfn=0x%x\n", Pfn);
+        return NULL;
     }
 
-    XenLowerTraceGref(Ref, gref);
-
-    GnttabGrantForeignAccessRef(domain, (PFN_NUMBER)Frame, mode, gref);
-
-    return Ref;
+    return entry;
 }
 
 BOOLEAN
 XenLowerGntTblEndAccess(
-    grant_ref_t Ref)
+    PXEN_LOWER XenLower,
+    PXENBUS_GNTTAB_ENTRY Entry)
 {
     NTSTATUS status;
-    GRANT_REF gref = wrap_GRANT_REF(Ref, 0);
 
-    // Note that the only call this callback passes FALSE for keepref
-    // which is good since this grant impl. does not support that currently.
+    status = XENBUS_GNTTAB(RevokeForeignAccess,
+                           &XenLower->GnttabInterface,
+                           XenLower->GnttabCache,
+                           TRUE,
+                           Entry);
 
-    if (Ref == INVALID_GRANT_REF)
-    {
-        TraceError((__FUNCTION__ ": invalid grant ref specified, cannot continue.\n"));
-        return FALSE;
-    }
-
-    XenLowerTraceGref(Ref, gref);
-
-    status = GnttabEndForeignAccess(gref);
     if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__ ": failed to end grant access and return grant ref.\n"));
+        TraceError("failed to RevokeForeignAccess for grant entry\n");
         return FALSE;
     }
 
     return TRUE;
 }
 
-ULONG
+XenbusState
 XenLowerGetBackendState(
-    PVOID Context)
+    PXEN_LOWER XenLower)
 {
-    PXEN_LOWER XenLower = (PXEN_LOWER)Context;
-    PCHAR sstr;
-    int state;
+    NTSTATUS status;
+    PCHAR Buffer;
+    XenbusState state;
 
-    sstr = XenLowerReadXenstoreValue(XenLower->BackendPath, "state");
-    if (sstr == NULL)
+    status = XENBUS_STORE(Read,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->BackendPath,
+                          "state",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__
-            ": XenLowerReadXenstoreValue() failed to return the back end state.\n"));
+        TraceError("failed to read backend state\n");
         return XenbusStateUnknown;
     }
 
-    sscanf_s(sstr, "%d", &state);
-    XmFreeMemory(sstr);
+    if (sscanf_s(Buffer, "%d", &state) != 1)
+    {
+        TraceError("failed to parse backend state\n");
+        return XenbusStateUnknown;
+    }
 
-    return (ULONG)state;
+    XENBUS_STORE(Free,
+                 &XenLower->StoreInterface,
+                 Buffer);
+
+    return state;
 }
 
 BOOLEAN
 XenLowerGetOnline(
-    PVOID Context)
+    PXEN_LOWER XenLower)
 {
-    PXEN_LOWER XenLower = (PXEN_LOWER)Context;
-    PCHAR sstr;
+    NTSTATUS status;
+    PCHAR Buffer;
     int state;
 
-    sstr = XenLowerReadXenstoreValue(XenLower->BackendPath, "online");
-    if (sstr == NULL)
+    status = XENBUS_STORE(Read,
+                          &XenLower->StoreInterface,
+                          NULL,
+                          XenLower->BackendPath,
+                          "online",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
     {
-        TraceError((__FUNCTION__
-            ": XenLowerReadXenstoreValue() failed to return the back end state.\n"));
+        TraceError("failed to read backend online state\n");
         return FALSE;
     }
 
-    sscanf_s(sstr, "%d", &state);
-    XmFreeMemory(sstr);
+    if (sscanf_s(Buffer, "%d", &state) != 1)
+    {
+        TraceError("failed to parse backend online state");
+        return FALSE;
+    }
+
+    XENBUS_STORE(Free,
+                 &XenLower->StoreInterface,
+                 Buffer);
 
     return (state == 1);
 }
