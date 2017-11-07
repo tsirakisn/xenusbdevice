@@ -22,11 +22,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#pragma warning(push, 0)
 #include "driver.h"
 #include "UsbConfig.h"
 #include <wdmguid.h>
 #include <devguid.h>
 #include <initguid.h>
+#pragma warning(pop)
+
 #include "RootHubPdo.h"
 
 struct USB_FDO_INTERRUPT_CONTEXT
@@ -55,7 +59,7 @@ EVT_WDF_DEVICE_FILE_CREATE  FdoEvtDeviceFileCreate;
 EVT_WDF_FILE_CLOSE  FdoEvtFileClose;
 
 // --XT-- New callback type for the DPC
-EVTCHN_HANDLER_CB FdoEvtDeviceDpcFunc;
+KSERVICE_ROUTINE FdoEvtDeviceDpcFunc;
 
 NTSTATUS LateSetup(IN WDFDEVICE);
 NTSTATUS XenConfigure(IN PUSB_FDO_CONTEXT);
@@ -146,13 +150,15 @@ ReleaseFdoLock(
  */
 NTSTATUS
 FdoEvtDeviceAdd(
-    _In_    WDFDRIVER       Driver,    
-    _Inout_ PWDFDEVICE_INIT DeviceInit 
-    )
+    _In_    WDFDRIVER       Driver,
+    _Inout_ PWDFDEVICE_INIT DeviceInit
+)
 {
     UNREFERENCED_PARAMETER(Driver);
+
     WDF_OBJECT_ATTRIBUTES   attributes;
     NTSTATUS status;
+    ULONG Size;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
@@ -175,7 +181,7 @@ FdoEvtDeviceAdd(
     pnpPowerCallbacks.EvtDeviceD0EntryPostInterruptsEnabled = FdoEvtDeviceD0EntryPostInterruptsEnabled;
     pnpPowerCallbacks.EvtDeviceD0Exit  = FdoEvtDeviceD0Exit;
     pnpPowerCallbacks.EvtDeviceSurpriseRemoval = FdoEvtDeviceSurpriseRemoval;
-    
+
     WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
     //
     // establish a request context
@@ -209,6 +215,7 @@ FdoEvtDeviceAdd(
         IRP_MJ_PNP,
         MinorFunctionTable,
         1);
+
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -248,6 +255,45 @@ FdoEvtDeviceAdd(
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
     RtlZeroMemory(fdoContext, sizeof(USB_FDO_CONTEXT));
     fdoContext->WdfDevice = device;
+
+    // STORE_INTERFACE
+    status = WdfFdoQueryForInterface(device,
+        &GUID_XENBUS_STORE_INTERFACE,
+        &fdoContext->StoreInterface.Interface,
+        sizeof(fdoContext->StoreInterface),
+        XENBUS_STORE_INTERFACE_VERSION_MAX,
+        NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        Error("Failed to query xenbus store interface: 0x%x\n", status);
+        return STATUS_SUCCESS;
+    }
+
+    status = XENBUS_STORE(Acquire, &fdoContext->StoreInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        Error("Failed to acquire xenbus store interface: 0x%x\n", status);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    Info("successfully acquired xenbus store interface\n");
+
+    status = WdfDeviceQueryProperty(device,
+        DevicePropertyAddress,
+        sizeof(fdoContext->DeviceId),
+        &fdoContext->DeviceId,
+        &Size);
+
+    if (!NT_SUCCESS(status))
+    {
+        Error("Failed to query device id.\n");
+        return status;
+    }
+
+    Trace("Creating vusb with device id: %lu (0x%x)", fdoContext->DeviceId, fdoContext->DeviceId);
+
     KeInitializeEvent(&fdoContext->resetCompleteEvent, SynchronizationEvent, FALSE);
     //
     // allocate the dpc request collection.
@@ -342,7 +388,7 @@ FdoEvtDeviceAdd(
 
     WDF_OBJECT_ATTRIBUTES_INIT(&timerAttributes);
     timerAttributes.ParentObject = device;
-    timerAttributes.ExecutionLevel = WdfExecutionLevelPassive;
+    timerAttributes.ExecutionLevel = WdfExecutionLevelDispatch;
 
     status = WdfTimerCreate(
         &timerConfig,
@@ -401,7 +447,7 @@ FdoEvtDeviceAdd(
     WdfDeviceSetBusInformationForChildren(
         device,
         &busInformation);
-
+    
     if (NT_SUCCESS(status)) {
         status = LateSetup(device);
     }
@@ -424,6 +470,7 @@ FdoEvtDeviceContextCleanup (
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
+
     CleanupDisconnectedDevice(fdoContext);
 
     //
@@ -457,20 +504,49 @@ FdoEvtDeviceContextCleanup (
  */
 NTSTATUS
 FdoEvtDevicePrepareHardware (
-    _In_ WDFDEVICE,
+    _In_ WDFDEVICE Device,
     WDFCMRESLIST,
     _In_ WDFCMRESLIST)
 {    
-    // --XT-- PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
+    NTSTATUS status;
+    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
+
+    Trace("====>\n");
+
+    // STORE_INTERFACE
+    status = WdfFdoQueryForInterface(Device,
+        &GUID_XENBUS_STORE_INTERFACE,
+        &fdoContext->StoreInterface.Interface,
+        sizeof(fdoContext->StoreInterface),
+        XENBUS_STORE_INTERFACE_VERSION_MAX,
+        NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        Error("Failed to query xenbus store interface: 0x%x\n", status);
+        return STATUS_SUCCESS;
+    }
+
+    status = XENBUS_STORE(Acquire, &fdoContext->StoreInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        Error("Failed to acquire xenbus store interface: 0x%x\n", status);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    Info("successfully acquired xenbus store interface\n");
+
     //
     // map the hardware resources
     //
     
     // --XT-- Removed call to MapXenDeviceRegisters and args to this call.
 
+    Trace("<====\n");
     return STATUS_SUCCESS;
 }
 
@@ -491,7 +567,9 @@ FdoEvtDeviceReleaseHardware(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
+
     FreeUsbConfigData(fdoContext);
+    
     return STATUS_SUCCESS;
 }
 
@@ -606,6 +684,7 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
+
     BOOLEAN online = XenCheckOnline(fdoContext->Xen);
 
     if (!online)
@@ -614,7 +693,7 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
         CleanupDisconnectedDevice(fdoContext);
         return STATUS_SUCCESS;
     }
-	
+    
     if (!fdoContext->XenConfigured)
     {
         status = XenConfigure(fdoContext);
@@ -653,7 +732,7 @@ XenConfigure(
         return STATUS_UNSUCCESSFUL;
     }
 
-    status = XenDeviceInitialize(fdoContext->Xen, FdoEvtDeviceDpcFunc);
+    status = XenDeviceInitialize(fdoContext->Xen, FdoEvtDeviceDpcFunc, fdoContext->DeviceId);
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -977,9 +1056,10 @@ NTSTATUS FdoEvtChildListCreateDevice(
  * @param[in] Dpc The WDFDPC handle.
  *  
  */
-VOID
+BOOLEAN
 FdoEvtDeviceDpcFunc(
-    IN VOID *Context)
+    _In_ struct _KINTERRUPT *Interrupt,
+    _In_opt_ PVOID Context)
 {
     // --XT-- FDO context passed directly now.
     PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT)Context;
@@ -993,7 +1073,7 @@ FdoEvtDeviceDpcFunc(
     {
         fdoContext->DpcOverLapCount++;
         ReleaseFdoLock(fdoContext);
-        return;
+        return FALSE;
     }
     fdoContext->InDpc = TRUE;
 
@@ -1008,7 +1088,7 @@ FdoEvtDeviceDpcFunc(
             fdoContext->DpcOverLapCount = 0;
             moreWork = TRUE;
         }
-        if (moreWork & (passes >= KeQueryActiveProcessorCount(NULL)))
+        if (moreWork & (passes >= KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS)))
         {
             //
             // reschedule the dpc to prevent starvation.
@@ -1077,6 +1157,8 @@ FdoEvtDeviceDpcFunc(
         __FUNCTION__": exit responses processed %d passes %d\n",
         responseCount,
         passes);
+
+    return TRUE;
 }
 
 //
@@ -1130,7 +1212,7 @@ FdoEvtTimerFunc(
         //
         // --XT-- Now passing the FDO context directly.
         //
-        FdoEvtDeviceDpcFunc(fdoContext);
+        FdoEvtDeviceDpcFunc(NULL, fdoContext);
     }
 }
 
