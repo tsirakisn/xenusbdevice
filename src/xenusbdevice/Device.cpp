@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -141,12 +141,12 @@ ReleaseFdoLock(
 /**
  * @brief Called by the framework when a new PDO has arrived that this driver manages.
  * The device in question is not operational at this point in time.
- * 
+ *
  * @param[in] Driver handle to WDFDRIVER object created by DriverEntry()
  * @param[in,out] DeviceInit device init object provided by framework.
- * 
+ *
  * @returns NTSTATUS value indicating success or failure.
- * 
+ *
  */
 NTSTATUS
 FdoEvtDeviceAdd(
@@ -162,14 +162,14 @@ FdoEvtDeviceAdd(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
-    
+
     WdfDeviceInitSetDeviceType(DeviceInit, FILE_DEVICE_BUS_EXTENDER);
     WdfDeviceInitSetExclusive(DeviceInit, FALSE);
     WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoDirect);
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, USB_FDO_CONTEXT);
     attributes.EvtCleanupCallback = FdoEvtDeviceContextCleanup;
-    
+
     //
     // Device state callbacks.
     //
@@ -191,9 +191,9 @@ FdoEvtDeviceAdd(
     WdfDeviceInitSetRequestAttributes(DeviceInit, &requestAttributes);
 
     //
-    // static verifier seems to have a rule that the FDO must call 
+    // static verifier seems to have a rule that the FDO must call
     // WdfFdoInitSetDefaultChildListConfig if any component in the driver has
-    // dynamic child devices, and the roothub has one if it is not operating in 
+    // dynamic child devices, and the roothub has one if it is not operating in
     // connect usb hub mode.
     //
     WDF_CHILD_LIST_CONFIG  config;
@@ -241,7 +241,7 @@ FdoEvtDeviceAdd(
         DeviceInit,
         &FileObjectConfig,
         &fileAttributes);
-        
+
     WDFDEVICE device;
     status = WdfDeviceCreate(&DeviceInit, &attributes, &device);
     if (!NT_SUCCESS(status))
@@ -317,7 +317,7 @@ FdoEvtDeviceAdd(
         &GUID_DEVINTERFACE_USB_HOST_CONTROLLER,
         NULL);
 
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
             __FUNCTION__": WdfDeviceCreateDeviceInterface for device %p error %x\n",
@@ -326,10 +326,10 @@ FdoEvtDeviceAdd(
         return status;
     }
 
-    WDF_OBJECT_ATTRIBUTES_INIT(&attributes);    
+    WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.ParentObject = device;
     status = WdfStringCreate(NULL, &attributes, &fdoContext->hcdsymlink);
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
             __FUNCTION__": WdfStringCreate for device %p error %x\n",
@@ -342,7 +342,7 @@ FdoEvtDeviceAdd(
         &GUID_DEVINTERFACE_USB_HOST_CONTROLLER,
         NULL,
         fdoContext->hcdsymlink);
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
             __FUNCTION__": WdfStringCreate for device %p error %x\n",
@@ -351,12 +351,12 @@ FdoEvtDeviceAdd(
         return status;
     }
     //
-    // Some of our resources are independent of the device state and 
+    // Some of our resources are independent of the device state and
     // can be allocated/initialized here.
     //
     status = InitScratchpad(fdoContext);
 
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         return status;
     }
@@ -364,7 +364,7 @@ FdoEvtDeviceAdd(
     // Initialize the I/O Package and any Queues
     //
     status = FdoQueueInitialize(device);
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         return status;
     }
@@ -384,7 +384,7 @@ FdoEvtDeviceAdd(
 
     WDF_TIMER_CONFIG_INIT(
         &timerConfig,
-        FdoEvtTimerFunc); 
+        FdoEvtTimerFunc);
 
     WDF_OBJECT_ATTRIBUTES_INIT(&timerAttributes);
     timerAttributes.ParentObject = device;
@@ -395,7 +395,7 @@ FdoEvtDeviceAdd(
         &timerAttributes,
         &fdoContext->WatchdogTimer);
 
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
         __FUNCTION__": WdfTimerCreate error %x\n",
@@ -410,7 +410,7 @@ FdoEvtDeviceAdd(
     attributes.ParentObject = device;
     status = WdfCollectionCreate(&attributes,
         &fdoContext->FreeWorkItems);
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
         __FUNCTION__": WdfCollectionCreate error %x\n",
@@ -432,7 +432,7 @@ FdoEvtDeviceAdd(
                     __FUNCTION__": WdfCollectionAdd for workitem index %d error %x\n",
                     index,
                     status);
-                
+
                 WdfObjectDelete(workitem);
                 return status;
             }
@@ -447,7 +447,7 @@ FdoEvtDeviceAdd(
     WdfDeviceSetBusInformationForChildren(
         device,
         &busInformation);
-    
+
     if (NT_SUCCESS(status)) {
         status = LateSetup(device);
     }
@@ -456,16 +456,16 @@ FdoEvtDeviceAdd(
 }
 
 /**
- * @brief The device object is being deleted. 
+ * @brief The device object is being deleted.
  * This callback frees any resources allocated in FdoEvtDeviceAdd().
- * 
+ *
  * @param[in] Device handle to WDFOBJECT created by FdoEvtDeviceAdd().
- * 
+ *
  */
 VOID
 FdoEvtDeviceContextCleanup (
     _In_ WDFOBJECT       Device)
-{    
+{
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -495,19 +495,19 @@ FdoEvtDeviceContextCleanup (
 /**
  * @brief A newly arrived device needs to be initialized and made operational.
  * Connects the new device object to its hardware resources.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
  * @oaram[in] ResourcesTranslated translated resource list for the device.
- * 
- * @returns NSTATUS value indicating success or failure. 
- * 
+ *
+ * @returns NSTATUS value indicating success or failure.
+ *
  */
 NTSTATUS
 FdoEvtDevicePrepareHardware (
     _In_ WDFDEVICE Device,
     WDFCMRESLIST,
     _In_ WDFCMRESLIST)
-{    
+{
     NTSTATUS status;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
@@ -543,7 +543,7 @@ FdoEvtDevicePrepareHardware (
     //
     // map the hardware resources
     //
-    
+
     // --XT-- Removed call to MapXenDeviceRegisters and args to this call.
 
     Trace("<====\n");
@@ -552,35 +552,35 @@ FdoEvtDevicePrepareHardware (
 
 /**
  * @brief Cleanup *AFTER* a device is no longer accessible.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
- * 
+ *
  * @returns NTSTATUS value indicating success or failure. Should never fail.
- * 
+ *
  */
 NTSTATUS
 FdoEvtDeviceReleaseHardware(
     IN  WDFDEVICE    Device,
     IN  WDFCMRESLIST )
-{    
+{
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__"\n");
 
     FreeUsbConfigData(fdoContext);
-    
+
     return STATUS_SUCCESS;
 }
 
 /**
  * @brief Transition to fully powered state.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
  * @param[in] PreviousState
- * 
- * @returns NTSTATUS value indicating success or failure. 
- * 
+ *
+ * @returns NTSTATUS value indicating success or failure.
+ *
  */
 NTSTATUS
 FdoEvtDeviceD0Entry(
@@ -588,7 +588,7 @@ FdoEvtDeviceD0Entry(
     IN  WDF_POWER_DEVICE_STATE PreviousState)
 {
     UNREFERENCED_PARAMETER(Device);
-    // PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);    
+    // PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
     NTSTATUS status = STATUS_SUCCESS;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -607,7 +607,7 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
     // set up the XEN connection.
     //
     if (!fdoContext->NxprepBoot)
-    {   
+    {
         status = XenConfigure(fdoContext);
         if (!NT_SUCCESS(status))
         {
@@ -650,11 +650,11 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
             WdfTimerStart(fdoContext->WatchdogTimer, WDF_REL_TIMEOUT_IN_SEC(2));
         }
     }
-    
+
     TraceEvents(NT_SUCCESS(status) ? TRACE_LEVEL_INFORMATION : TRACE_LEVEL_ERROR,
         TRACE_DEVICE,
         __FUNCTION__": %s Device %p status %x\n",
-        fdoContext->FrontEndPath, 
+        fdoContext->FrontEndPath,
         fdoContext->WdfDevice,
         status);
 
@@ -662,20 +662,20 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
 }
 
 /**
- * @brief Transition to fully powered state with interrupts enabled. 
+ * @brief Transition to fully powered state with interrupts enabled.
  * This is the first chance we have to interact with a fully functional device,
- * so collect the device configuration so we can create a USB pdo that can be 
+ * so collect the device configuration so we can create a USB pdo that can be
  * enumerated by PnP.
  *
  * Allow failures to "succeed" (return STATUS_SUCCESS) so that the
  * dreaded Yellow Bang does not occur. Instead, this device will appear
  * normally in Windows Device Manager, however it will not instantiate
  * its child RootHub PDO.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
- * 
+ *
  * @returns NTSTATUS value indicating success or failure.
- * 
+ *
  */
 NTSTATUS
 FdoEvtDeviceD0EntryPostInterruptsEnabled(
@@ -693,7 +693,7 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
         CleanupDisconnectedDevice(fdoContext);
         return STATUS_SUCCESS;
     }
-    
+
     if (!fdoContext->XenConfigured)
     {
         status = XenConfigure(fdoContext);
@@ -767,9 +767,9 @@ XenDeconfigure(IN PUSB_FDO_CONTEXT fdoContext)
 
 /**
  * @brief handles child device processing on device removal.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
- * 
+ *
  */
 VOID RemoveAllChildDevices(
     IN WDFDEVICE Device)
@@ -779,9 +779,9 @@ VOID RemoveAllChildDevices(
     WDFDEVICE  hChild = NULL;
 
     while ((hChild = WdfFdoRetrieveNextStaticChild(
-        Device, 
+        Device,
         hChild,
-        WdfRetrieveAddedChildren)) != NULL) 
+        WdfRetrieveAddedChildren)) != NULL)
     {
         NTSTATUS Status = WdfPdoMarkMissing(hChild);
         if (!NT_SUCCESS(Status))
@@ -829,14 +829,14 @@ FdoUnplugDevice(
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
             __FUNCTION__": %s\n",
             fdoContext->FrontEndPath);
-        fdoContext->DeviceUnplugged = TRUE;        
+        fdoContext->DeviceUnplugged = TRUE;
         if (fdoContext->ConfigBusy)
         {
 
             KeSetEvent(&fdoContext->ScratchPad.CompletionEvent, IO_NO_INCREMENT, FALSE);
         }
         if (!fdoContext->CtlrDisconnected)
-        {            
+        {
             ReleaseFdoLock(fdoContext);
             // --XT-- WdfDpcCancel(fdoContext->WdfDpc, TRUE);
             //
@@ -853,15 +853,15 @@ FdoUnplugDevice(
 VOID
 CleanupDisconnectedDevice(
     PUSB_FDO_CONTEXT fdoContext)
-{    
+{
     AcquireFdoLock(fdoContext);
     if (fdoContext->CtlrDisconnected)
     {
         ReleaseFdoLock(fdoContext);
         return;
     }
-    fdoContext->CtlrDisconnected = TRUE; 
-    
+    fdoContext->CtlrDisconnected = TRUE;
+
     ReleaseFdoLock(fdoContext);
     WdfTimerStop(fdoContext->WatchdogTimer, TRUE);
     // --XT-- WdfDpcCancel(fdoContext->WdfDpc, TRUE);
@@ -909,7 +909,7 @@ CleanupDisconnectedDevice(
                 else
                 {
                     //
-                    // note but ignore. 
+                    // note but ignore.
                     //
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                         __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
@@ -941,21 +941,21 @@ CleanupDisconnectedDevice(
  * on resource rebalance or device disable or shutdown.
  *
  * Plus take advantage of this opportunity to dump a bunch of stats on this device.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
- * 
- * @returns NTSTATUS value indicating success or failure. 
- * 
+ *
+ * @returns NTSTATUS value indicating success or failure.
+ *
  */
 NTSTATUS
 FdoEvtDeviceD0Exit(
     IN  WDFDEVICE device,
     IN  WDF_POWER_DEVICE_STATE)
-{  
+{
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__": %s Device %p\n",
-        fdoContext->FrontEndPath, 
+        fdoContext->FrontEndPath,
         fdoContext->WdfDevice);
 
     WdfTimerStop(fdoContext->WatchdogTimer, TRUE);
@@ -965,7 +965,7 @@ FdoEvtDeviceD0Exit(
         __FUNCTION__": %s\n"
         "    Direct Transfers: %I64d errors: %I64d largest: %d\n"
         "    Indirect Transfers: %I64d errors: %I64d largest: %d\n",
-        fdoContext->FrontEndPath, 
+        fdoContext->FrontEndPath,
         fdoContext->totalDirectTransfers,
         fdoContext->totalDirectErrors,
         fdoContext->largestDirectTransfer,
@@ -981,7 +981,7 @@ FdoEvtDeviceD0Exit(
         __FUNCTION__": %s\n"
         "    DPC overlap %I64d DPC requeue %I64d\n"
         "    DPC max passes %d DPC max processed %d DPC drain queue requests %d\n",
-        fdoContext->FrontEndPath, 
+        fdoContext->FrontEndPath,
         fdoContext->totalDpcOverLapCount,
         fdoContext->totalDpcReQueueCount,
         fdoContext->maxDpcPasses,
@@ -995,9 +995,9 @@ FdoEvtDeviceD0Exit(
 /**
  * @brief Notification that the device has been unplugged.
  * This callback is invoked before FdoEvtDeviceD0Exit and FdoEvtDeviceReleaseHardware.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd().
- * 
+ *
  */
 VOID FdoEvtDeviceSurpriseRemoval(
   IN  WDFDEVICE Device)
@@ -1006,7 +1006,7 @@ VOID FdoEvtDeviceSurpriseRemoval(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__": %s Device %p\n",
-        fdoContext->FrontEndPath, 
+        fdoContext->FrontEndPath,
         fdoContext->WdfDevice);
 
     CleanupDisconnectedDevice(fdoContext);
@@ -1054,7 +1054,7 @@ NTSTATUS FdoEvtChildListCreateDevice(
  * lock.
  *
  * @param[in] Dpc The WDFDPC handle.
- *  
+ *
  */
 BOOLEAN
 FdoEvtDeviceDpcFunc(
@@ -1106,7 +1106,7 @@ FdoEvtDeviceDpcFunc(
         }
 
     } while (moreWork);
- 
+
     fdoContext->InDpc = FALSE; // allow another dpc instance to run and add to the collection.
     if (passes > fdoContext->maxDpcPasses)
     {
@@ -1129,13 +1129,13 @@ FdoEvtDeviceDpcFunc(
             __FUNCTION__": complete Request %p Status %x\n",
             Request,
             WdfRequestWdmGetIrp(Request)->IoStatus.Status);
-        
+
         ReleaseFdoLock(fdoContext);
 
         WdfRequestCompleteWithPriorityBoost(Request,
             WdfRequestWdmGetIrp(Request)->IoStatus.Status,
             IO_SOUND_INCREMENT);
-        
+
         AcquireFdoLock(fdoContext);
 
         responseCount++;
@@ -1147,7 +1147,7 @@ FdoEvtDeviceDpcFunc(
     }
     //
     // fire up any queued requests
-    //    
+    //
     DrainRequestQueue(fdoContext, FALSE);
 
     ReleaseFdoLock(fdoContext);
@@ -1170,9 +1170,9 @@ FdoEvtDeviceDpcFunc(
  * @brief Watchdog timer
  * checks the operational state of the xen interface and initiates surprise removal if
  * the interface is not operational and the device is not unplugged.
- * 
+ *
  * @param[in] Timer handle to timer allocated by FdoDeviceAdd()
- * 
+ *
  */
 VOID
 FdoEvtTimerFunc(
@@ -1195,7 +1195,7 @@ FdoEvtTimerFunc(
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
                 __FUNCTION__": %s Device %p unplug detected by watchdog\n",
-                fdoContext->FrontEndPath, 
+                fdoContext->FrontEndPath,
                 fdoContext->WdfDevice);
 
             FdoUnplugDevice(fdoContext);
@@ -1220,10 +1220,10 @@ FdoEvtTimerFunc(
  * @brief handles CreateFile operations for the usb controller.
  * This function basically exists only to log that a create occurred.
  *
- * @param[in] Device A handle to a framework device object. 
+ * @param[in] Device A handle to a framework device object.
  * @param[in] Request A handle to a framework request object that represents a file creation request
- * @param[in] FileObject A handle to a framework file object that describes a file that is being opened for the specified request. 
- * This parameter is NULL if the driver has specified WdfFileObjectNotRequired for the FileObjectClass member of the WDF_FILEOBJECT_CONFIG structure. 
+ * @param[in] FileObject A handle to a framework file object that describes a file that is being opened for the specified request.
+ * This parameter is NULL if the driver has specified WdfFileObjectNotRequired for the FileObjectClass member of the WDF_FILEOBJECT_CONFIG structure.
  */
 VOID
 FdoEvtDeviceFileCreate (
@@ -1243,7 +1243,7 @@ FdoEvtDeviceFileCreate (
 }
 
 /**
- * @brief handles operations that must be performed when all of an application's 
+ * @brief handles operations that must be performed when all of an application's
  * accesses to a device have been closed.
  *
  * @param[in] FileObject The handle to the FileObject.
@@ -1270,11 +1270,11 @@ FdoEvtFileClose (
 //
 
 /**
- * @brief generic workitem callback function 
+ * @brief generic workitem callback function
  * calls the specific callback function in the work item context.
- * 
+ *
  * @param[in] WorkItem handle to the workitem object.
- * 
+ *
  */
 VOID
 EvtFdoDeviceGenericWorkItem (
@@ -1291,7 +1291,7 @@ EvtFdoDeviceGenericWorkItem (
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s Device %p WorkItem %p NULL callback\n",            
+            __FUNCTION__": %s Device %p WorkItem %p NULL callback\n",
             context->FdoContext->FrontEndPath,
             context->FdoContext->WdfDevice,
             WorkItem);
@@ -1321,21 +1321,21 @@ EvtFdoDeviceGenericWorkItem (
 /**
  * @brief Allocate a workitem from or for our collection of workitems.
  * Must be called with the device lock held.
- * 
+ *
  * @param[in] Device handle to the WDFDEVICE created by FdoEvtDeviceAdd.
  * @param[in] callback only optional if this is add device doing an allocation!
  * @param[in] Param0 arbitrary context data
  * @param[in] Param1 arbitrary context data
  * @param[in] Param2 arbitrary context data
  * @param[in] Param3 arbitrary context data
- * 
+ *
  * @returns a WDFWORKITEM handle or NULL on failure.
- * 
+ *
  */
 WDFWORKITEM
 NewWorkItem(
     IN PUSB_FDO_CONTEXT fdoContext,
-    IN PFN_WDF_WORKITEM  callback, 
+    IN PFN_WDF_WORKITEM  callback,
     IN ULONG_PTR Param0,
     IN ULONG_PTR Param1,
     IN ULONG_PTR Param2,
@@ -1343,7 +1343,7 @@ NewWorkItem(
 {
     //
     // First try to get a workitem from our collection of them.
-    //    
+    //
     WDFWORKITEM  WorkItem = (WDFWORKITEM) WdfCollectionGetFirstItem(fdoContext->FreeWorkItems);
     if (WorkItem == NULL)
     {
@@ -1375,7 +1375,7 @@ NewWorkItem(
             &attributes,
             &WorkItem);
 
-        if (!NT_SUCCESS(status)) 
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": WdfWorkItemCreate error %x\n",
@@ -1402,14 +1402,14 @@ NewWorkItem(
     return WorkItem;
 }
 
-/** 
+/**
  * @brief deallocate callback item.
  *  Must be called with lock held.
  * *Note* this is called only to deal with error cases. The normal
  * callback function re-adds the work item to the collection.
- * 
+ *
  * @param[in] WorkItem allocated WorkItem to be freed.
- * 
+ *
  */
 VOID
 FreeWorkItem(
@@ -1439,7 +1439,7 @@ InitScratchpad(
 {
     NTSTATUS status;
     KeInitializeEvent(&fdoContext->ScratchPad.CompletionEvent, NotificationEvent, FALSE);
-    
+
     fdoContext->ScratchPad.Buffer = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, XVU1);
     if (!fdoContext->ScratchPad.Buffer)
     {

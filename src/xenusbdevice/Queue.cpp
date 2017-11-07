@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -55,7 +55,7 @@ PCHAR UsbControlCodeToString(
  * virtual usb controller.
  * The virtual usb controller does all of the URB and IOCTL processing for the
  * USB PDO.
- * Three queues are created: one for IOCTLs, one for URBs and one for URBs that 
+ * Three queues are created: one for IOCTLs, one for URBs and one for URBs that
  * could not be put on the ringbuffer.
  *
  * @param[in] Device handle to the WDFDEVICE object for the virtual usb host controller FDO.
@@ -69,7 +69,7 @@ FdoQueueInitialize(
     WDFQUEUE queue;
     NTSTATUS status;
     WDF_IO_QUEUE_CONFIG    queueConfig;
-    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);    
+    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
     //
     // The default queue only processes IOCTL requests. These requests are targetd at the
     // HBA device and never go across the ringbuffer interface. It could also handle
@@ -98,17 +98,17 @@ FdoQueueInitialize(
                  WDF_NO_OBJECT_ATTRIBUTES,
                  &queue);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": %s Default queue WdfIoQueueCreate failed %x", 
+            __FUNCTION__": %s Default queue WdfIoQueueCreate failed %x",
             fdoContext->FrontEndPath,
             status);
         return status;
     }
     //
     // The child URB queue
-    //    
+    //
     WDF_IO_QUEUE_CONFIG_INIT(
         &queueConfig,
         WdfIoQueueDispatchParallel);
@@ -121,10 +121,10 @@ FdoQueueInitialize(
         WDF_NO_OBJECT_ATTRIBUTES,
         &fdoContext->UrbQueue);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": %s URB queue WdfIoQueueCreate failed %x", 
+            __FUNCTION__": %s URB queue WdfIoQueueCreate failed %x",
             fdoContext->FrontEndPath,
             status);
         return status;
@@ -141,10 +141,10 @@ FdoQueueInitialize(
         WDF_NO_OBJECT_ATTRIBUTES,
         &fdoContext->RequestQueue);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, 
-            __FUNCTION__ ": %s Manual queue WdfIoQueueCreate failed %x", 
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
+            __FUNCTION__ ": %s Manual queue WdfIoQueueCreate failed %x",
             fdoContext->FrontEndPath,
             status);
     }
@@ -154,10 +154,10 @@ FdoQueueInitialize(
 /**
  * @brief Process an IOCTL_USB_GET_ROOT_HUB_NAME.
  * ** Must complete the Request **
- * The IOCTL_USB_GET_ROOT_HUB_NAME I/O control request is used with the 
+ * The IOCTL_USB_GET_ROOT_HUB_NAME I/O control request is used with the
  * USB_ROOT_HUB_NAME structure to retrieve the symbolic link name of the root hub.
- * On output, the AssociatedIrp.SystemBuffer member points to a USB_ROOT_HUB_NAME structure 
- * that contains the symbolic link name of the root hub. The leading "\xxx\ " text 
+ * On output, the AssociatedIrp.SystemBuffer member points to a USB_ROOT_HUB_NAME structure
+ * that contains the symbolic link name of the root hub. The leading "\xxx\ " text
  * is not included in the retrieved string.
  *
  * @param[in] fdoContext. The context object for the device.
@@ -243,13 +243,13 @@ ProcessRootHubNameRequest(
 /**
  * @brief Process an IOCTL_INTERNAL_USB_GET_CONTROLLER_NAME.
  * ** Must complete the Request **
- * The IOCTL_INTERNAL_USB_GET_CONTROLLER_NAME I/O request queries the bus driver 
+ * The IOCTL_INTERNAL_USB_GET_CONTROLLER_NAME I/O request queries the bus driver
  * for the device name of the USB host controller. Confusingly, the data structure
  * used for this query is named "USB_HUB_NAME", rather than e.g. USB_HCD_NAME.
- * Upon successful completion, the HubName member of USB_HUB_NAME contains the name of the 
- * controller and the ActualLength member indicates the length of the controller name string. 
- * Note that ActualLength does not indicate the size of the entire USB_HUB_NAME structure. 
- * If the buffer supplied in Parameters.Others.Argument1 is not large enough to hold the string, 
+ * Upon successful completion, the HubName member of USB_HUB_NAME contains the name of the
+ * controller and the ActualLength member indicates the length of the controller name string.
+ * Note that ActualLength does not indicate the size of the entire USB_HUB_NAME structure.
+ * If the buffer supplied in Parameters.Others.Argument1 is not large enough to hold the string,
  * the HubName value might show a truncated string.
  *
  * @param[in] fdoContext. The context object for the device.
@@ -268,7 +268,7 @@ ProcessControllerNameRequest(
     WdfStringGetUnicodeString(fdoContext->hcdsymlink, &hcd);
     ULONG length = (ULONG) OutputBufferLength;
     NTSTATUS Status = STATUS_SUCCESS;
-    ULONG_PTR Information = 0;    
+    ULONG_PTR Information = 0;
     ULONG lengthNeeded = hcd.Length + sizeof(WCHAR);
 
     // note that WdfRequestRetrieveOutputBuffer enforces the minimum size constraints.
@@ -287,7 +287,7 @@ ProcessControllerNameRequest(
         ULONG copylength = (length - sizeof(ULONG));
         name->HubName[0] = 0; // null terminate always.
         //
-        // returned length includes the struct itself and 
+        // returned length includes the struct itself and
         // the full length of the string.
         //
         name->ActualLength = lengthNeeded + sizeof(ULONG);
@@ -295,7 +295,7 @@ ProcessControllerNameRequest(
         {
             copylength = lengthNeeded;
         }
-        if (copylength) 
+        if (copylength)
         {
             //
             // This request does not strip the prefix, unlike its cousin,
@@ -320,7 +320,7 @@ ProcessControllerNameRequest(
         lengthNeeded,
         length);
 
-    RequestGetRequestContext(Request)->RequestCompleted = 1;  
+    RequestGetRequestContext(Request)->RequestCompleted = 1;
     ReleaseFdoLock(fdoContext);
     WdfRequestCompleteWithInformation(Request, Status, Information);
     AcquireFdoLock(fdoContext);
@@ -329,7 +329,7 @@ ProcessControllerNameRequest(
 /**
  * @brief Process an IOCTL_GET_HCD_DRIVERKEY_NAME.
  * ** Must complete the Request **
- * The IOCTL_GET_HCD_DRIVERKEY_NAME I/O control request retrieves the driver key name 
+ * The IOCTL_GET_HCD_DRIVERKEY_NAME I/O control request retrieves the driver key name
  * in the registry for a USB host controller driver.
  * The data structure used for this query is USB_HCD_DRIVERKEY_NAME.
  *
@@ -386,9 +386,9 @@ ProcessDriverKeyNameRequest(
             Information = name->ActualLength;
         }
     }
-    // C6102 Using lengthNeeded from failed function call at line ... 
+    // C6102 Using lengthNeeded from failed function call at line ...
     // claims that lengthNeeded is uninitialized. It clearly is initialized.
-   #pragma warning(suppress: 6102) 
+   #pragma warning(suppress: 6102)
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
         __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
         Status,
@@ -407,7 +407,7 @@ ProcessCyclePort(
     IN size_t OutputBufferLength)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
-        __FUNCTION__": %s for Device %p\n", 
+        __FUNCTION__": %s for Device %p\n",
         fdoContext->FrontEndPath,
         fdoContext->WdfDevice);
 
@@ -460,7 +460,7 @@ AllocAndQueryPropertyString(
         if (!NT_SUCCESS(Status))
         {
             ExFreePool(buffer);
-            
+
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": device %p unexpected error %x from WdfDeviceQueryProperty\n",
                 Device,
@@ -478,14 +478,14 @@ AllocAndQueryPropertyString(
  * ** Must complete the Request **
  * The IOCTL_INTERNAL_USB_GET_DEVICE_CONFIG_INFO  I/O control request contains
  * a HUB_DEVICE_CONFIG_INFO structure.
- * Upon successful completion, the HardwareIds, CompatibleIds, 
- * DeviceDescription USB_ID_STRING structures contained in the HUB_DEVICE_CONFIG_INFO 
+ * Upon successful completion, the HardwareIds, CompatibleIds,
+ * DeviceDescription USB_ID_STRING structures contained in the HUB_DEVICE_CONFIG_INFO
  * structure points to string buffers allocated by the hub driver.
  *
- * ** Input Parameters ** for this request: Parameters.Others.Argument1 points to a HUB_DEVICE_CONFIG_INFO 
+ * ** Input Parameters ** for this request: Parameters.Others.Argument1 points to a HUB_DEVICE_CONFIG_INFO
  * structure to receive the device configuration information.
  *
- * ** Output Parameters ** for this request: Parameters.Others.Argument1 points to a HUB_DEVICE_CONFIG_INFO 
+ * ** Output Parameters ** for this request: Parameters.Others.Argument1 points to a HUB_DEVICE_CONFIG_INFO
  * structure containing the device configuration information.
  *
  * ** This function allocates paged pool for string buffers that must be freed
@@ -558,7 +558,7 @@ ProcessGetDeviceConfigInfo(
                 fdoContext->FrontEndPath);
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
-        }        
+        }
         //
         // compat ids
         //
@@ -659,11 +659,11 @@ ProcessUsbPowerStateMap(
         usbPower->Header.ActualBufferLength = usbPower->Header.RequestBufferLength;
         Information = usbPower->Header.ActualBufferLength;
     }
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
         __FUNCTION__": request completed with status %x size %d\n",
         Status,
-        Information); 
+        Information);
 
     WdfRequestCompleteWithInformation(Request, Status, Information);
 
@@ -707,11 +707,11 @@ ProcessUsbControllerInfo0(
         usbController->Header.ActualBufferLength = usbController->Header.RequestBufferLength;
         Information = usbController->Header.ActualBufferLength;
     }
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
         __FUNCTION__": request completed with status %x size %d\n",
         Status,
-        Information); 
+        Information);
 
     WdfRequestCompleteWithInformation(Request, Status, Information);
 
@@ -724,7 +724,7 @@ ProcessUsbControllerInfo0(
  * directly with a host controller and its related root hub.
  * ** Processed on dispatch side and does not use Request Context **
  *
- * @TODO many subtypes are stubbed out. Some of these requests have direct analogs with 
+ * @TODO many subtypes are stubbed out. Some of these requests have direct analogs with
  * other IOCTLs.
  *
  * @param[in] fdoContext. The context object for the device.
@@ -739,7 +739,7 @@ ProcessUsbUserRequest(
     IN size_t OutputBufferLength)
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    ULONG_PTR Information = 0;  
+    ULONG_PTR Information = 0;
     UNREFERENCED_PARAMETER(OutputBufferLength);
 
     // note that WdfRequestRetrieveOutputBuffer enforces the minimum size constraints.
@@ -832,7 +832,7 @@ ProcessUsbUserRequest(
 
         }
     }
-    
+
     if (Request)
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
@@ -966,11 +966,11 @@ UrbEvtIoInternalDeviceControl(
 
     UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(InputBufferLength);
-    
-    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE, 
-        __FUNCTION__": Queue %p, Request %p IoControlCode %d FunctionCode %d\n", 
-        Queue, 
-        Request,  
+
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE,
+        __FUNCTION__": Queue %p, Request %p IoControlCode %d FunctionCode %d\n",
+        Queue,
+        Request,
         IoControlCode,
         IoGetFunctionCodeFromCtlCode(IoControlCode));
 
@@ -987,7 +987,7 @@ UrbEvtIoInternalDeviceControl(
     {
         if ((!fdoContext->XenConfigured) ||
             (fdoContext->DeviceUnplugged))
-        {   
+        {
             if ((gVistaOrLater) ||
                 (IoControlCode != IOCTL_INTERNAL_USB_SUBMIT_URB))
             {
@@ -1054,7 +1054,7 @@ UrbEvtIoInternalDeviceControl(
                     // This queue has to be stopped. This request
                     // has to be requeued to a passive level queue.
                     // That queue has to submit the select interface request
-                    // and then the completion of that request has to 
+                    // and then the completion of that request has to
                     // restart this queue.
                     //
                     LEAVE;
@@ -1113,14 +1113,14 @@ UrbEvtIoInternalDeviceControl(
 
         case IOCTL_INTERNAL_USB_GET_BUS_INFO: // obsolete - support USB_BUSIFFN_QUERY_BUS_INFORMATION instead
             {
-                PUSB_BUS_NOTIFICATION busNotification = 
+                PUSB_BUS_NOTIFICATION busNotification =
                     (PUSB_BUS_NOTIFICATION) Parameters.Parameters.Others.Arg1;
 
                 TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
                     __FUNCTION__": IOCTL_INTERNAL_USB_GET_BUS_INFO for device %p\n",
                     fdoContext->WdfDevice);
                 //
-                // there appears to be no way to actually validate 
+                // there appears to be no way to actually validate
                 // this structure.
                 //
                 busNotification->NotificationType = AcquireBusInfo;
@@ -1161,7 +1161,7 @@ UrbEvtIoInternalDeviceControl(
             break;
 
         case IOCTL_INTERNAL_USB_GET_DEVICE_CONFIG_INFO:
-            
+
             ReleaseFdoLock(fdoContext);
             if (!HTSASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL))
             {
@@ -1225,13 +1225,13 @@ UrbEvtIoInternalDeviceControl(
 }
 
 /**
- * @brief completes, requeues, or suspends processing of a specified request because 
+ * @brief completes, requeues, or suspends processing of a specified request because
  * the request's I/O queue is being stopped.
  * These requests are the ones that are "on hardware" so Stop cannot complete them.
- * 
+ *
  * @param[in] Queue A handle to the framework queue object that is associated with the I/O request.
- * @param[in] Request A handle to a framework request object. 
- * @param[in] ActionFlags A bitwise OR of one or more WDF_REQUEST_STOP_ACTION_FLAGS-typed flags 
+ * @param[in] Request A handle to a framework request object.
+ * @param[in] ActionFlags A bitwise OR of one or more WDF_REQUEST_STOP_ACTION_FLAGS-typed flags
  *   that identify the reason that the callback function is being called and whether the request is cancelable
  */
 VOID
@@ -1240,9 +1240,9 @@ FdoEvtIoStop(
     _In_ WDFREQUEST Request,
     _In_ ULONG ActionFlags)
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, 
-                TRACE_QUEUE, 
-                __FUNCTION__": Queue %p, Request %p ActionFlags %x\n", 
+    TraceEvents(TRACE_LEVEL_INFORMATION,
+                TRACE_QUEUE,
+                __FUNCTION__": Queue %p, Request %p ActionFlags %x\n",
                 Queue, Request, ActionFlags);
 
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(WdfIoQueueGetDevice(Queue));
@@ -1298,7 +1298,7 @@ RequeueRequest(
     //
     WdfIoQueueStop(fdoContext->UrbQueue, NULL, NULL);
     //
-    // requeue the request to the RequestQueue, if didn't come from 
+    // requeue the request to the RequestQueue, if didn't come from
     // the requeust queue use WdfRequestForwardToIoQueue, otherwise
     // use WdfRequestRequeue, for reasons known only to the framework authors
     // a bugcheck will occur if forward's target queue is the same queue
@@ -1330,7 +1330,7 @@ RequeueRequest(
     }
     else
     {
-        // could just acquire the lock to inc the count. 
+        // could just acquire the lock to inc the count.
         fdoContext->RequeuedCount++;
     }
     return;
@@ -1349,7 +1349,7 @@ PassiveDrain(
     IN WDFWORKITEM WorkItem)
 {
     PUSB_FDO_WORK_ITEM_CONTEXT  context = WorkItemGetContext(WorkItem);
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__":Device %p\n",
         context->FdoContext->WdfDevice);
@@ -1384,7 +1384,7 @@ DrainRequestQueue(
 
     while (moreToDo)
     {
-        NTSTATUS Status = 
+        NTSTATUS Status =
             WdfIoQueueRetrieveNextRequest(
                 fdoContext->RequestQueue,
                 &Request);
@@ -1410,10 +1410,10 @@ DrainRequestQueue(
 
             WdfRequestGetParameters(Request, &Parameters);
 
-            switch (Parameters.Parameters.DeviceIoControl.IoControlCode) 
+            switch (Parameters.Parameters.DeviceIoControl.IoControlCode)
             {
             case IOCTL_INTERNAL_USB_SUBMIT_URB:
-                {                    
+                {
                     if (fdoContext->ResetInProgress)
                     {
                         RequeueThisRequest = TRUE;

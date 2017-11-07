@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +25,7 @@
 #include "driver.h"
 #include "resource.h"
 #include "Device.h"
-#include <initguid.h> 
+#include <initguid.h>
 #include <ndisguid.h>
 #include <wdmguid.h>
 #include <string.h>
@@ -35,7 +35,7 @@
 The XCE Virtual USB Driver (xenvusb.sys) implements a paravirtual usb device
 using XEN ringbuffer and xenstore interfaces for cross domain data transfer.
 
-This is the second major version of this driver. This version differs from 
+This is the second major version of this driver. This version differs from
 the original version as follows:
     1. KMDF based.
     2. Win8 WDK based.
@@ -50,13 +50,13 @@ Device architecture:
     in its role as a standard windows PnP function driver.
 
     The files Device.cpp and Device.h implement standard KMDF based function driver operations.
-    The function driver emulates a virtual usb controller. There is one virtual usb controller for 
+    The function driver emulates a virtual usb controller. There is one virtual usb controller for
     each physical USB device on the platform that is connected to this VM. USB devices cannot be
     shared, so on a platform with multiple VMs running, USB devices can be connected to any one
-    of the VMs or to _DOM0_. 
-    
+    of the VMs or to _DOM0_.
+
     The virtual usb controller implemented by this driver creates a child PDO device that emulates a
-    root hub. The files RootHubPdo.cpp and RootHubPdo.h implement a _raw pdo_ that provide root hub 
+    root hub. The files RootHubPdo.cpp and RootHubPdo.h implement a _raw pdo_ that provide root hub
     functionality in the standard Microsoft USB device architecture.
 
     The virtual root hub in turn creates its own child pdo device that represents the physical usb
@@ -70,7 +70,7 @@ Device architecture:
 
 
 BOOLEAN gVistaOrLater = FALSE; //!< XP is different.
-BOOLEAN gFakeNxprep = FALSE;   //!< for debugging nxprep 
+BOOLEAN gFakeNxprep = FALSE;   //!< for debugging nxprep
 
 //
 /// driver entry is an "init" segment so the strings local to it get discarded so we need a local string
@@ -83,11 +83,11 @@ PCHAR name="XenVusb";
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
 #endif
-/** 
+/**
  * @brief Entry point for the driver.
  * Set up global variables and connect to the framework.
  * If successful creates a WDFDRIVER for this instantiation of the driver.
- * 
+ *
  * @param[in] DriverObject DriverObject created by OS.
  * @param[in] RegistryPath registry path to services key for driver.
  *
@@ -97,7 +97,7 @@ PCHAR name="XenVusb";
 extern "C"
 NTSTATUS
 DriverEntry(
-    _In_ PDRIVER_OBJECT  DriverObject, 
+    _In_ PDRIVER_OBJECT  DriverObject,
     _In_ PUNICODE_STRING RegistryPath )
 {
     WDF_DRIVER_CONFIG config;
@@ -132,11 +132,11 @@ DriverEntry(
         buildType,
         __DATE__, __TIME__);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER,
-        "DebugLevel %x DebugFlag %x\n", 
+        "DebugLevel %x DebugFlag %x\n",
         gDebugLevel, gDebugFlag);
 
     //
-    // Setup a cleanup callback for the WDFDRIVER object we are creating. 
+    // Setup a cleanup callback for the WDFDRIVER object we are creating.
     // Currently this is being done only to log that the driver
     // is being unloaded. Alternatively register for EvtDriverUnload, but that
     // will not be called if DriverEntry returns an error.
@@ -157,20 +157,20 @@ DriverEntry(
                              &config,
                              WDF_NO_HANDLE);
 
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "WdfDriverCreate failed %x\n", 
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "WdfDriverCreate failed %x\n",
             status);
         return status;
     }
     return status;
 }
 
-/** 
+/**
  * @brief Perform any cleanup operations required on driver unload.
- * 
+ *
  * @param[in] DriverObject WDFDRIVER created by DriverEntry
- * 
+ *
  */
 VOID
 EvtDriverContextCleanup(

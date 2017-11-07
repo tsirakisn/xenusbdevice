@@ -12,10 +12,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -61,7 +61,7 @@ XXX_TODO("--XT-- Better logging integration.");
 //
 /// local context for ringbuffer entry.
 //
-typedef struct 
+typedef struct
 {
     usbif_request_t req;                 //<! The associated ringbuffer request
     PXENBUS_GNTTAB_ENTRY ReqGrantEntries[USBIF_URB_MAX_SEGMENTS_PER_REQUEST];
@@ -122,7 +122,7 @@ struct XEN_INTERFACE
     usbif_front_ring_t        Ring;  //!< front ring
     ULONG                     RequestsOnRingbuffer; //!< data URBs only
     PMDL                      SringPage; // --XT-- added to track the mapped page
-    
+
     ULONG                     MaxIsoSegments;
     ULONG                     MaxSegments;
 
@@ -148,7 +148,7 @@ AllocateXenInterface(
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to allocate xeninterface\n");
         return NULL;
     }
-    
+
     RtlZeroMemory(xen, sizeof(XEN_INTERFACE));
     xen->FdoContext = fdoContext;
 
@@ -249,7 +249,7 @@ XenAllocatePage(VOID)
         ExFreePoolWithTag(buf, XVU9);
         return NULL;
     }
-  
+
     MmInitializeMdl(mdl, buf, PAGE_SIZE);
     MmBuildMdlForNonPagedPool(mdl);
 
@@ -435,7 +435,7 @@ XenDeviceInitialize(
                 __FUNCTION__ ": failed to get xenstore paths\n");
             status = STATUS_UNSUCCESSFUL;
             break;
-        }        
+        }
 
         //
         // Set the front end path in the caller's context.
@@ -497,7 +497,7 @@ XenDeviceInitialize(
             sizeof(USHORT)* SHADOW_ENTRIES,
             XVUB);
         if (!Xen->ShadowFreeList)
-        {        
+        {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__ ": Xen config shadow free list allocation failure\n");
             status = STATUS_NO_MEMORY;
@@ -599,7 +599,7 @@ XenDeviceDisconnectBackend(
     XenLowerDisonnectBackend(Xen->XenLower);
 }
 
-void 
+void
 FreeShadowForRequest(
     IN PXEN_INTERFACE Xen,
     WDFREQUEST Request)
@@ -667,7 +667,7 @@ PutShadowOnFreelist(
     //
     if (shadow->indirectPageMemory)
     {
-        usbif_indirect_page_t * indirectPage = 
+        usbif_indirect_page_t * indirectPage =
             (usbif_indirect_page_t *) shadow->indirectPageMemory;
 
         for (index = 0; index <shadow->req.nr_segments; index++)
@@ -730,7 +730,7 @@ CompleteRequestsFromShadow(
         __FUNCTION__": Device %p %d requests on ringbuffer\n",
         fdoContext->WdfDevice,
         OnRingBuffer(fdoContext->Xen));
-    
+
     for (ULONG index = 0;
         index < SHADOW_ENTRIES;
         index++)
@@ -783,13 +783,13 @@ CompleteRequestsFromShadow(
                         fdoContext->WdfDevice,
                         Request,
                         Status);
-                }  
+                }
             }
             //
             // deallocate any resources acquired for this IRP.
             //
             requestContext->RequestCompleted = 1;
-            FreeShadowForRequest(fdoContext->Xen, Request);            
+            FreeShadowForRequest(fdoContext->Xen, Request);
             WdfObjectDereference(Request);
 
             ReleaseFdoLock(fdoContext);
@@ -802,7 +802,7 @@ CompleteRequestsFromShadow(
                 Request);
         }
     }
-    
+
     ReleaseFdoLock(fdoContext);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -835,7 +835,7 @@ GetShadowFromFreeList(
 
 /**
  * @brief allocates grantrefs for a data transfer for standard (not indirect) ringbuffer transfers.
- * 
+ *
  * _Note_ AllocateGrefs can be called more than once for a single transfer operation and uses
  * usbif_shadow_ex_t.req.nr_segments to track where it is in the usbif_shadow_ex_t.req.gref array
  * of allocated grefs.
@@ -882,10 +882,10 @@ AllocateGrefs(
 }
 
 /**
- * @brief allocates the grant refs for an transfer using the indirect gref 
+ * @brief allocates the grant refs for an transfer using the indirect gref
  * mechanism.
  * This expands the ringbuffer per-transfer capacity by allocating g'refd memory
- * in the guest to hold additional grefs for data pages beyond the 
+ * in the guest to hold additional grefs for data pages beyond the
  * ringbuffer capacity of 17 pages.
  *
  * @param[in] Xen. The Xen interface context.
@@ -896,7 +896,7 @@ AllocateGrefs(
  * @param[in] IndirectPageMdl. The MDL for the indirect pages.
  * @param[in] PagesUsed. Number of data pages being transferred.
  * @param[in] PacketPfnArray. Optional. If an Iso packet the first data page is the ISO packets.
- * 
+ *
  * @returns BOOLEAN success or failure.
  */
 static BOOLEAN
@@ -914,7 +914,7 @@ AllocateIndirectGrefs(
     //
     // req.nr_segments is the number of indirect gref pages we need, and that is
     //  ( PagesUsed / 1023 )
-    // 
+    //
     PPFN_NUMBER pfnArray = MmGetMdlPfnArray(IndirectPageMdl);
     //
     // set up the descriptors for the indirect pages in the request.
@@ -939,7 +939,7 @@ AllocateIndirectGrefs(
     if (PacketPfnArray)
     {
         //
-        // set up the descriptor for the iso packets - it is the first page 
+        // set up the descriptor for the iso packets - it is the first page
         // of the first indirect page. We have to fill in pagesUsed + 1 pages;
         // The first gref of the first page points to the iso packet descriptor page.
         //
@@ -955,7 +955,7 @@ AllocateIndirectGrefs(
         Trace("added indirect page grant reference: 0x%x (%p)", (int)indirectPages[0].gref[0], entry);
 
         indirectPages[0].nr_segments = 1;
-        indirectIndex = 1; 
+        indirectIndex = 1;
     }
     //
     // now set up the data grefs.
@@ -1055,7 +1055,7 @@ PutScratchOnRing(
         return STATUS_UNSUCCESSFUL;
     }
     if (isReset)
-    {        
+    {
         if (packet)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -1078,7 +1078,7 @@ PutScratchOnRing(
             TransferLength);
         offset = MmGetMdlByteOffset(fdoContext->ScratchPad.Mdl);
         pfnArray = MmGetMdlPfnArray(fdoContext->ScratchPad.Mdl);
-    }       
+    }
     usbif_shadow_ex_t *shadow = GetShadowFromFreeList(fdoContext->Xen);
     ASSERT(shadow);
     ASSERT(shadow->Tag == SHADOW_TAG);
@@ -1127,13 +1127,13 @@ BOOLEAN
 WaitForScratchPadAccess(
     IN PUSB_FDO_CONTEXT fdoContext)
 {
-    
+
     ULONG Count = 0;
     while (fdoContext->ConfigBusy && Count < 5)
     {
         //
         // wait one second and try again
-        //            
+        //
         ReleaseFdoLock(fdoContext);
         LARGE_INTEGER  delay;
         delay.QuadPart = WDF_REL_TIMEOUT_IN_SEC(1);
@@ -1195,7 +1195,7 @@ WaitForScratchCompletion(
             }
         }
         else if (NT_SUCCESS(Status))
-        {            
+        {
             if (fdoContext->DeviceUnplugged)
             {
                 Status = STATUS_UNSUCCESSFUL;
@@ -1235,7 +1235,7 @@ PutResetOrCycleUrbOnRing(
     IN WDFREQUEST Request,
     IN BOOLEAN IsReset) // RESET_TARGET_DEVICE (T)  or CYCLE_PORT (F)
 {
-    usbif_shadow_ex_t *shadow = NULL;    
+    usbif_shadow_ex_t *shadow = NULL;
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
     if (!Request)
     {
@@ -1249,7 +1249,7 @@ PutResetOrCycleUrbOnRing(
     {
         //
         // cycle or reset are allowed to consume the last request.
-        // 
+        //
         if (!AvailableRequests(fdoContext->Xen))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -1273,7 +1273,7 @@ PutResetOrCycleUrbOnRing(
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
         }
-        
+
         Status = WdfRequestMarkCancelableEx(Request,
             EvtFdoOnHardwareRequestCancelled);
 
@@ -1286,7 +1286,7 @@ PutResetOrCycleUrbOnRing(
                 Status);
             LEAVE;
         }
-        RequestGetRequestContext(Request)->CancelSet = 1; 
+        RequestGetRequestContext(Request)->CancelSet = 1;
         //
         // Add a reference to the Request when it is going to the ringbuffer.
         //
@@ -1321,7 +1321,7 @@ PutResetOrCycleUrbOnRing(
         if (Status != STATUS_SUCCESS)
         {
             if (shadow)
-            {          
+            {
                 PutShadowOnFreelist(fdoContext->Xen, shadow);
             }
             if (Request)
@@ -1335,8 +1335,8 @@ PutResetOrCycleUrbOnRing(
                     Request,
                     shadow,
                     Status);
-                
-                RequestGetRequestContext(Request)->RequestCompleted = 1; 
+
+                RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
                 WdfRequestComplete(Request, Status);
                 AcquireFdoLock(fdoContext);;
@@ -1349,7 +1349,7 @@ PutResetOrCycleUrbOnRing(
  * @brief Puts a request on the Xen ringbuffer.
  * *Must be called with lock held*
  * *Must Complete, requeue, or put the request on the ringbuffer.*
- * 
+ *
  */
 _Requires_lock_held_(fdoContext->WdfDevice)
 VOID
@@ -1372,7 +1372,7 @@ PutUrbOnRing(
     usbif_shadow_ex_t *shadow = NULL;
     PURB Urb = NULL;
     PMDL IndirectPageMdl = NULL;
-    
+
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
     TRY
@@ -1384,10 +1384,10 @@ PutUrbOnRing(
                 fdoContext->FrontEndPath);
             Status = STATUS_INVALID_PARAMETER;
             LEAVE;
-        }        
+        }
         //
         // reserve one request for reset of all requests
-        // 
+        //
         if (AvailableRequests(fdoContext->Xen) <= 1)
         {
             RequeueRequest(fdoContext, Request);
@@ -1396,7 +1396,7 @@ PutUrbOnRing(
             LEAVE;
         }
 
-        Urb = (PURB) URB_FROM_IRP(WdfRequestWdmGetIrp(Request));  
+        Urb = (PURB) URB_FROM_IRP(WdfRequestWdmGetIrp(Request));
 
         shadow = GetShadowFromFreeList(fdoContext->Xen);
         ASSERT(shadow);
@@ -1444,7 +1444,7 @@ PutUrbOnRing(
             //
             Mdl = Urb->UrbBulkOrInterruptTransfer.TransferBufferMDL;
             buffer = Urb->UrbBulkOrInterruptTransfer.TransferBuffer;
-            
+
             if (Mdl)
             {
                 pagesUsed = ADDRESS_AND_SIZE_TO_SPAN_PAGES(MmGetMdlVirtualAddress(Mdl), transferLength);
@@ -1492,13 +1492,13 @@ PutUrbOnRing(
                 Status = STATUS_UNSUCCESSFUL;
                 LEAVE;
             }
-            
+
             offset = MmGetMdlByteOffset(Mdl);
 
             if (pagesUsed > MaxSegments(fdoContext->Xen))
             {
                 //
-                // BULK Indirect support. 
+                // BULK Indirect support.
                 //
                 if (PipeType != UsbdPipeTypeBulk)
                 {
@@ -1522,7 +1522,7 @@ PutUrbOnRing(
                     Status = STATUS_UNSUCCESSFUL;
                     LEAVE;
                 }
-                
+
                 ULONG indirectPagesNeeded = INDIRECT_PAGES_REQUIRED(pagesUsed );
                 ASSERT(indirectPagesNeeded <= MAX_INDIRECT_PAGES);
 #pragma warning(push)
@@ -1542,7 +1542,7 @@ PutUrbOnRing(
 
                     Status = STATUS_INSUFFICIENT_RESOURCES;
                     LEAVE;
-                }           
+                }
                 RtlZeroMemory(shadow->indirectPageMemory, (PAGE_SIZE * indirectPagesNeeded));
 
                 IndirectPageMdl = IoAllocateMdl(shadow->indirectPageMemory,
@@ -1564,7 +1564,7 @@ PutUrbOnRing(
                 if (!AllocateIndirectGrefs(
                     fdoContext->Xen,
                     shadow,
-                    indirectPagesNeeded, 
+                    indirectPagesNeeded,
                     Mdl,
                     IndirectPageMdl,
                     pagesUsed,
@@ -1594,7 +1594,7 @@ PutUrbOnRing(
         //
         // If we get here this request is going to DOM0.
         // Mark the request as cancelable, unfortunately this step can fail.
-        //        
+        //
         Status = WdfRequestMarkCancelableEx(Request,
             EvtFdoOnHardwareRequestCancelled);
 
@@ -1610,7 +1610,7 @@ PutUrbOnRing(
             //
             LEAVE;
         }
-        RequestGetRequestContext(Request)->CancelSet = 1; 
+        RequestGetRequestContext(Request)->CancelSet = 1;
         //
         // Add a reference to the Request when it is going to the ringbuffer.
         //
@@ -1630,7 +1630,7 @@ PutUrbOnRing(
         shadow->isoPacketDescriptor = NULL;
         RtlCopyMemory(&shadow->req.setup, packet, sizeof(shadow->req.setup));
 
-        mdlAllocated = FALSE; // so we do not clean it up 
+        mdlAllocated = FALSE; // so we do not clean it up
 
         if (shadow->indirectPageMemory)
         {
@@ -1661,12 +1661,12 @@ PutUrbOnRing(
         if (Status != STATUS_SUCCESS)
         {
             if (shadow)
-            {          
+            {
                 PutShadowOnFreelist(fdoContext->Xen, shadow);
             }
 
             if (Mdl && mdlAllocated)
-            {                
+            {
                 IoFreeMdl(Mdl);
             }
 
@@ -1683,8 +1683,8 @@ PutUrbOnRing(
                     Mdl,
                     mdlAllocated,
                     Status);
-                
-                RequestGetRequestContext(Request)->RequestCompleted = 1; 
+
+                RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
                 WdfRequestComplete(Request, Status);
                 AcquireFdoLock(fdoContext);;
@@ -1711,7 +1711,7 @@ PutIsoUrbOnRing(
     IN WDFREQUEST Request,
     IN UCHAR EndpointAddress,
     IN BOOLEAN transferAsap,
-    IN BOOLEAN ShortOK) 
+    IN BOOLEAN ShortOK)
 {
     ULONG transferLength = 0;
     ULONG offset = 0;
@@ -1722,13 +1722,13 @@ PutIsoUrbOnRing(
     PVOID buffer;
     ULONG numberOfPackets;
     iso_packet_info * packetBuffer = NULL;
-    PMDL packetMdl = NULL; 
+    PMDL packetMdl = NULL;
     usbif_shadow_ex_t *shadow = NULL;
     PURB Urb = NULL;
     PMDL IndirectPageMdl = NULL;
     //
     // reserve one request for cancellation of all requests
-    // 
+    //
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
     TRY
@@ -1736,7 +1736,7 @@ PutIsoUrbOnRing(
         if (!Request)
         {
             LEAVE;
-        }        
+        }
         Urb = (PURB) URB_FROM_IRP(WdfRequestWdmGetIrp(Request));
 
         if (AvailableRequests(fdoContext->Xen) <= 1)
@@ -1760,7 +1760,7 @@ PutIsoUrbOnRing(
         }
 
         transferLength = Urb->UrbIsochronousTransfer.TransferBufferLength;
-        numberOfPackets = Urb->UrbIsochronousTransfer.NumberOfPackets; 
+        numberOfPackets = Urb->UrbIsochronousTransfer.NumberOfPackets;
 
         packetBuffer = (iso_packet_info *)  ExAllocatePoolWithTag(NonPagedPool,
             PAGE_SIZE, XVUD);
@@ -1789,12 +1789,12 @@ PutIsoUrbOnRing(
         }
         MmBuildMdlForNonPagedPool(packetMdl);
         //
-        // set up the transfer the packet descriptors 
+        // set up the transfer the packet descriptors
         //
         //
         ULONG segLength32 = Urb->UrbIsochronousTransfer.TransferBufferLength / numberOfPackets;
 
-        for (ULONG Index = 0; 
+        for (ULONG Index = 0;
             Index < numberOfPackets;
             Index++)
         {
@@ -1848,7 +1848,7 @@ PutIsoUrbOnRing(
 
             if (Mdl)
             {
-                MmBuildMdlForNonPagedPool(Mdl);            
+                MmBuildMdlForNonPagedPool(Mdl);
                 mdlAllocated = TRUE;
             }
             else
@@ -1862,7 +1862,7 @@ PutIsoUrbOnRing(
         }
         else
         {
-            // no buffer and no mdl? what?            
+            // no buffer and no mdl? what?
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s no buffer and no mdl for Urb %p function %s (%x)\n",
                 fdoContext->FrontEndPath,
@@ -1881,7 +1881,7 @@ PutIsoUrbOnRing(
         PPFN_NUMBER packetPfnArray = MmGetMdlPfnArray(packetMdl);
 
         pagesUsed =  ADDRESS_AND_SIZE_TO_SPAN_PAGES(
-            MmGetMdlVirtualAddress(Mdl), 
+            MmGetMdlVirtualAddress(Mdl),
             transferLength);
 
         if (pagesUsed > MaxIsoSegments(fdoContext->Xen))
@@ -1923,7 +1923,7 @@ PutIsoUrbOnRing(
 
                 Status = STATUS_INSUFFICIENT_RESOURCES;
                 LEAVE;
-            }           
+            }
             RtlZeroMemory(shadow->indirectPageMemory, (PAGE_SIZE * indirectPagesNeeded));
 
             IndirectPageMdl = IoAllocateMdl(shadow->indirectPageMemory,
@@ -1940,12 +1940,12 @@ PutIsoUrbOnRing(
                 Status = STATUS_INSUFFICIENT_RESOURCES;
                 LEAVE;
             }
-            MmBuildMdlForNonPagedPool(IndirectPageMdl);            
+            MmBuildMdlForNonPagedPool(IndirectPageMdl);
 
             if (!AllocateIndirectGrefs(
                 fdoContext->Xen,
                 shadow,
-                indirectPagesNeeded, 
+                indirectPagesNeeded,
                 Mdl,
                 IndirectPageMdl,
                 pagesUsed,
@@ -1973,7 +1973,7 @@ PutIsoUrbOnRing(
                 //
                 LEAVE;
             }
-            RequestGetRequestContext(Request)->CancelSet = 1; 
+            RequestGetRequestContext(Request)->CancelSet = 1;
             //
             // Add a reference to the Request when it is going to the ringbuffer.
             //
@@ -2005,7 +2005,7 @@ PutIsoUrbOnRing(
             Request = NULL;
             LEAVE;
         }
-              
+
         //
         // set up the descriptor for the iso packets
         //
@@ -2038,7 +2038,7 @@ PutIsoUrbOnRing(
         //
         // If we get here this request is going to DOM0.
         // Mark the request as cancelable, unfortunately this step can fail.
-        //        
+        //
         Status = WdfRequestMarkCancelableEx(Request,
             EvtFdoOnHardwareRequestCancelled);
 
@@ -2054,7 +2054,7 @@ PutIsoUrbOnRing(
             //
             LEAVE;
         }
-        RequestGetRequestContext(Request)->CancelSet = 1; 
+        RequestGetRequestContext(Request)->CancelSet = 1;
         //
         // Add a reference to the Request when it is going to the ringbuffer.
         //
@@ -2103,7 +2103,7 @@ PutIsoUrbOnRing(
             IoFreeMdl(IndirectPageMdl);
         }
         if (packetMdl)
-        {                
+        {
             IoFreeMdl(packetMdl);
         }
 
@@ -2118,14 +2118,14 @@ PutIsoUrbOnRing(
             {
                 if (packetBuffer)
                 {
-                    ExFreePool(packetBuffer); 
-                } 
+                    ExFreePool(packetBuffer);
+                }
                 if (mdlAllocated)
                 {
-                    // have to get rid of this one                
+                    // have to get rid of this one
                     IoFreeMdl(Mdl);
                 }
-            }           
+            }
             if (Request)
             {
                 //
@@ -2139,15 +2139,15 @@ PutIsoUrbOnRing(
                     Mdl,
                     mdlAllocated,
                     Status);
-                
-                RequestGetRequestContext(Request)->RequestCompleted = 1; 
+
+                RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
                 WdfRequestComplete(Request, Status);
                 AcquireFdoLock(fdoContext);;
             }
         }
         else
-        { 
+        {
             ASSERT(Request == NULL);
         }
     }
@@ -2200,7 +2200,7 @@ TraceUsbIfRequest(
 
 /**
  * @brief DPC handler for XEN interface.
- * Process all completed requests on the ringbuffer and hand them back to the caller as 
+ * Process all completed requests on the ringbuffer and hand them back to the caller as
  * a WDFCOLLECTION of requests. The caller completes the requests.
  * __called with device lock held__
  *
@@ -2374,8 +2374,8 @@ XenDpc(
 
                 NtStatus = PostProcessUrb(
                     fdoContext,
-                    Urb, 
-                    &usbdStatus, 
+                    Urb,
+                    &usbdStatus,
                     response->bytesTransferred,
                     response->data,
                     shadow->isoPacketDescriptor);
@@ -2438,11 +2438,11 @@ XenDpc(
         }
         else
         {
-            PostProcessScratch(fdoContext, 
-                usbdStatus, 
+            PostProcessScratch(fdoContext,
+                usbdStatus,
                 usbifStatusString,
                 usbdStatusString,
-                response->bytesTransferred, 
+                response->bytesTransferred,
                 response->data);
         }
         PutShadowOnFreelist(fdoContext->Xen, shadow);
@@ -2504,12 +2504,12 @@ XenPostProcessIsoResponse(
     IN ULONG startFrame,
     IN PVOID isoPacketDescriptor,
     IN NTSTATUS Status)
-{    
+{
     iso_packet_info * isoInfoArray = (iso_packet_info *) isoPacketDescriptor;
 
     if (NT_SUCCESS(Status))
     {
-        ULONG numberOfPackets = Urb->UrbIsochronousTransfer.NumberOfPackets; 
+        ULONG numberOfPackets = Urb->UrbIsochronousTransfer.NumberOfPackets;
         Urb->UrbIsochronousTransfer.ErrorCount = 0;
         ULONG totalBytes = 0;
 
@@ -2526,11 +2526,11 @@ XenPostProcessIsoResponse(
                 &usbifStatusString,
                 &usbdStatusString);
 
-            Urb->UrbIsochronousTransfer.IsoPacket[Index].Offset = 
+            Urb->UrbIsochronousTransfer.IsoPacket[Index].Offset =
                 isoInfoArray[Index].offset;
-            Urb->UrbIsochronousTransfer.IsoPacket[Index].Length = 
+            Urb->UrbIsochronousTransfer.IsoPacket[Index].Length =
                 isoInfoArray[Index].length;
-            Urb->UrbIsochronousTransfer.IsoPacket[Index].Status = 
+            Urb->UrbIsochronousTransfer.IsoPacket[Index].Status =
                 isoInfoArray[Index].status;
 
             if (isoInfoArray[Index].status == USBD_STATUS_SUCCESS)
@@ -2559,7 +2559,7 @@ XenPostProcessIsoResponse(
                 // xp usbaudio will crash on an iso packet with zero total bytes.
                 // as a workaround for this msft bug, set packet 0 to status success.
                 // Note that an iso packet always has a non-zero length, so simply
-                // converting the status is sufficient. Ignore the fact that we 
+                // converting the status is sufficient. Ignore the fact that we
                 // are producing garbage as data. This code path is a consequence of an unplug
                 // operation, iso data is not reliable, and we can't fix usbaudio.
                 //
@@ -2598,11 +2598,11 @@ XenPostProcessIsoResponse(
                 Urb->UrbIsochronousTransfer.StartFrame,
                 startFrame);
         }
-                
+
 
         // transfer the packet descriptors back?
         TraceEvents(
-            TRACE_LEVEL_VERBOSE, 
+            TRACE_LEVEL_VERBOSE,
             TRACE_DPC,
             __FUNCTION__": packet completion: StartFrame %d  errorCount %d numberOfPackets %d totalBytes %d\n",
             startFrame,
@@ -2696,7 +2696,7 @@ AvailableRequests(
 //
 // Error code translation (debug logging.)
 //
-NTSTATUS 
+NTSTATUS
 MapUsbifToUsbdStatus(
     IN BOOLEAN  ResetInProgress,
     IN LONG UsbIfStatus,
@@ -2833,7 +2833,7 @@ XenCheckOperationalState(
     {
     case XenbusStateUnknown: //0
     case XenbusStateClosed:  //6
-    case XenbusStateClosing: //5 
+    case XenbusStateClosing: //5
         Operational = FALSE;
     default:
         break;

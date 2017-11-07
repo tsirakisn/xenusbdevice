@@ -8,10 +8,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,15 +21,15 @@
 // THE SOFTWARE.
 //
 #pragma once
-#define STRINGER(w, x, y, z) #w "." #x "." #y "." #z 
+#define STRINGER(w, x, y, z) #w "." #x "." #y "." #z
 #define XSTRINGER(w, x, y, z) STRINGER(w, x, y, z)
-#define STR(w) #w 
+#define STR(w) #w
 #define XSTR(w) STR(w)
 
-#define VER_PRODUCTVERSION      DRV_VERS_MAJOR,DRV_VERS_MINOR,DRV_VERS_PATCH,DRV_VERS_BLD   
+#define VER_PRODUCTVERSION      DRV_VERS_MAJOR,DRV_VERS_MINOR,DRV_VERS_PATCH,DRV_VERS_BLD
 #ifdef DRV_DEV_BUILD
 #define VER_PRODUCTVERSION_STR  "Dev." DRV_DEV_BUILD "." XSTRINGER(DRV_VERS_MAJOR,DRV_VERS_MINOR,DRV_VERS_PATCH,DRV_VERS_BLD)
-#else 
+#else
 #define VER_PRODUCTVERSION_STR  XSTRINGER(DRV_VERS_MAJOR,DRV_VERS_MINOR,DRV_VERS_PATCH,DRV_VERS_BLD)
 #endif
 

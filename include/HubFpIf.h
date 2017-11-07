@@ -8,10 +8,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
 #pragma once
 //
 // for now define our own bogus version of USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID
-// d74bd695 5916 4a8a 9a d6 5b 20 7f 45 30 
+// d74bd695 5916 4a8a 9a d6 5b 20 7f 45 30
 //
 DEFINE_GUID( USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID, \
             0xd74bd695L, 0x5916, 0x4a8a, 0x9a, 0xd6, 0x5b, 0x20, 0x7f, 0x45, 0x30, 0x65);
@@ -34,7 +34,7 @@ typedef NTSTATUS
         PVOID Param1
     );
 
-typedef PIO_WORKITEM 
+typedef PIO_WORKITEM
     (USB_BUSIFFN *FP_ALLOCATE_WORK_ITEM) (
         PDEVICE_OBJECT pdo
         );
@@ -68,11 +68,11 @@ typedef struct _USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS {
 
     USHORT Size;
     USHORT Version;
-    
+
     PVOID BusContext;
     PINTERFACE_REFERENCE InterfaceReference;
     PINTERFACE_DEREFERENCE InterfaceDereference;
-    
+
     // interface specific entries go here
 
     FP_ALLOCATE_WORK_ITEM AllocateWorkItem;

@@ -8,10 +8,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -47,7 +47,7 @@
 #define SET_CONFIGURATION                   9
 #define GET_INTERFACE                       10
 #define SET_INTERFACE                       11
-#define SYNCH_FRAME                         12    
+#define SYNCH_FRAME                         12
 
 
 #define USB_INTERFACE_CLASS_HID 0x03
@@ -84,7 +84,7 @@ typedef enum _XENUSB_SPEED {
 //
 #define USB_STRING_ARRAY_LENGTH (128+1)
 
-struct USB_STRING 
+struct USB_STRING
 {
     UCHAR bLength;
     UCHAR bDescriptorType;
@@ -99,7 +99,7 @@ typedef USB_STRING * PUSB_STRING;
 // MS_OS_STRING_SIGNATURE                      L"MSFT100"
 struct OS_DESCRIPTOR_STRING
 {
-    union 
+    union
     {
         OS_STRING  osDescriptor;
         USB_STRING usbString;
@@ -107,7 +107,7 @@ struct OS_DESCRIPTOR_STRING
 };
 typedef OS_DESCRIPTOR_STRING *POS_DESCRIPTOR_STRING;
 
-inline 
+inline
 WDF_USB_CONTROL_SETUP_PACKET
 formatOsFeaturePacket(
     UCHAR vendorCode,
@@ -117,7 +117,7 @@ formatOsFeaturePacket(
     USHORT length)
 {
     WDF_USB_CONTROL_SETUP_PACKET packet;
-    
+
     RtlZeroMemory(&packet, sizeof(WDF_USB_CONTROL_SETUP_PACKET));
     packet.Packet.bm.Byte = 0xC0;
     packet.Packet.bRequest = vendorCode;

@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,11 +39,11 @@ PostProcessSelectConfig(
 
 VOID
 PostProcessScratch(
-    IN PUSB_FDO_CONTEXT fdoContext, 
+    IN PUSB_FDO_CONTEXT fdoContext,
     IN NTSTATUS usbdStatus,
     IN PCHAR usbifStatusString,
     IN PCHAR usbdStatusString,
-    IN ULONG BytesTransferred, 
+    IN ULONG BytesTransferred,
     IN ULONG Data)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
@@ -109,7 +109,7 @@ PostProcessUrb(
     // --XT-- The stalled status does not seem like an error and fills the log with spew.
     if (*usbdStatus == USBD_STATUS_STALL_PID)
         TraceLevel = TRACE_LEVEL_VERBOSE;
-    
+
     TraceEvents(TraceLevel, TRACE_URB,
         __FUNCTION__": %s Device %p Status %x UsbdStatus %x Function %s bytesTransferred %d\n",
         fdoContext->FrontEndPath,
@@ -157,7 +157,7 @@ PostProcessUrb(
                 switch (Urb->UrbControlDescriptorRequest.DescriptorType)
                 {
                 case USB_DEVICE_DESCRIPTOR_TYPE:
-                    memcpy(&fdoContext->DeviceDescriptor, buffer, 
+                    memcpy(&fdoContext->DeviceDescriptor, buffer,
                         sizeof(fdoContext->DeviceDescriptor));
                     break;
 
@@ -166,7 +166,7 @@ PostProcessUrb(
                     {
                         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
                             __FUNCTION__": Config descriptor returned length %d\n",
-                            bytesTransferred);                  
+                            bytesTransferred);
                     }
                     break;
 
@@ -228,7 +228,7 @@ PostProcessUrb(
         }
         break;
 
-        
+
     case URB_FUNCTION_SELECT_INTERFACE:
         //
         // capture the interface data on return and
@@ -299,7 +299,7 @@ PostProcessUrb(
                 Urb);
             Status = STATUS_UNSUCCESSFUL;
         }
-        fdoContext->ScratchPad.FrameNumber = startFrame + 
+        fdoContext->ScratchPad.FrameNumber = startFrame +
             Urb->UrbIsochronousTransfer.NumberOfPackets;
         break;
 
@@ -384,7 +384,7 @@ PostProcessSelectConfig(
     }
     else
     {
-        fdoContext->CurrentConfigValue = 0; // unconfigured		
+        fdoContext->CurrentConfigValue = 0; // unconfigured
         SetConfigPointers(fdoContext);
         Status = STATUS_SUCCESS;
     }

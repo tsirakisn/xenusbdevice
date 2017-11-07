@@ -17,5 +17,5 @@ if __name__ == '__main__':
                     shutil.rmtree(path)
             except OSError:
                 None
-                
+
     file.close()

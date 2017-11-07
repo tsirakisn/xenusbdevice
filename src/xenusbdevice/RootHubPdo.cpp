@@ -2,7 +2,7 @@
 // Copyright (c) Citrix Systems, Inc.
 //
 /// @file RootHubPdo.cpp Emulates a Root Hub Device.
-/// This is a "raw pdo" device that emulates a root hub in the standard 
+/// This is a "raw pdo" device that emulates a root hub in the standard
 /// Microsoft USB architecture. The device acts as a bus driver, enumerating a
 /// child device representing the actual USB device.
 //
@@ -13,10 +13,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -64,21 +64,21 @@ HubCreateChildPdo(
     PWDFDEVICE_INIT pDeviceInit);
 
 /**
- * @brief Create the child PDO for the root hub (bus driver) for this HBA. 
+ * @brief Create the child PDO for the root hub (bus driver) for this HBA.
  *
  * The root hub exists just to emulate the MSFT
  * architecture and support the IOCTLs and interfaces specific
- * to Hubs while routine URBs from its child device to the 
+ * to Hubs while routine URBs from its child device to the
  * parent HBA.
  *
  * The Xen bus enumerates a  "xen\\vusb" PDO, this driver instantiates a virtual USB
  * controller FDO for that PDO. The VUSB FDO enumerates a root hub "raw" PDO device, also
  * managed by this driver. The root hub "raw" PDO device enumerates a USB PDO  device.
- * 
+ *
  * @param[in] fdoContext .the context (device extenstion) for the parent controller FDO.
- * 
+ *
  * @returns NTSTATUS value for success or failure.
- * 
+ *
  */
 NTSTATUS
 CreateRootHubPdo(
@@ -128,7 +128,7 @@ CreateRootHubPdoWithDeviceInit(
         IdentificationDescription);
 
     do
-    {        
+    {
         //
         // Are any of the next 4 steps required?
         //
@@ -139,7 +139,7 @@ CreateRootHubPdoWithDeviceInit(
             TRUE);
         WdfDeviceInitSetDeviceClass(pDeviceInit, &GUID_DEVCLASS_USB);
         //
-        // NB the id strings have to be in the form "BUS\\ID" or 
+        // NB the id strings have to be in the form "BUS\\ID" or
         // your PDO ends up stuck in init state.
         //
         DECLARE_CONST_UNICODE_STRING(roothubidMSFT, L"USB\\ROOT_HUB\0");
@@ -222,7 +222,7 @@ CreateRootHubPdoWithDeviceInit(
             break;
         }
         //
-        // establish a request context. 
+        // establish a request context.
         // Note: because urb's are *forwarded* to the parent device for processing
         // the child device has to establish the context space used for the request.
         // It is a bit of overkill to require all requests to have a context space
@@ -305,7 +305,7 @@ CreateRootHubPdoWithDeviceInit(
             &pdoAttributes,
             &hChild);
 
-        if (!NT_SUCCESS(status)) 
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s WdfDeviceCreate for HUB PDO error %x\n",
@@ -314,7 +314,7 @@ CreateRootHubPdoWithDeviceInit(
             break;
         }
         pDeviceInit = NULL; // don't clean this up on error.
-        
+
         PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(hChild);
         RtlZeroMemory(hubContext, sizeof(*hubContext));
         hubContext->WdfDevice = hChild;
@@ -327,7 +327,7 @@ CreateRootHubPdoWithDeviceInit(
         hubContext->HubConfig.DeviceDescriptor.bDeviceClass = USB_DEVICE_CLASS_HUB;
         hubContext->HubConfig.DeviceDescriptor.bDeviceSubClass = 0;
         hubContext->HubConfig.DeviceDescriptor.bDeviceProtocol = 1;
-        hubContext->HubConfig.DeviceDescriptor.bMaxPacketSize0 = 64; 
+        hubContext->HubConfig.DeviceDescriptor.bMaxPacketSize0 = 64;
         hubContext->HubConfig.DeviceDescriptor.idVendor = 0;
         hubContext->HubConfig.DeviceDescriptor.idProduct = 0;
         hubContext->HubConfig.DeviceDescriptor.bcdDevice = 0x0101;
@@ -338,7 +338,7 @@ CreateRootHubPdoWithDeviceInit(
 
         hubContext->HubConfig.ConfigurationDescriptor.bLength = sizeof(USB_CONFIGURATION_DESCRIPTOR); // 9
         hubContext->HubConfig.ConfigurationDescriptor.bDescriptorType = USB_CONFIGURATION_DESCRIPTOR_TYPE;
-        hubContext->HubConfig.ConfigurationDescriptor.wTotalLength = sizeof(USB_CONFIGURATION_DESCRIPTOR) 
+        hubContext->HubConfig.ConfigurationDescriptor.wTotalLength = sizeof(USB_CONFIGURATION_DESCRIPTOR)
             + sizeof(USB_INTERFACE_DESCRIPTOR) + sizeof(USB_ENDPOINT_DESCRIPTOR); // ?? 25
         hubContext->HubConfig.ConfigurationDescriptor.bNumInterfaces = 1;
         hubContext->HubConfig.ConfigurationDescriptor.bConfigurationValue = 1;
@@ -376,12 +376,12 @@ CreateRootHubPdoWithDeviceInit(
         hubContext->HubConfig.HubDescriptor.bRemoveAndPowerMask[0] = 0;
         hubContext->HubConfig.HubDescriptor.bRemoveAndPowerMask[1] = 0xff;
 
-        hubContext->HubConfig.ConfigInfo.m_configurationDescriptor = 
+        hubContext->HubConfig.ConfigInfo.m_configurationDescriptor =
             &hubContext->HubConfig.ConfigurationDescriptor;
         hubContext->HubConfig.InterfaceArray[0] = &hubContext->HubConfig.InterfaceDescriptor;
-        hubContext->HubConfig.ConfigInfo.m_interfaceDescriptors = 
+        hubContext->HubConfig.ConfigInfo.m_interfaceDescriptors =
             hubContext->HubConfig.InterfaceArray;
-        hubContext->HubConfig.ConfigInfo.m_pipeDescriptors = 
+        hubContext->HubConfig.ConfigInfo.m_pipeDescriptors =
             &hubContext->HubConfig.PipeDescriptor;
         hubContext->HubConfig.ConfigInfo.m_numInterfaces = 1;
         hubContext->HubConfig.ConfigInfo.m_numEndpoints = 1;
@@ -414,7 +414,7 @@ CreateRootHubPdoWithDeviceInit(
         // Set up the io processing for this device.
         //
         status = HubQueueInitialize(hChild);
-        if (!NT_SUCCESS(status)) 
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s HubQueueInitialize for HUB PDO error %x\n",
@@ -430,7 +430,7 @@ CreateRootHubPdoWithDeviceInit(
             &GUID_DEVINTERFACE_USB_HUB,
             NULL);
 
-        if (!NT_SUCCESS(status)) 
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s WdfDeviceCreateDeviceInterface for device %p error %x\n",
@@ -440,10 +440,10 @@ CreateRootHubPdoWithDeviceInit(
             break;
         }
 
-        WDF_OBJECT_ATTRIBUTES_INIT(&fileAttributes);    
+        WDF_OBJECT_ATTRIBUTES_INIT(&fileAttributes);
         fileAttributes.ParentObject = fdoContext->WdfDevice;
         status = WdfStringCreate(NULL, &fileAttributes, &fdoContext->hubsymlink);
-        if (!NT_SUCCESS(status)) 
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s WdfStringCreate for device %p error %x\n",
@@ -458,10 +458,10 @@ CreateRootHubPdoWithDeviceInit(
 
         pnpCaps.SurpriseRemovalOK = WdfTrue;
         pnpCaps.Removable = WdfFalse;
-        // If UINumber is unknown, or if supplying a number would not assist 
-        // the user in identifying the device's location, the driver sets 
+        // If UINumber is unknown, or if supplying a number would not assist
+        // the user in identifying the device's location, the driver sets
         // this value to -1.
-        pnpCaps.UINumber = (ULONG) -1; 
+        pnpCaps.UINumber = (ULONG) -1;
         WdfDeviceSetPnpCapabilities(hChild, &pnpCaps);
 
         PNP_BUS_INFORMATION  busInformation;
@@ -477,7 +477,7 @@ CreateRootHubPdoWithDeviceInit(
             fdoContext->WdfDevice,
             hChild );
 
-        if (!NT_SUCCESS(status)) 
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s WdfFdoAddStaticChild for Hub error %x\n",
@@ -576,44 +576,44 @@ RootHubPreProcessPnpIrp(
         Status = RootHubPreProcessQueryInterface(Device, Irp);
         return Status;
 
-    case IRP_MN_QUERY_CAPABILITIES:   
+    case IRP_MN_QUERY_CAPABILITIES:
         requeststring = "IRP_MN_QUERY_CAPABILITIES";
-        break;     
-    case IRP_MN_QUERY_RESOURCES: 
+        break;
+    case IRP_MN_QUERY_RESOURCES:
         requeststring = "IRP_MN_QUERY_RESOURCES";
-        break;          
+        break;
     case IRP_MN_QUERY_RESOURCE_REQUIREMENTS:
         requeststring = "IRP_MN_QUERY_RESOURCE_REQUIREMENTS";
         break;
     case IRP_MN_QUERY_DEVICE_TEXT:
         requeststring = "IRP_MN_QUERY_DEVICE_TEXT";
         break;
-    case IRP_MN_FILTER_RESOURCE_REQUIREMENTS:   
+    case IRP_MN_FILTER_RESOURCE_REQUIREMENTS:
         requeststring = "IRP_MN_FILTER_RESOURCE_REQUIREMENTS";
-        break;     
+        break;
     case IRP_MN_READ_CONFIG:
         requeststring = "IRP_MN_READ_CONFIG";
         break;
-    case IRP_MN_WRITE_CONFIG: 
+    case IRP_MN_WRITE_CONFIG:
         requeststring = "IRP_MN_WRITE_CONFIG";
-        break;             
-    case IRP_MN_EJECT: 
-        traceLevel = TRACE_LEVEL_WARNING; 
+        break;
+    case IRP_MN_EJECT:
+        traceLevel = TRACE_LEVEL_WARNING;
         requeststring = "IRP_MN_EJECT";
-        break;                   
-    case IRP_MN_SET_LOCK:   
+        break;
+    case IRP_MN_SET_LOCK:
         requeststring = "IRP_MN_SET_LOCK";
-        break;               
-    case IRP_MN_QUERY_ID:  
+        break;
+    case IRP_MN_QUERY_ID:
         requeststring = "IRP_MN_QUERY_ID";
-        break;                
-    case IRP_MN_QUERY_PNP_DEVICE_STATE:  
+        break;
+    case IRP_MN_QUERY_PNP_DEVICE_STATE:
         requeststring = "IRP_MN_QUERY_PNP_DEVICE_STATE";
-        break;  
-    case IRP_MN_QUERY_BUS_INFORMATION: 
+        break;
+    case IRP_MN_QUERY_BUS_INFORMATION:
         requeststring = "IRP_MN_QUERY_BUS_INFORMATION";
-        break;    
-    case IRP_MN_DEVICE_USAGE_NOTIFICATION: 
+        break;
+    case IRP_MN_DEVICE_USAGE_NOTIFICATION:
         requeststring = "IRP_MN_DEVICE_USAGE_NOTIFICATION";
         break;
     case IRP_MN_SURPRISE_REMOVAL:
@@ -629,7 +629,7 @@ RootHubPreProcessPnpIrp(
         Device,
         requeststring,
         IoStack->MinorFunction);
-    
+
     IoSkipCurrentIrpStackLocation(Irp);
     Status = WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
     return Status;
@@ -642,8 +642,8 @@ RootHubPreProcessCreateIrp(
 {
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");    
-    
+        __FUNCTION__"\n");
+
     IoSkipCurrentIrpStackLocation(Irp);
     NTSTATUS Status = WdfDeviceWdmDispatchPreprocessedIrp(Device, Irp);
     return Status;
@@ -653,7 +653,7 @@ RootHubPreProcessCreateIrp(
 
 /**
  * Transition to fully powered state.
- * @returns NTSTATUS value indicating success or failure. 
+ * @returns NTSTATUS value indicating success or failure.
  */
 NTSTATUS
 HubEvtDeviceD0Entry(
@@ -674,14 +674,14 @@ HubEvtDeviceD0Entry(
         &GUID_DEVINTERFACE_USB_HUB,
         NULL,
         fdoContext->hubsymlink);
-    if (!NT_SUCCESS(status)) 
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
             __FUNCTION__": %s WdfDeviceRetrieveDeviceInterfaceString for device %p error %x\n",
             fdoContext->FrontEndPath,
             Device,
             status);
-    }    
+    }
     if (fdoContext->PortConnected)
     {
         hubContext->PortFeatureStatus |= USB_PORT_STATUS_CONNECT;
@@ -694,13 +694,13 @@ HubEvtDeviceD0Entry(
 
 /**
  * Transition out of fully powered state.
- * @returns NTSTATUS value indicating success or failure. 
+ * @returns NTSTATUS value indicating success or failure.
  */
 NTSTATUS
 HubEvtDeviceD0Exit(
     IN  WDFDEVICE Device,
     IN  WDF_POWER_DEVICE_STATE TargetState)
-{ 
+{
     PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -738,7 +738,7 @@ NTSTATUS
 HubEvtDeviceQueryRemove (
   IN  WDFDEVICE Device)
 {
-    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(Device);  
+    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(Device);
 
     // Leave as a warning, devices should be surprise removed with no queries.
     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
@@ -759,7 +759,7 @@ HubQueueInitialize(
     WDFQUEUE queue;
     NTSTATUS status;
     WDF_IO_QUEUE_CONFIG    queueConfig;
-    PUSB_HUB_PDO_CONTEXT   hubContext = DeviceGetHubPdoContext(Device);    
+    PUSB_HUB_PDO_CONTEXT   hubContext = DeviceGetHubPdoContext(Device);
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
@@ -787,17 +787,17 @@ HubQueueInitialize(
                  WDF_NO_OBJECT_ATTRIBUTES,
                  &queue);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": device %p Default queue WdfIoQueueCreate failed %x", 
+            __FUNCTION__": device %p Default queue WdfIoQueueCreate failed %x",
             hubContext->WdfDevice,
             status);
         return status;
     }
     //
     // The URB queue
-    //    
+    //
     WDF_IO_QUEUE_CONFIG_INIT(
         &queueConfig,
         WdfIoQueueDispatchParallel);
@@ -809,10 +809,10 @@ HubQueueInitialize(
         WDF_NO_OBJECT_ATTRIBUTES,
         &hubContext->UrbQueue);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": device %p URB queue WdfIoQueueCreate failed %x", 
+            __FUNCTION__": device %p URB queue WdfIoQueueCreate failed %x",
             hubContext->WdfDevice,
             status);
         return status;
@@ -822,17 +822,17 @@ HubQueueInitialize(
         hubContext->UrbQueue,
         WdfRequestTypeDeviceControlInternal);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": device %p URB queue WdfDeviceConfigureRequestDispatching failed %x", 
+            __FUNCTION__": device %p URB queue WdfDeviceConfigureRequestDispatching failed %x",
             hubContext->WdfDevice,
             status);
         return status;
-    }    
+    }
     //
     // The status change queue
-    //    
+    //
     WDF_IO_QUEUE_CONFIG_INIT(
         &queueConfig,
         WdfIoQueueDispatchManual); // manual dispatch
@@ -844,10 +844,10 @@ HubQueueInitialize(
         WDF_NO_OBJECT_ATTRIBUTES,
         &hubContext->StatusChangeQueue);
 
-    if( !NT_SUCCESS(status) ) 
+    if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": device %p StatusChange queue WdfIoQueueCreate failed %x", 
+            __FUNCTION__": device %p StatusChange queue WdfIoQueueCreate failed %x",
             hubContext->WdfDevice,
             status);
         return status;
@@ -866,8 +866,8 @@ HubQueueInitialize(
     return status;
 }
 
-USB_HUB_DESCRIPTOR RootHubDescriptor = 
-{ 
+USB_HUB_DESCRIPTOR RootHubDescriptor =
+{
     0x09,  // bDescLength
     0x29,  // bDescriptorType
     0x01,  // bNbrPorts
@@ -879,10 +879,10 @@ USB_HUB_DESCRIPTOR RootHubDescriptor =
 
 /**
  * @brief processes an IOCTL_USB_GET_NODE_INFORMATION request.
- * The IOCTL_USB_GET_NODE_INFORMATION I/O control request is used with 
- * the USB_NODE_INFORMATION structure to retrieve information about a 
+ * The IOCTL_USB_GET_NODE_INFORMATION I/O control request is used with
+ * the USB_NODE_INFORMATION structure to retrieve information about a
  * parent device.
- * IOCTL_USB_GET_NODE_INFORMATION is a user-mode I/O control request. 
+ * IOCTL_USB_GET_NODE_INFORMATION is a user-mode I/O control request.
  * This request targets the USB hub device (GUID_DEVINTERFACE_USB_HUB).
  *
  * @param[in] fdoContext. The context object for the hub pdo device.
@@ -894,16 +894,16 @@ ProcessHubGetNodeInformation(
     IN PUSB_HUB_PDO_CONTEXT hubContext,
     IN WDFREQUEST Request,
     IN size_t)
-{    
+{
     NTSTATUS Status = STATUS_SUCCESS;
     ULONG_PTR Information = 0;
     PUSB_NODE_INFORMATION nodeInfo;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
-    
+
     Status = WdfRequestRetrieveOutputBuffer(Request,
             sizeof(USB_NODE_INFORMATION ),
             (PVOID *) &nodeInfo,
-            NULL);    
+            NULL);
 
     if (!NT_SUCCESS(Status))
     {
@@ -918,7 +918,7 @@ ProcessHubGetNodeInformation(
             sizeof(USB_HUB_DESCRIPTOR));
         Information = sizeof(USB_NODE_INFORMATION);
     }
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
         __FUNCTION__": %s completing request with status %x\n",
         fdoContext->FrontEndPath,
@@ -932,14 +932,14 @@ ProcessHubGetNodeInformation(
  * @brief processes an IOCTL_USB_GET_NODE_CONNECTION_INFORMATION or
  * IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX request.
  *
- * The IOCTL_USB_GET_NODE_CONNECTION_INFORMATION request retrieves 
- * information about the indicated USB port and the device that is attached 
+ * The IOCTL_USB_GET_NODE_CONNECTION_INFORMATION request retrieves
+ * information about the indicated USB port and the device that is attached
  * to the port, if there is one.
  *
  * Client drivers must send this IOCTL at an IRQL of PASSIVE_LEVEL.
- * IOCTL_USB_GET_NODE_CONNECTION_INFORMATION is a user-mode I/O control request. 
+ * IOCTL_USB_GET_NODE_CONNECTION_INFORMATION is a user-mode I/O control request.
  * This request targets the USB hub device (GUID_DEVINTERFACE_USB_HUB).
- * 
+ *
  *
  * @param[in] fdoContext. The context object for the parent fdo device.
  * @param[in] Request. The handle to the IO Request.
@@ -951,20 +951,20 @@ ProcessHubGetNodeConnectionInformation(
     IN WDFREQUEST Request,
     IN size_t OutputBufferLength,
     IN BOOLEAN extended)
-{ 
+{
     ULONG_PTR Information = 0;
     PUSB_NODE_CONNECTION_INFORMATION connectionInfo;
     PUSB_NODE_CONNECTION_INFORMATION_EX connectionInfoEx;
 
-    size_t minSizeNeeded = extended ? sizeof(USB_NODE_CONNECTION_INFORMATION_EX) : 
+    size_t minSizeNeeded = extended ? sizeof(USB_NODE_CONNECTION_INFORMATION_EX) :
         sizeof(USB_NODE_CONNECTION_INFORMATION);
 
     ULONG pipesRequested = 0;
-    
+
     NTSTATUS Status = WdfRequestRetrieveOutputBuffer(Request,
             minSizeNeeded,
             (PVOID *) &connectionInfo,
-            NULL);    
+            NULL);
 
     if (!NT_SUCCESS(Status))
     {
@@ -997,10 +997,10 @@ ProcessHubGetNodeConnectionInformation(
             connectionInfo->ConnectionStatus = DeviceConnected;
             Information = minSizeNeeded;
 
-            if (fdoContext->ConfigurationDescriptor && 
+            if (fdoContext->ConfigurationDescriptor &&
                 (fdoContext->NumInterfaces > 0))
             {
-                connectionInfo->CurrentConfigurationValue = 
+                connectionInfo->CurrentConfigurationValue =
                     fdoContext->ConfigurationDescriptor->bConfigurationValue;
                 if (fdoContext->NumEndpoints)
                 {
@@ -1009,7 +1009,7 @@ ProcessHubGetNodeConnectionInformation(
                         Index < pipesRequested;
                         Index++)
                     {
-                        connectionInfo->PipeList[Index].EndpointDescriptor = 
+                        connectionInfo->PipeList[Index].EndpointDescriptor =
                             *fdoContext->PipeDescriptors[Index].endpoint;
                     }
                 }
@@ -1038,15 +1038,15 @@ ProcessHubGetNodeConnectionInformation(
 }
 
  /**
- * @brief processes an IOCTL_USB_GET_HUB_CAPABILITIES or 
+ * @brief processes an IOCTL_USB_GET_HUB_CAPABILITIES or
  * IOCTL_USB_GET_HUB_CAPABILITIES_EX request.
  *
- * The IOCTL_USB_GET_HUB_CAPABILITIES I/O control request retrieves the 
+ * The IOCTL_USB_GET_HUB_CAPABILITIES I/O control request retrieves the
  * capabilities of a USB hub.
  * Note  This request is replaced by IOCTL_USB_GET_HUB_CAPABILITIES_EX in Windows Vista.
- * IOCTL_USB_GET_HUB_CAPABILITIES is a user-mode I/O control request. 
+ * IOCTL_USB_GET_HUB_CAPABILITIES is a user-mode I/O control request.
  * This request targets the USB hub device (GUID_DEVINTERFACE_USB_HUB).
- * 
+ *
  *
  * @param[in] fdoContext. The context object for the parent fdo device.
  * @param[in] Request. The handle to the IO Request.
@@ -1058,16 +1058,16 @@ ProcessHubGetCapabilities(
     IN WDFREQUEST Request,
     IN size_t OutputBufferLength,
     IN BOOLEAN extended)
-{ 
+{
     ULONG_PTR Information = 0;
     PUSB_HUB_CAPABILITIES connectionInfo;
     PUSB_HUB_CAPABILITIES_EX connectionInfoEx;
 
-    size_t minSizeNeeded = extended ? sizeof(USB_HUB_CAPABILITIES_EX) : 
+    size_t minSizeNeeded = extended ? sizeof(USB_HUB_CAPABILITIES_EX) :
         sizeof(USB_HUB_CAPABILITIES);
 
     ULONG pipesRequested = 0;
-    
+
     NTSTATUS Status = WdfRequestRetrieveOutputBuffer(Request,
             minSizeNeeded,
             (PVOID *) &connectionInfo,
@@ -1100,7 +1100,7 @@ ProcessHubGetCapabilities(
             connectionInfo->HubIs2xCapable = TRUE;
         }
     }
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
         __FUNCTION__": %s length %d needed %d pipes %d requested %d request status %x\n",
         fdoContext->FrontEndPath,
@@ -1116,11 +1116,11 @@ ProcessHubGetCapabilities(
 /**
  * @brief processes an IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION.
  *
- * The IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION I/O control request 
- * retrieves one or more descriptors for the device that is associated with 
+ * The IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION I/O control request
+ * retrieves one or more descriptors for the device that is associated with
  * the indicated port index.
- * IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION is a user-mode I/O control 
- * request. This request targets the USB hub device 
+ * IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION is a user-mode I/O control
+ * request. This request targets the USB hub device
  * (GUID_DEVINTERFACE_USB_HUB).
  *
  * @param[in] fdoContext. The context object for the parent fdo device.
@@ -1153,7 +1153,7 @@ ProcessHubGetDescriptorFromNodeConnection(
             Information = dataLength + sizeof(USB_DESCRIPTOR_REQUEST);
         }
     }
-        
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
         __FUNCTION__": %s completing request with status %x\n",
         fdoContext->FrontEndPath,
@@ -1165,11 +1165,11 @@ ProcessHubGetDescriptorFromNodeConnection(
 /**
  * @brief processes an IOCTL_USB_HUB_CYCLE_PORT.
  *
- * The IOCTL_USB_HUB_CYCLE_PORT I/O control request power-cycles the port 
+ * The IOCTL_USB_HUB_CYCLE_PORT I/O control request power-cycles the port
  * that is associated with the PDO that receives the request.
- * Note  IOCTL_USB_HUB_CYCLE_PORT has been deprecated in Windows Vista 
+ * Note  IOCTL_USB_HUB_CYCLE_PORT has been deprecated in Windows Vista
  * and later operating systems. Do not use.
- * IOCTL_USB_HUB_CYCLE_PORT is a user-mode I/O control request. 
+ * IOCTL_USB_HUB_CYCLE_PORT is a user-mode I/O control request.
  * This request targets the USB hub device (GUID_DEVINTERFACE_USB_HUB).
  *
  * @param[in] hubContext. The context object for the hub pdo device.
@@ -1177,7 +1177,7 @@ ProcessHubGetDescriptorFromNodeConnection(
  * @param[in] OutputBufferLength. The length in bytes of the output buffer.
  *
  * @todo after a cycle port EVERYTHING about the attached usb device can change,
- * including device descriptor, config descriptor etc. 
+ * including device descriptor, config descriptor etc.
  */
 VOID
 ProcessHubCyclePort(
@@ -1258,8 +1258,8 @@ ProcessHubCyclePort(
                     __FUNCTION__": device %p WdfIoTargetCreate error %x\n",
                     hubContext->WdfDevice,
                     Status);
-            }            
-            
+            }
+
         }
         else
         {
@@ -1267,7 +1267,7 @@ ProcessHubCyclePort(
             Status = STATUS_UNSUCCESSFUL;
         }
     }
-        
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
         __FUNCTION__": %s completing request with status %x\n",
         GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath,
@@ -1275,7 +1275,7 @@ ProcessHubCyclePort(
 
     WdfRequestCompleteWithInformation(Request, Status, Information);
 }
- 
+
 //
 // no idea what this is.
 // input is 16 bytes,
@@ -1301,7 +1301,7 @@ ProcessHubCyclePort(
          RtlZeroMemory(buffer, 20);
          Information = 20;
      }
-        
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
         __FUNCTION__": %s completing request with status %x\n",
         GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath,
@@ -1332,10 +1332,10 @@ HubEvtIoDeviceControl(
 {
     UNREFERENCED_PARAMETER(InputBufferLength);
     ULONG Function = IoGetFunctionCodeFromCtlCode(IoControlCode);
-    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(WdfIoQueueGetDevice(Queue)); 
+    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(WdfIoQueueGetDevice(Queue));
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
 
-    switch (IoControlCode) 
+    switch (IoControlCode)
     {
     case IOCTL_USB_GET_NODE_INFORMATION: // 258
         // must support
@@ -1356,26 +1356,26 @@ HubEvtIoDeviceControl(
     case IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION: //260
         ProcessHubGetDescriptorFromNodeConnection(fdoContext, Request, OutputBufferLength);
         Request = NULL;
-        break;            
+        break;
 
     case IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME: // 264
         //
         // this is really a wrapper around IoGetDeviceProperty type
-        // DevicePropertyDriverKeyName 
-        // 
+        // DevicePropertyDriverKeyName
+        //
         ProcessDriverKeyNameRequest(fdoContext, Request, OutputBufferLength);
         Request = NULL;
-        break; 
+        break;
 
     case IOCTL_USB_GET_HUB_CAPABILITIES:                  // 271
         ProcessHubGetCapabilities(fdoContext, Request, OutputBufferLength, FALSE);
         Request = NULL;
-        break; 
+        break;
 
     case IOCTL_USB_HUB_CYCLE_PORT: // 273
         ProcessHubCyclePort(hubContext, Request, OutputBufferLength);
         Request = NULL;
-        break;        
+        break;
 
     case IOCTL_USB_GET_HUB_CAPABILITIES_EX:               // 276 Used by usbview.
         ProcessHubGetCapabilities(fdoContext, Request, OutputBufferLength, TRUE);
@@ -1501,8 +1501,8 @@ ForwardToParent(
 */
 VOID
 HubGetDeviceDescriptor(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1514,7 +1514,7 @@ HubGetDeviceDescriptor(
 
     if ((Urb->UrbControlDescriptorRequest.TransferBufferLength >= sizeof(USB_DEVICE_DESCRIPTOR)))
     {
-        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
             hubContext->HubConfig.DeviceDescriptor.bLength);
 
         RtlCopyMemory(buffer,
@@ -1555,8 +1555,8 @@ HubGetDeviceDescriptor(
 */
 VOID
 HubGetHubDescriptor(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1568,7 +1568,7 @@ HubGetHubDescriptor(
 
     if ((Urb->UrbControlDescriptorRequest.TransferBufferLength >= sizeof(USB_HUB_DESCRIPTOR)))
     {
-        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
             hubContext->HubConfig.HubDescriptor.bDescriptorLength);
 
         RtlCopyMemory(buffer,
@@ -1612,8 +1612,8 @@ HubGetHubDescriptor(
  */
 VOID
 HubGetConfigurationDescriptor(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1642,7 +1642,7 @@ HubGetConfigurationDescriptor(
                 bytesToCopy);
             buffer += bytesToCopy;
             bytesCopied += bytesToCopy;
-            
+
             bytesToCopy = sizeof(USB_ENDPOINT_DESCRIPTOR);
             RtlCopyMemory(buffer,
                 &hubContext->HubConfig.EndpointDescriptor,
@@ -1685,8 +1685,8 @@ HubGetConfigurationDescriptor(
 */
 VOID
 HubGetEndpointDescriptor(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1698,12 +1698,12 @@ HubGetEndpointDescriptor(
 
     if ((Urb->UrbControlDescriptorRequest.TransferBufferLength >= sizeof(USB_ENDPOINT_DESCRIPTOR)))
     {
-        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
             hubContext->HubConfig.EndpointDescriptor.bLength);
 
         RtlCopyMemory(buffer,
             &hubContext->HubConfig.EndpointDescriptor,
-            bytesToCopy);            
+            bytesToCopy);
 
         Urb->UrbControlDescriptorRequest.TransferBufferLength = bytesToCopy;
 
@@ -1740,8 +1740,8 @@ HubGetEndpointDescriptor(
 */
 VOID
 HubGetInterfaceDescriptor(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1753,12 +1753,12 @@ HubGetInterfaceDescriptor(
 
     if ((Urb->UrbControlDescriptorRequest.TransferBufferLength >= sizeof(USB_INTERFACE_DESCRIPTOR)))
     {
-        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+        bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
             hubContext->HubConfig.InterfaceDescriptor.bLength);
 
         RtlCopyMemory(buffer,
             &hubContext->HubConfig.ConfigurationDescriptor,
-            bytesToCopy);            
+            bytesToCopy);
 
         Urb->UrbControlDescriptorRequest.TransferBufferLength = bytesToCopy;
 
@@ -1796,13 +1796,13 @@ HubGetInterfaceDescriptor(
 */
 VOID
 HubGetStringDescriptor(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
 {
-    UNREFERENCED_PARAMETER(packet);    
+    UNREFERENCED_PARAMETER(packet);
     UNREFERENCED_PARAMETER(buffer);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
         __FUNCTION__": Device %p Request %p URB %p\n",
@@ -1827,8 +1827,8 @@ HubGetStringDescriptor(
 */
 VOID
 HubGetConfiguration(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1867,12 +1867,12 @@ HubGetConfiguration(
  * @param[in] Urb the URB provided by the Reauest.
  * @param[in] buffer the data payload for the URB
  * @param[in] packet the control and setup packet from the URB.
- * 
+ *
  */
 VOID
 HubGetStatus(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PUCHAR buffer,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
@@ -1943,10 +1943,10 @@ HubGetStatus(
                     }
                 }
                 else if (hubContext->PortFeatureStatus & USB_PORT_STATUS_CONNECT)
-                {   
+                {
                         TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
                             __FUNCTION__": Device %p PortConnected is FALSE PortFeatureStatus is connected\n",
-                            hubContext->WdfDevice);                 
+                            hubContext->WdfDevice);
                     hubContext->PortFeatureStatus &= ~USB_PORT_STATUS_CONNECT;
                     hubContext->PortFeatureChange |= USB_PORT_STATUS_CONNECT; // @todo is this correct?
                 }
@@ -1962,7 +1962,7 @@ HubGetStatus(
                         __FUNCTION__": Device %p clearing port feature reset status\n",
                         hubContext->WdfDevice);
                 }
-                ULONG level = hubContext->PortFeatureChange ? TRACE_LEVEL_WARNING : 
+                ULONG level = hubContext->PortFeatureChange ? TRACE_LEVEL_WARNING :
                     TRACE_LEVEL_VERBOSE;
 
                 TraceEvents(level, TRACE_URB,
@@ -2076,7 +2076,7 @@ DecodeFeature(USHORT value)
 
 /** @brief process a SET_FEATURE request.
   *  See Figure 11-10. Downstream Facing Hub Port State Machine. USB2.0 Spec.
-  *  Set HUB Feature 
+  *  Set HUB Feature
   *  bmRequestType = 0x20
   *  bRequest = 0x03
   *  wValue - feature, see table below.
@@ -2110,7 +2110,7 @@ DecodeFeature(USHORT value)
     C_PORT_OVER_CURRENT | Port | 19
     C_PORT_RESET        | Port | 20
     PORT_TEST           | Port | 21
-    PORT_INDICATOR      | Port | 22  
+    PORT_INDICATOR      | Port | 22
  *
  * @param[in] hubContext the context for this hub device.
  * @oaram[in] Request the Request object.
@@ -2120,13 +2120,13 @@ DecodeFeature(USHORT value)
 */
 VOID
 HubSetFeature(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
 {
     PCHAR feature = DecodeFeature(packet->Packet.wValue.Value);
-    BOOLEAN statusChanged = FALSE; 
+    BOOLEAN statusChanged = FALSE;
     PUSB_FDO_CONTEXT fdoContext = GetFdoContextFromHubDevice(hubContext->WdfDevice);
 
 
@@ -2162,7 +2162,7 @@ HubSetFeature(
             break;
         default:
             break;
-        }   
+        }
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
             __FUNCTION__": Device %p Feature %s %d PortFeatureStatus %x PortFeatureChange: %x\n",
@@ -2172,7 +2172,7 @@ HubSetFeature(
             hubContext->PortFeatureStatus,
             hubContext->PortFeatureChange);
     }
-    
+
     Urb->UrbHeader.Status = USBD_STATUS_SUCCESS;
     WdfRequestComplete(Request, STATUS_SUCCESS);
     if (statusChanged)
@@ -2193,8 +2193,8 @@ HubSetFeature(
  */
 VOID
 HubClearFeature(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb,
     IN PWDF_USB_CONTROL_SETUP_PACKET packet)
 {
@@ -2269,7 +2269,7 @@ HubClearFeature(
             packet->Packet.wValue.Value,
             hubContext->PortFeatureChange);
     }
-    
+
     Urb->UrbHeader.Status = USBD_STATUS_SUCCESS;
     WdfRequestComplete(Request, STATUS_SUCCESS);
     if (statusChanged)
@@ -2306,8 +2306,8 @@ HubClearFeature(
  */
 VOID
 HubControlTransferEx(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb)
 {
     WDF_USB_CONTROL_SETUP_PACKET packet;
@@ -2344,7 +2344,7 @@ HubControlTransferEx(
     if (Urb->UrbControlTransferEx.PipeHandle != NULL)
     {
         // request to interrupt endpoint.
-        
+
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
             __FUNCTION__": device %p request to endpoint unsupported\n",
             hubContext->WdfDevice);
@@ -2451,11 +2451,11 @@ HubControlTransferEx(
             break;
         }
     }
-    
+
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
         __FUNCTION__": device %p bRequest %s (%x) unsupported\n",
         hubContext->WdfDevice,
-        transferRequest, 
+        transferRequest,
         packet.Packet.bRequest);
 
     WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -2463,7 +2463,7 @@ HubControlTransferEx(
 }
 
 /**
- * @brief process a URB_SELECT_CONFIGURATION request targeted at the HUB device. 
+ * @brief process a URB_SELECT_CONFIGURATION request targeted at the HUB device.
  *
  * @param[in] hubContext the context for this hub device.
  * @oaram[in] Request the Request object.
@@ -2471,12 +2471,12 @@ HubControlTransferEx(
  */
 VOID
 HubSelectConfiguration(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb)
 {
     BOOLEAN noInterfaces = FALSE;
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
                 __FUNCTION__ "\n");
 
@@ -2509,7 +2509,7 @@ HubSelectConfiguration(
         WdfRequestComplete(Request, STATUS_SUCCESS);
         return;
     }
-    
+
     //
     // validate the interface descriptor list
     //
@@ -2550,7 +2550,7 @@ HubSelectConfiguration(
             WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
             return;
         }
-        
+
         if (interfacesInRequest > 1)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
@@ -2624,8 +2624,8 @@ HubSelectConfiguration(
 */
 VOID
 HubProcessGetDescriptorUrb(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb)
 {
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
@@ -2663,14 +2663,14 @@ HubProcessGetDescriptorUrb(
         }
         else
         {
-            PUSB_CONFIGURATION_DESCRIPTOR config = 
+            PUSB_CONFIGURATION_DESCRIPTOR config =
                 &hubContext->HubConfig.ConfigurationDescriptor;
 
             bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, config->wTotalLength);
 
             RtlCopyMemory(Urb->UrbControlDescriptorRequest.TransferBuffer,
                 (PVOID) config,
-                bytesToCopy);            
+                bytesToCopy);
 
             Urb->UrbControlDescriptorRequest.TransferBufferLength = bytesToCopy;
 
@@ -2690,7 +2690,7 @@ HubProcessGetDescriptorUrb(
         }
         else
         {
-            bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+            bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
                 hubContext->HubConfig.DeviceDescriptor.bLength);
 
             RtlCopyMemory(Urb->UrbControlDescriptorRequest.TransferBuffer,
@@ -2713,7 +2713,7 @@ HubProcessGetDescriptorUrb(
         }
         else
         {
-            bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+            bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
                 hubContext->HubConfig.InterfaceDescriptor.bLength);
 
             RtlCopyMemory(Urb->UrbControlDescriptorRequest.TransferBuffer,
@@ -2736,7 +2736,7 @@ HubProcessGetDescriptorUrb(
         }
         else
         {
-            bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+            bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
                 hubContext->HubConfig.EndpointDescriptor.bLength);
 
             RtlCopyMemory(Urb->UrbControlDescriptorRequest.TransferBuffer,
@@ -2799,7 +2799,7 @@ HubCheckStatusChange(
 
 /**
  * @brief park the hub status change interrupt request until
- * the status of the one port changes. 
+ * the status of the one port changes.
  *
  * @param[in] hubContext the context for this hub device.
  * @param[in] Request the handle for the WDFREQUEST object containing the Urb.
@@ -2808,8 +2808,8 @@ HubCheckStatusChange(
  */
 VOID
 HubProcessHubInterruptRequest(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    IN WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    IN WDFREQUEST Request,
     IN PURB Urb)
 {
     PUCHAR buffer = (PUCHAR) Urb->UrbBulkOrInterruptTransfer.TransferBuffer;
@@ -2878,7 +2878,7 @@ HubProcessHubInterruptRequest(
             context->Length);
 
     Status = WdfRequestForwardToIoQueue(Request, hubContext->StatusChangeQueue);
-    
+
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
@@ -2896,7 +2896,7 @@ HubProcessHubInterruptRequest(
 /**
  * @brief the hub has an interrupt endpoint for status change
  * notification, so interrupt data URB's have to be handled here.
- * Also handled: URB_FUNCTION_CONTROL_TRANSFER_EX and 
+ * Also handled: URB_FUNCTION_CONTROL_TRANSFER_EX and
  * URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE.
  *
  * @note these are URBs targeted at the HUB itself not at the
@@ -2909,8 +2909,8 @@ HubProcessHubInterruptRequest(
  */
 VOID
 HubProcessUrb(
-    IN PUSB_HUB_PDO_CONTEXT hubContext, 
-    _In_ WDFREQUEST Request, 
+    IN PUSB_HUB_PDO_CONTEXT hubContext,
+    _In_ WDFREQUEST Request,
     IN PURB Urb)
 {
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
@@ -2930,7 +2930,7 @@ HubProcessUrb(
             __FUNCTION__": Device %p Bad URB header\n",
             hubContext->WdfDevice);
         return;
-    }    
+    }
     //
     // preset usb status to success!
     //
@@ -2945,14 +2945,14 @@ HubProcessUrb(
         return;
 
     case URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE:
-        HubProcessGetDescriptorUrb(hubContext, 
-            Request, 
-            Urb);        
+        HubProcessGetDescriptorUrb(hubContext,
+            Request,
+            Urb);
         return;
 
     case URB_FUNCTION_SELECT_CONFIGURATION:
-        HubSelectConfiguration(hubContext, 
-            Request, 
+        HubSelectConfiguration(hubContext,
+            Request,
             Urb);
         return;
 
@@ -2962,20 +2962,20 @@ HubProcessUrb(
             Urb);
         return;
 
-    default:        
+    default:
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
                 __FUNCTION__": Device %p URB %s not implemented or not supported\n",
                 hubContext->WdfDevice,
                 UrbFuncString);
         Status = STATUS_UNSUCCESSFUL;
     }
-    
+
     WdfRequestComplete(Request, Status);
 }
 
 /**
  * @brief process URB (Internal IOCTL) requests.
- * This function routes requests either to the parent 
+ * This function routes requests either to the parent
  * controller device for processing or processes them locally.
  * For IOCTL_INTERNAL_USB_SUBMIT_URB the URB.UrbHeader.UsbdDeviceHandle
  * is used to decide if the HUB PDO or the Controller FDO should
@@ -3009,24 +3009,24 @@ HubEvtIoInternalDeviceControl(
     WdfRequestGetParameters(Request, &parameters);
     PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(WdfIoQueueGetDevice(Queue));
     PUSB_FDO_CONTEXT fdoContext = GetFdoContextFromHubDevice(WdfIoQueueGetDevice(Queue));
-    
-    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE, 
-        __FUNCTION__": Device %p Queue %p, Request %p IoControlCode %d\n", 
+
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE,
+        __FUNCTION__": Device %p Queue %p, Request %p IoControlCode %d\n",
         hubContext->WdfDevice,
-        Queue, 
-        Request, 
+        Queue,
+        Request,
         IoControlCode);
 
     BOOLEAN Unplugged = fdoContext->DeviceUnplugged || fdoContext->CtlrDisconnected || !fdoContext->PortConnected;
 
     switch (IoControlCode)
     {
-    
+
     case IOCTL_INTERNAL_USB_GET_PARENT_HUB_INFO:
         {
             //
             // Itunes usbaapl.sys appears to think this is required.
-            // 
+            //
             // Parameters.Others.Argument1 = PDEVICE_OBJECT * parent PDO
             // Parameters.Others.Argument2 = PULONG portNumber
             // Parameters.Others.Argument3 = IoControlCode
@@ -3045,7 +3045,7 @@ HubEvtIoInternalDeviceControl(
             }
             if (rootHubPdo)
             {
-                *rootHubPdo = WdfDeviceWdmGetDeviceObject(hubContext->WdfDevice); // Root HUB PDO 
+                *rootHubPdo = WdfDeviceWdmGetDeviceObject(hubContext->WdfDevice); // Root HUB PDO
             }
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
@@ -3060,8 +3060,8 @@ HubEvtIoInternalDeviceControl(
 
     case IOCTL_INTERNAL_USB_GET_TOPOLOGY_ADDRESS:
         {
-            PUSB_TOPOLOGY_ADDRESS topology = 
-                (PUSB_TOPOLOGY_ADDRESS) parameters.Parameters.Others.Arg1;            
+            PUSB_TOPOLOGY_ADDRESS topology =
+                (PUSB_TOPOLOGY_ADDRESS) parameters.Parameters.Others.Arg1;
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
                 __FUNCTION__": IOCTL_INTERNAL_USB_GET_TOPOLOGY_ADDRESS for device %p\n",
@@ -3088,7 +3088,7 @@ HubEvtIoInternalDeviceControl(
         if (!Unplugged)
         {
             // the hub needs to transition the port back to Enabled state when
-            // the reset is complete. 
+            // the reset is complete.
             KeClearEvent(&fdoContext->resetCompleteEvent);
             ForwardToParent(Request, hubContext);
             Request = NULL;
@@ -3165,7 +3165,7 @@ HubEvtIoInternalDeviceControl(
         //
         if (parameters.Parameters.Others.Arg1)
         {
-            PUSB_DEVICE_HANDLE * pHandle = 
+            PUSB_DEVICE_HANDLE * pHandle =
                 (PUSB_DEVICE_HANDLE *) parameters.Parameters.Others.Arg1;
             *pHandle = hubContext;
 
@@ -3189,7 +3189,7 @@ HubEvtIoInternalDeviceControl(
             (parameters.Parameters.Others.Arg2))
         {
 
-            PUSB_DEVICE_HANDLE * pHandle = 
+            PUSB_DEVICE_HANDLE * pHandle =
                 (PUSB_DEVICE_HANDLE *) parameters.Parameters.Others.Arg1;
             *pHandle = hubContext;
             PVOID * arg2 = (PVOID *) parameters.Parameters.Others.Arg2;
@@ -3207,7 +3207,7 @@ HubEvtIoInternalDeviceControl(
 
     case IOCTL_INTERNAL_USB_GET_DEVICE_CONFIG_INFO:
         {
-            PHUB_DEVICE_CONFIG_INFO configInfo = 
+            PHUB_DEVICE_CONFIG_INFO configInfo =
                 (PHUB_DEVICE_CONFIG_INFO) parameters.Parameters.Others.Arg1;
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
@@ -3273,9 +3273,9 @@ HubEvtIoInternalDeviceControl(
                 Status = STATUS_INVALID_PARAMETER;
                 break;
             }
-            else 
+            else
             {
-                // 
+                //
                 // this is targeted at the USB device.
                 // @todo test handle for validity.
                 // @todo (later) route based on handle.
@@ -3283,7 +3283,7 @@ HubEvtIoInternalDeviceControl(
                 ForwardToParent(Request, hubContext);
                 return;
             }
-        } 
+        }
         break;
 
     default:
@@ -3301,9 +3301,9 @@ HubEvtIoStop(
     _In_ ULONG ActionFlags
 )
 {
-    TraceEvents(TRACE_LEVEL_VERBOSE, 
-                TRACE_QUEUE, 
-                __FUNCTION__": Queue 0x%p, Request 0x%p ActionFlags %d", 
+    TraceEvents(TRACE_LEVEL_VERBOSE,
+                TRACE_QUEUE,
+                __FUNCTION__": Queue 0x%p, Request 0x%p ActionFlags %d",
                 Queue, Request, ActionFlags);
     if (ActionFlags & WdfRequestStopRequestCancelable)
     {
@@ -3324,9 +3324,9 @@ HubStatusChangeEvtIoStop(
     _In_ ULONG ActionFlags
 )
 {
-    TraceEvents(TRACE_LEVEL_VERBOSE, 
-                TRACE_QUEUE, 
-                __FUNCTION__": Queue 0x%p, Request 0x%p ActionFlags %d", 
+    TraceEvents(TRACE_LEVEL_VERBOSE,
+                TRACE_QUEUE,
+                __FUNCTION__": Queue 0x%p, Request 0x%p ActionFlags %d",
                 Queue, Request, ActionFlags);
     if (ActionFlags & WdfRequestStopRequestCancelable)
     {
@@ -3344,10 +3344,10 @@ HubStatusChangeEvtIoStop(
  * @brief handles CreateFile operations for the usb controller.
  * This function basically exists only to log that a create occurred.
  *
- * @param[in] Device A handle to a framework device object. 
+ * @param[in] Device A handle to a framework device object.
  * @param[in] Request A handle to a framework request object that represents a file creation request
- * @param[in] FileObject A handle to a framework file object that describes a file that is being opened for the specified request. 
- * This parameter is NULL if the driver has specified WdfFileObjectNotRequired for the FileObjectClass member of the WDF_FILEOBJECT_CONFIG structure. 
+ * @param[in] FileObject A handle to a framework file object that describes a file that is being opened for the specified request.
+ * This parameter is NULL if the driver has specified WdfFileObjectNotRequired for the FileObjectClass member of the WDF_FILEOBJECT_CONFIG structure.
  */
 VOID
 HubEvtDeviceFileCreate (
@@ -3368,7 +3368,7 @@ HubEvtDeviceFileCreate (
 }
 
 /**
- * @brief handles operations that must be performed when all of an application's 
+ * @brief handles operations that must be performed when all of an application's
  * accesses to a device have been closed.
  *
  * @param[in] FileObject The handle to the FileObject.

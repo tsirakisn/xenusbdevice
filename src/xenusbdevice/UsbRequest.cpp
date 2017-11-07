@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -91,7 +91,7 @@ VOID
 ProcessClearOrSetFeature(
     IN PUSB_FDO_CONTEXT fdoContext,
     IN WDFREQUEST Request,
-    IN PURB Urb,    
+    IN PURB Urb,
     IN UCHAR requestType,
     IN UCHAR request);
 
@@ -241,7 +241,7 @@ SubmitUrb(
             (Urb->UrbControlDescriptorRequest.TransferBuffer != NULL) &&
             (Urb->UrbControlDescriptorRequest.TransferBufferLength >= sizeof(USB_CONFIGURATION_DESCRIPTOR)))
         {
-            PUSB_CONFIGURATION_DESCRIPTOR config = 
+            PUSB_CONFIGURATION_DESCRIPTOR config =
                 ConfigByIndex(fdoContext,
                 Urb->UrbControlDescriptorRequest.Index);
 
@@ -252,7 +252,7 @@ SubmitUrb(
 
                 RtlCopyMemory(Urb->UrbControlDescriptorRequest.TransferBuffer,
                     (PVOID) config,
-                    bytesToCopy);            
+                    bytesToCopy);
 
                 Urb->UrbControlDescriptorRequest.TransferBufferLength = bytesToCopy;
 
@@ -265,7 +265,7 @@ SubmitUrb(
                     bytesToCopy,
                     TRACE_LEVEL_VERBOSE,
                     TRACE_URB);
-                
+
                 RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
                 WdfRequestComplete(Request, STATUS_SUCCESS);
@@ -278,7 +278,7 @@ SubmitUrb(
             (Urb->UrbControlDescriptorRequest.TransferBuffer != NULL) &&
             (Urb->UrbControlDescriptorRequest.TransferBufferLength >= sizeof(USB_DEVICE_DESCRIPTOR)))
         {
-            ULONG bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength, 
+            ULONG bytesToCopy = min(Urb->UrbControlDescriptorRequest.TransferBufferLength,
                 fdoContext->DeviceDescriptor.bLength);
 
             RtlCopyMemory(Urb->UrbControlDescriptorRequest.TransferBuffer,
@@ -294,7 +294,7 @@ SubmitUrb(
                 bytesToCopy,
                 TRACE_LEVEL_VERBOSE,
                 TRACE_URB);
-            
+
             RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_SUCCESS);
@@ -409,7 +409,7 @@ SubmitUrb(
         ProcessClearOrSetFeature(
             fdoContext,
             Request,
-            Urb,            
+            Urb,
             BMREQUEST_TO_DEVICE,
             USB_REQUEST_SET_FEATURE);
         break;
@@ -479,7 +479,7 @@ SubmitUrb(
         // request enables a client to cancel any pending transfers for the specified pipe.
         // Pipe state and endpoint state are unaffected. The abort request might complete
         // before all outstanding requests have completed. Do not assume that completion of
-        // the abort request implies that all other outstanding requests have completed. 
+        // the abort request implies that all other outstanding requests have completed.
         //
         ProcessAbortPipe(
             fdoContext,
@@ -510,7 +510,7 @@ SubmitUrb(
             // we could look at the interface and actually decide if this really
             // is a HID. The interface is Urb->UrbControlVendorClassRequest.Index.
             // The device stalls anyway, so this is not the problem.
-            //            
+            //
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
                 __FUNCTION__": This class request could be a HID SET_IDLE\n");
 
@@ -632,7 +632,7 @@ SubmitUrb(
         break;
 
     default:
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
@@ -676,7 +676,7 @@ ProcessBulkOrInterruptTransfer(
             __FUNCTION__": %s invalid Function %x\n",
             fdoContext->FrontEndPath,
             Urb->UrbBulkOrInterruptTransfer.Hdr.Function);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -692,7 +692,7 @@ ProcessBulkOrInterruptTransfer(
             fdoContext->FrontEndPath,
             Urb->UrbBulkOrInterruptTransfer.Hdr.Length,
             sizeof(_URB_BULK_OR_INTERRUPT_TRANSFER));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -761,7 +761,7 @@ ProcessBulkOrInterruptTransfer(
  *
  * __Other Stuff__
  * Rules we know about:
- *  Packets must be contiguous. 
+ *  Packets must be contiguous.
  *    In other words, IsoPacket[n+1].Offset must be equal to IsoPacket[n].Offset + IsoPacket[n].Length. (not enforced)
  *  In high-speed transmissions, the number of packets must be a multiple of eight. (not enforced)
  *  The only supported flag is USB_START_ISO_TRANSFER_ASAP?
@@ -784,16 +784,16 @@ ProcessIsoRequest(
         Urb,
         Request);
     //
-    // validate 
+    // validate
     //
-    if (Urb->UrbIsochronousTransfer.Hdr.Function != 
+    if (Urb->UrbIsochronousTransfer.Hdr.Function !=
         URB_FUNCTION_ISOCH_TRANSFER)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
             __FUNCTION__": %s invalid Function %x\n",
             fdoContext->FrontEndPath,
             Urb->UrbIsochronousTransfer.Hdr.Function);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -801,7 +801,7 @@ ProcessIsoRequest(
         return;
     }
 
-    if (Urb->UrbIsochronousTransfer.Hdr.Length < 
+    if (Urb->UrbIsochronousTransfer.Hdr.Length <
         sizeof(_URB_ISOCH_TRANSFER))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
@@ -809,7 +809,7 @@ ProcessIsoRequest(
             fdoContext->FrontEndPath,
             Urb->UrbIsochronousTransfer.Hdr.Length,
             sizeof(_URB_BULK_OR_INTERRUPT_TRANSFER));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -818,7 +818,7 @@ ProcessIsoRequest(
     }
 
     ULONG urbSize = GET_ISO_URB_SIZE(Urb->UrbIsochronousTransfer.NumberOfPackets);
-    if (Urb->UrbIsochronousTransfer.Hdr.Length < 
+    if (Urb->UrbIsochronousTransfer.Hdr.Length <
         urbSize)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
@@ -826,7 +826,7 @@ ProcessIsoRequest(
             fdoContext->FrontEndPath,
             Urb->UrbIsochronousTransfer.Hdr.Length,
             urbSize);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -841,7 +841,7 @@ ProcessIsoRequest(
             fdoContext->FrontEndPath,
             Urb->UrbIsochronousTransfer.NumberOfPackets,
             MaxIsoPackets(fdoContext->Xen));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -849,7 +849,7 @@ ProcessIsoRequest(
         return;
     }
 
-    PUSB_ENDPOINT_DESCRIPTOR endpoint = 
+    PUSB_ENDPOINT_DESCRIPTOR endpoint =
         PipeHandleToEndpointAddressDescriptor(fdoContext, Urb->UrbIsochronousTransfer.PipeHandle);
 
     if (endpoint)
@@ -896,8 +896,8 @@ ProcessIsoRequest(
             Request,
             endpoint->bEndpointAddress,
             transferAsap,
-            1); 
-        break;    
+            1);
+        break;
     }
 }
 
@@ -935,7 +935,7 @@ ProcessControlTransfer(
             __FUNCTION__": %s invalid Function %x\n",
             fdoContext->FrontEndPath,
             Urb->UrbControlTransfer.Hdr.Function);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -950,7 +950,7 @@ ProcessControlTransfer(
             fdoContext->FrontEndPath,
             Urb->UrbControlTransfer.Hdr.Length,
             sizeof(_URB_CONTROL_TRANSFER));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -984,7 +984,7 @@ ProcessControlTransfer(
                 __FUNCTION__": %s invalid pipe %p and USBD_DEFAULT_PIPE_TRANSFER not set\n",
                 fdoContext->FrontEndPath,
                 Urb->UrbControlTransfer.PipeHandle);
-            
+
             RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1054,7 +1054,7 @@ ProcessControlTransferEx(
             __FUNCTION__": %s invalid Function %x\n",
             fdoContext->FrontEndPath,
             Urb->UrbControlTransfer.Hdr.Function);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1069,7 +1069,7 @@ ProcessControlTransferEx(
             fdoContext->FrontEndPath,
             Urb->UrbControlTransferEx.Hdr.Length,
             sizeof(_URB_CONTROL_TRANSFER_EX));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1143,7 +1143,7 @@ ProcessControlTransferEx(
  * __Requirements inherited from caller:__
  * * FDO lock held by caller *
  * * Must send to DOM0 or re-queue or complete the Request *
- * __The IOCTL_INTERNAL_USB_SUBMIT_IDLE_NOTIFICATION I/O request is used by drivers to inform the 
+ * __The IOCTL_INTERNAL_USB_SUBMIT_IDLE_NOTIFICATION I/O request is used by drivers to inform the
  * USB bus driver that a device is idle and can be suspended.__
  *
  * @TODO we don't support end to end power management yet. The current implementation never calls
@@ -1174,7 +1174,7 @@ ProcessIdleNotificationRequest(
             __FUNCTION__": %s WdfRequestRetrieveInputBuffer erro %x\n",
             fdoContext->FrontEndPath,
             Status);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, Status);
@@ -1189,7 +1189,7 @@ ProcessIdleNotificationRequest(
             fdoContext->FrontEndPath,
             bufferLength,
             sizeof(USB_IDLE_CALLBACK_INFO));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1204,7 +1204,7 @@ ProcessIdleNotificationRequest(
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
             __FUNCTION__ ": %s no callback data!\n",
             fdoContext->FrontEndPath);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1217,7 +1217,7 @@ ProcessIdleNotificationRequest(
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
             __FUNCTION__ ": %s NULL IdleCallback\n",
             fdoContext->FrontEndPath);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1230,7 +1230,7 @@ ProcessIdleNotificationRequest(
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
             __FUNCTION__ ": %s idle callback already queued\n",
             fdoContext->FrontEndPath);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1247,7 +1247,7 @@ ProcessIdleNotificationRequest(
         callback->IdleContext,
         fdoContext->WdfDevice);
     //
-    // take on the idle irp 
+    // take on the idle irp
     // return pending
     // perhaps we ought to call the callback once
     // and then never again?
@@ -1289,7 +1289,7 @@ UsbIdleEvtRequestCancel (
     AcquireFdoLock(fdoContext);
     ASSERT(fdoContext->IdleRequest == Request); // DBG only.
     fdoContext->IdleRequest = NULL;
-    RequestGetRequestContext(Request)->RequestCompleted = 1;  
+    RequestGetRequestContext(Request)->RequestCompleted = 1;
     RequestGetRequestContext(Request)->CancelSet = 0;
     ReleaseFdoLock(fdoContext);
     WdfRequestComplete(Request, STATUS_CANCELLED);
@@ -1327,7 +1327,7 @@ ProcessSelectConfiguration(
                 fdoContext->WdfDevice,
                 Urb->UrbHeader.Length,
                 NO_INTERFACE_LENGTH);
-            
+
             RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1348,7 +1348,7 @@ ProcessSelectConfiguration(
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
             __FUNCTION__ ": %s NULL config ignored\n",
             fdoContext->FrontEndPath);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_SUCCESS);
@@ -1392,7 +1392,7 @@ ProcessSelectConfiguration(
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
                 __FUNCTION__ ": %s current config is NULL?\n",
                 fdoContext->FrontEndPath);
-            
+
             RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
@@ -1406,7 +1406,7 @@ ProcessSelectConfiguration(
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
                 __FUNCTION__ ": %s default config is NULL?\n",
                 fdoContext->FrontEndPath);
-            
+
             RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
@@ -1425,7 +1425,7 @@ ProcessSelectConfiguration(
             __FUNCTION__ ": %s invalid config value %d\n",
             fdoContext->FrontEndPath,
             fdoContext->ConfigurationDescriptor->bConfigurationValue);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
@@ -1457,7 +1457,7 @@ ProcessSelectConfiguration(
                     __FUNCTION__ ": %s interface %d length is zero\n",
                     fdoContext->FrontEndPath,
                     interfacesInRequest);
-                
+
                 RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
                 WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1475,7 +1475,7 @@ ProcessSelectConfiguration(
                 fdoContext->FrontEndPath,
                 interfacesInRequest,
                 config->bNumInterfaces);
-            
+
             RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1527,7 +1527,7 @@ ProcessSelectConfiguration(
                         pInterfaceDescriptor->bNumEndpoints,
                         sizeNeeded,
                         Interface->Length);
-                    
+
                     RequestGetRequestContext(Request)->RequestCompleted = 1;
                     ReleaseFdoLock(fdoContext);
                     WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
@@ -1549,7 +1549,7 @@ ProcessSelectConfiguration(
                         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
                             __FUNCTION__ ": %s Invalid pipe configuration\n",
                             fdoContext->FrontEndPath);
-                        
+
                         RequestGetRequestContext(Request)->RequestCompleted = 1;
                         ReleaseFdoLock(fdoContext);
                         WdfRequestComplete(Request, Status);
@@ -1573,12 +1573,12 @@ ProcessSelectConfiguration(
 
     Status = STATUS_SUCCESS;
 
-    if (!config->bConfigurationValue && fdoContext->CurrentConfigOffset && 
+    if (!config->bConfigurationValue && fdoContext->CurrentConfigOffset &&
         (config->bConfigurationValue == fdoContext->CurrentConfigValue))
     {
         //
         // for smartcards with their stupid config 0, do not set the config if it is already set.
-        // 
+        //
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
          __FUNCTION__": %s smart card zero config already set\n",
          fdoContext->FrontEndPath);
@@ -1608,7 +1608,7 @@ ProcessSelectConfiguration(
     {
         PostProcessSelectConfig(fdoContext, Urb);
     }
-    
+
     RequestGetRequestContext(Request)->RequestCompleted = 1;
     ReleaseFdoLock(fdoContext);
     WdfRequestComplete(Request, Status);
@@ -1682,8 +1682,8 @@ ProcessSelectInterface(
             Urb->UrbHeader.Length,
             minimumSize);
 
-        fdoContext->ConfigBusy = FALSE;     
-        RequestGetRequestContext(Request)->RequestCompleted = 1;   
+        fdoContext->ConfigBusy = FALSE;
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
         AcquireFdoLock(fdoContext);
@@ -1698,8 +1698,8 @@ ProcessSelectInterface(
             Urb->UrbSelectInterface.ConfigurationHandle,
             fdoContext->ConfigurationDescriptor);
 
-        fdoContext->ConfigBusy = FALSE;       
-        RequestGetRequestContext(Request)->RequestCompleted = 1; 
+        fdoContext->ConfigBusy = FALSE;
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
         AcquireFdoLock(fdoContext);
@@ -1723,8 +1723,8 @@ ProcessSelectInterface(
             Urb->UrbSelectInterface.Interface.InterfaceNumber,
             Urb->UrbSelectInterface.Interface.AlternateSetting);
 
-        fdoContext->ConfigBusy = FALSE;    
-        RequestGetRequestContext(Request)->RequestCompleted = 1;    
+        fdoContext->ConfigBusy = FALSE;
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
         AcquireFdoLock(fdoContext);
@@ -1749,8 +1749,8 @@ ProcessSelectInterface(
             Urb->UrbSelectInterface.Hdr.Length,
             sizeNeeded);
 
-        fdoContext->ConfigBusy = FALSE;   
-        RequestGetRequestContext(Request)->RequestCompleted = 1;     
+        fdoContext->ConfigBusy = FALSE;
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
         AcquireFdoLock(fdoContext);
@@ -1776,8 +1776,8 @@ ProcessSelectInterface(
 
             Urb->UrbHeader.Status = Status;
 
-            fdoContext->ConfigBusy = FALSE;    
-            RequestGetRequestContext(Request)->RequestCompleted = 1;    
+            fdoContext->ConfigBusy = FALSE;
+            RequestGetRequestContext(Request)->RequestCompleted = 1;
             ReleaseFdoLock(fdoContext);
             WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
             AcquireFdoLock(fdoContext);
@@ -1789,8 +1789,8 @@ ProcessSelectInterface(
         //
         // don't select an interface on a device with one interface.
         //
-        fdoContext->ConfigBusy = FALSE;   
-        RequestGetRequestContext(Request)->RequestCompleted = 1;     
+        fdoContext->ConfigBusy = FALSE;
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_SUCCESS);
         AcquireFdoLock(fdoContext);
@@ -1871,7 +1871,7 @@ ProcessSelectInterface(
         break;
 
     } while(1);
-    
+
     RequestGetRequestContext(Request)->RequestCompleted = 1;
     ReleaseFdoLock(fdoContext);
     WdfRequestComplete(Request, Status);
@@ -1913,7 +1913,7 @@ ProcessAbortPipe(
         Urb,
         Request);
 
-    PUSB_ENDPOINT_DESCRIPTOR endpoint = 
+    PUSB_ENDPOINT_DESCRIPTOR endpoint =
         PipeHandleToEndpointAddressDescriptor(
         fdoContext,
         Urb->UrbPipeRequest.PipeHandle);
@@ -1927,7 +1927,7 @@ ProcessAbortPipe(
         Status = STATUS_SUCCESS;
     }
     else
-    {        
+    {
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1954,7 +1954,7 @@ VOID
 ProcessClearOrSetFeature(
     IN PUSB_FDO_CONTEXT fdoContext,
     IN WDFREQUEST Request,
-    IN PURB Urb,    
+    IN PURB Urb,
     IN UCHAR requestType,
     IN UCHAR request)
 {
@@ -1966,7 +1966,7 @@ ProcessClearOrSetFeature(
             fdoContext->FrontEndPath,
             Urb->UrbControlTransfer.Hdr.Length,
             sizeof(_URB_CONTROL_FEATURE_REQUEST));
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -1979,9 +1979,9 @@ ProcessClearOrSetFeature(
         requestType,
         request == USB_REQUEST_CLEAR_FEATURE ? "CLEAR_FEATURE" : "SET_FEATURE",
         UsbFeatureSelectorString(Urb->UrbControlFeatureRequest.FeatureSelector),
-        Urb->UrbControlFeatureRequest.Index);    
+        Urb->UrbControlFeatureRequest.Index);
 
-    WDF_USB_CONTROL_SETUP_PACKET packet;  
+    WDF_USB_CONTROL_SETUP_PACKET packet;
 
     RtlZeroMemory(&packet, sizeof(WDF_USB_CONTROL_SETUP_PACKET));
     packet.Packet.bm.Byte = requestType;
@@ -2028,7 +2028,7 @@ ProcessSyncResetClearStall(
             __FUNCTION__ ": %s URB PipeHandle %p appears invalid\n",
             fdoContext->FrontEndPath,
             Urb->UrbPipeRequest.PipeHandle);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -2093,7 +2093,7 @@ ProcessClassOrVendorCommand(
             __FUNCTION__ ": %s invalid RequestType %x\n",
             fdoContext->FrontEndPath,
             RequestType);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -2106,7 +2106,7 @@ ProcessClassOrVendorCommand(
             __FUNCTION__ ": %s invalid Recipient %x\n",
             fdoContext->FrontEndPath,
             Recipient);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -2114,7 +2114,7 @@ ProcessClassOrVendorCommand(
         return;
     }
 
-    RtlZeroMemory(&packet, sizeof(WDF_USB_CONTROL_SETUP_PACKET));   
+    RtlZeroMemory(&packet, sizeof(WDF_USB_CONTROL_SETUP_PACKET));
     UCHAR control = USB_ENDPOINT_TYPE_CONTROL; // OUT
     if (Urb->UrbControlVendorClassRequest.TransferFlags & USBD_TRANSFER_DIRECTION_IN)
     {
@@ -2180,8 +2180,8 @@ OsFeatureDescriptorCommand(
             Urb->UrbOSFeatureDescriptorRequest.MS_FeatureDescriptorIndex);
         //
         // not supported
-        //      
-        RequestGetRequestContext(Request)->RequestCompleted = 1;  
+        //
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
         AcquireFdoLock(fdoContext);;
@@ -2193,7 +2193,7 @@ OsFeatureDescriptorCommand(
         Urb->UrbOSFeatureDescriptorRequest.InterfaceNumber,
         Urb->UrbOSFeatureDescriptorRequest.MS_PageIndex,
         Urb->UrbOSFeatureDescriptorRequest.MS_FeatureDescriptorIndex,
-        (USHORT) Urb->UrbControlVendorClassRequest.TransferBufferLength);    
+        (USHORT) Urb->UrbControlVendorClassRequest.TransferBufferLength);
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
         __FUNCTION__": bm:%x Req:%x Val:%x Ind:%x Len:%x\n",
@@ -2278,7 +2278,7 @@ ProcessGetStatus(
             __FUNCTION__": %s invalid Recipient %x\n",
             fdoContext->FrontEndPath,
             Recipient);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -2291,7 +2291,7 @@ ProcessGetStatus(
             __FUNCTION__": %s invalid length %d\n",
             fdoContext->FrontEndPath,
             Urb->UrbControlGetStatusRequest.TransferBufferLength);
-        
+
         RequestGetRequestContext(Request)->RequestCompleted = 1;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
@@ -2385,7 +2385,7 @@ EvtFdoOnHardwareRequestCancelled(
     {
         FreeShadowForRequest(fdoContext->Xen,
             Request);
-        RequestGetRequestContext(Request)->RequestCompleted = 1; 
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         RequestGetRequestContext(Request)->CancelSet = 0;
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, STATUS_CANCELLED);
@@ -2399,7 +2399,7 @@ EvtFdoOnHardwareRequestCancelled(
     //
     // make sure this is a URB request.
     //
-    do 
+    do
     {
         WDF_REQUEST_PARAMETERS Parameters;
         WDF_REQUEST_PARAMETERS_INIT(&Parameters);
@@ -2429,7 +2429,7 @@ EvtFdoOnHardwareRequestCancelled(
         //
         PURB Urb = (PURB) URB_FROM_REQUEST(Request);
         PIPE_DESCRIPTOR * pipe = (PIPE_DESCRIPTOR *) Urb->UrbPipeRequest.PipeHandle;
-        PUSB_ENDPOINT_DESCRIPTOR endpoint = 
+        PUSB_ENDPOINT_DESCRIPTOR endpoint =
             PipeHandleToEndpointAddressDescriptor(fdoContext, Urb->UrbPipeRequest.PipeHandle);
         PCHAR UrbFuncString = UrbFunctionToString(Urb->UrbHeader.Function);
         //
@@ -2464,7 +2464,7 @@ EvtFdoOnHardwareRequestCancelled(
             doAbort ? AbortEndpointWorker : AbortEndpointWaitWorker,
             (ULONG_PTR) endpoint->bEndpointAddress,
             (ULONG_PTR) Request,
-            (ULONG_PTR) pipe, 
+            (ULONG_PTR) pipe,
             0);
 
         if (worker)
@@ -2498,7 +2498,7 @@ EvtFdoOnHardwareRequestCancelled(
         // oh great no memory.
         // reserve more work items!
         //
-        RequestGetRequestContext(Request)->RequestCompleted = 1;   
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         RequestGetRequestContext(Request)->CancelSet = 0;
         ReleaseFdoLock(fdoContext);
 
@@ -2516,8 +2516,8 @@ EvtFdoOnHardwareRequestCancelled(
 
     if (fdoContext->ResetInProgress)
     {
-        XXX_TODO("like aborts, this needs to have a waitforresetworker for each request.");        
-        RequestGetRequestContext(Request)->RequestCompleted = 1;  
+        XXX_TODO("like aborts, this needs to have a waitforresetworker for each request.");
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         RequestGetRequestContext(Request)->CancelSet = 0;
         FreeShadowForRequest(fdoContext->Xen, Request);
         ReleaseFdoLock(fdoContext);
@@ -2553,7 +2553,7 @@ EvtFdoOnHardwareRequestCancelled(
         Request);
 
     FreeShadowForRequest(fdoContext->Xen, Request);
-    RequestGetRequestContext(Request)->RequestCompleted = 1;     
+    RequestGetRequestContext(Request)->RequestCompleted = 1;
     RequestGetRequestContext(Request)->CancelSet = 0;
     ReleaseFdoLock(fdoContext);
     WdfRequestComplete(Request, STATUS_CANCELLED);
@@ -2569,7 +2569,7 @@ EvtFdoOnHardwareRequestCancelled(
 * request.
 *
 * @todo a call to WdfRequestIsCanceled (done by the dpc routine) after the
-* request has been completed will bugcheck because the IRP in the request is 
+* request has been completed will bugcheck because the IRP in the request is
 * NULL, which is stupid but it is what it is. This is true even if the request
 * itself is valid (as for example its reference count was incremented in a mistaken
 * effort to avoid this race condition.) Grrrr.... instead we actually need to add
@@ -2582,16 +2582,16 @@ EvtFdoOnHardwareRequestCancelled(
 VOID
 ResetDeviceWorker(
     IN WDFWORKITEM WorkItem)
-{    
+{
     PUSB_FDO_WORK_ITEM_CONTEXT  context = WorkItemGetContext(WorkItem);
-    AcquireFdoLock(context->FdoContext);    
+    AcquireFdoLock(context->FdoContext);
     WDFREQUEST Request = (WDFREQUEST) context->Params[0];
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
         __FUNCTION__ ": %s Device %p requests on ringbuffer %d\n",
         context->FdoContext->FrontEndPath,
         context->FdoContext->WdfDevice,
-        OnRingBuffer(context->FdoContext->Xen));    
+        OnRingBuffer(context->FdoContext->Xen));
 
     if (context->FdoContext->DeviceUnplugged)
     {
@@ -2605,7 +2605,7 @@ ResetDeviceWorker(
 
         FreeShadowForRequest(context->FdoContext->Xen, Request);
         context->FdoContext->ResetInProgress = FALSE;
-        RequestGetRequestContext(Request)->RequestCompleted = 1; 
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         RequestGetRequestContext(Request)->CancelSet = 0;
         ReleaseFdoLock(context->FdoContext);
         WdfRequestComplete(Request, STATUS_CANCELLED);
@@ -2649,7 +2649,7 @@ ResetDeviceWorker(
     }
     context->FdoContext->ResetInProgress = FALSE;
     FreeShadowForRequest(context->FdoContext->Xen, Request);
-    RequestGetRequestContext(Request)->RequestCompleted = 1; 
+    RequestGetRequestContext(Request)->RequestCompleted = 1;
     RequestGetRequestContext(Request)->CancelSet = 0;
     ReleaseFdoLock(context->FdoContext);
     WdfRequestComplete(Request, STATUS_CANCELLED);
@@ -2666,10 +2666,10 @@ ResetDeviceWorker(
 * @param[in] WorkItem a handle to a WDFWORKITEM object.
 *
 */
-VOID 
+VOID
 AbortEndpointWaitWorker(
     IN WDFWORKITEM WorkItem)
-{    
+{
     PUSB_FDO_WORK_ITEM_CONTEXT  context = WorkItemGetContext(WorkItem);
     AcquireFdoLock(context->FdoContext);
 
@@ -2711,7 +2711,7 @@ AbortEndpointWaitWorker(
 
         ASSERT(pipe->abortInProgress);
         if (!pipe->abortInProgress)
-        {        
+        {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
                 __FUNCTION__ ": %s Device %p abortInProgress not set for ea %x\n",
                 context->FdoContext->FrontEndPath,
@@ -2724,7 +2724,7 @@ AbortEndpointWaitWorker(
         // The abort worker has to guarantee that this event is signalled.
         //
         ReleaseFdoLock(context->FdoContext);
-        NTSTATUS Status = KeWaitForSingleObject(&pipe->abortCompleteEvent, Executive, KernelMode, FALSE, NULL);  
+        NTSTATUS Status = KeWaitForSingleObject(&pipe->abortCompleteEvent, Executive, KernelMode, FALSE, NULL);
         AcquireFdoLock(context->FdoContext);
         //
         // we don't really care what the status is, but trace a return value other than STATUS_SUCCESS;
@@ -2746,9 +2746,9 @@ AbortEndpointWaitWorker(
 
     }
     FINALLY
-    {    
+    {
         FreeShadowForRequest(context->FdoContext->Xen, Request);
-        RequestGetRequestContext(Request)->RequestCompleted = 1; 
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         RequestGetRequestContext(Request)->CancelSet = 0;
         ReleaseFdoLock(context->FdoContext);
         WdfRequestComplete(Request, STATUS_CANCELLED);
@@ -2765,7 +2765,7 @@ AbortEndpointWaitWorker(
 VOID
 AbortEndpointWorker(
     IN WDFWORKITEM WorkItem)
-{    
+{
     PUSB_FDO_WORK_ITEM_CONTEXT  context = WorkItemGetContext(WorkItem);
     AcquireFdoLock(context->FdoContext);
     PIPE_DESCRIPTOR * pipe = (PIPE_DESCRIPTOR *) context->Params[2];
@@ -2779,7 +2779,7 @@ AbortEndpointWorker(
         context->FdoContext->WdfDevice,
         endpointAddress,
         Request,
-        pipe);    
+        pipe);
 
     NTSTATUS Status = STATUS_SUCCESS;
 
@@ -2810,7 +2810,7 @@ AbortEndpointWorker(
 
         ASSERT(pipe->abortInProgress);
         if (!pipe->abortInProgress)
-        {        
+        {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
                 __FUNCTION__ ": %s Device %p abortInProgress not set for ea %x pipe %p\n",
                 context->FdoContext->FrontEndPath,
@@ -2855,14 +2855,14 @@ AbortEndpointWorker(
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__ ": %s Device %p PutScratchOnRing error %x\n",
                 context->FdoContext->FrontEndPath,
-                Status);            
+                Status);
             context->FdoContext->ConfigBusy = FALSE;
             LEAVE;
         }
 
         ReleaseFdoLock(context->FdoContext);
         Status = WaitForScratchCompletion(context->FdoContext);
-        AcquireFdoLock(context->FdoContext);          
+        AcquireFdoLock(context->FdoContext);
 
         context->FdoContext->ConfigBusy = FALSE;
 
@@ -2904,7 +2904,7 @@ AbortEndpointWorker(
             endpointAddress,
             pipe->abortWaiters);
 
-    } 
+    }
     FINALLY
     {
         if (pipe)
@@ -2918,7 +2918,7 @@ AbortEndpointWorker(
             }
         }
         FreeShadowForRequest(context->FdoContext->Xen, Request);
-        RequestGetRequestContext(Request)->RequestCompleted = 1; 
+        RequestGetRequestContext(Request)->RequestCompleted = 1;
         RequestGetRequestContext(Request)->CancelSet = 0;
         ReleaseFdoLock(context->FdoContext);
         WdfRequestComplete(Request, STATUS_CANCELLED);

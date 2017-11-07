@@ -159,7 +159,7 @@ def shell(command, dir):
     print(dir)
     print(command)
     sys.stdout.flush()
-    
+
     sub = subprocess.Popen(' '.join(command), cwd=dir,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT)
@@ -360,9 +360,9 @@ def archive(filename, files, tgz=False):
 
 
 def getVsVersion():
-    vsenv ={} 
-    vars = subprocess.check_output([os.environ['VS']+'\\VC\\vcvarsall.bat', 
-                                        '&&', 'set'], 
+    vsenv ={}
+    vars = subprocess.check_output([os.environ['VS']+'\\VC\\vcvarsall.bat',
+                                        '&&', 'set'],
                                     shell=True)
     for var in vars.splitlines():
         k, _, v = map(str.strip, var.strip().decode('utf-8').partition('='))

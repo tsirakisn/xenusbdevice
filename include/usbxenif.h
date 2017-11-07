@@ -8,10 +8,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -72,7 +72,7 @@
 // STUB what is thre real limit here?
 // STUB lots of operations have no data no transfer flags
 //
-#define USBIF_URB_MAX_SEGMENTS_PER_REQUEST 17 
+#define USBIF_URB_MAX_SEGMENTS_PER_REQUEST 17
 #define USBIF_URB_MAX_ISO_SEGMENTS (USBIF_URB_MAX_SEGMENTS_PER_REQUEST - 1)
 #define USBIF_URB_MAX_SEGMENTS_PER_REQUEST_V2 66
 #define USBIF_URB_MAX_ISO_SEGMENTS_V2 (USBIF_URB_MAX_SEGMENTS_PER_REQUEST_V2 - 1)
@@ -90,7 +90,7 @@ typedef uint32_t usbif_request_len_t;
 
 //
 // INDIRECT GREF PAGES:
-// 
+//
 // If flags & INDIRECT_GREF is true:
 //   usbif_request.nr_segments indicates the number of valid gref descriptors
 //   in usbif_request.gref[] but each page referred to in usbif_request.gref[]
@@ -118,11 +118,11 @@ typedef struct usbif_indirect_page usbif_indirect_page_t;
 
 struct usbif_request {
     uint64_t            id;           /* private guest value, echoed in resp */
-    uint64_t            setup;        /* the setup packet 8 bytes            */ 
+    uint64_t            setup;        /* the setup packet 8 bytes            */
     uint8_t             type;         /* Control Bulk Int Iso                */
     uint8_t             endpoint;     /* endpoint address and direction      */
-    uint16_t            offset;       /* offset into data                    */ 
-    usbif_request_len_t length;       /* of data not including setup packet  */ 
+    uint16_t            offset;       /* offset into data                    */
+    usbif_request_len_t length;       /* of data not including setup packet  */
     uint8_t             nr_segments;  /* number of segments                  */
     uint8_t             flags;        /* 0x01 == SHORT_PACKET_OK             */
 #ifdef XENVUSB_ISO
@@ -143,11 +143,11 @@ typedef struct usbif_request usbif_request_t;
 
 struct usbifv2_request {
     uint64_t            id;           /* private guest value, echoed in resp */
-    uint64_t            setup;        /* the setup packet 8 bytes            */ 
+    uint64_t            setup;        /* the setup packet 8 bytes            */
     uint8_t             type;         /* Control Bulk Int Iso                */
     uint8_t             endpoint;     /* endpoint address and direction      */
-    uint16_t            offset;       /* offset into data                    */ 
-    usbif_request_len_t length;       /* of data not including setup packet  */ 
+    uint16_t            offset;       /* offset into data                    */
+    usbif_request_len_t length;       /* of data not including setup packet  */
     uint8_t             nr_segments;  /* number of segments                  */
     uint8_t             flags;        /* 0x01 == SHORT_PACKET_OK             */
 #ifdef XENVUSB_ISO
@@ -163,11 +163,11 @@ typedef struct usbifv2_request usbifv2_request_t;
 struct usbif_response {
     uint64_t            id;              /* copied from request */
     usbif_request_len_t bytesTransferred; /* for ISO packets - number of error packets */
-#ifdef XENVUSB_ISO  
+#ifdef XENVUSB_ISO
     uint32_t            data;      /* for ISO ASAP - the first frame sent */
                                    /* for get speed request - the speed. rename? */
 #endif
-    int16_t             status;          /* USBIF_RSP_???       */  
+    int16_t             status;          /* USBIF_RSP_???       */
     uint32_t            error_count;     /* total ISOCH error count */
 };
 typedef struct usbif_response usbif_response_t;
@@ -183,7 +183,7 @@ DEFINE_RING_TYPES(usbif, struct usbif_request, struct usbif_response);
 
 
 #define SHADOW_TAG 'wdhS'
-typedef struct 
+typedef struct
 {
     usbif_request_t req;
     ULONG Tag;  // must be 'Shdw'

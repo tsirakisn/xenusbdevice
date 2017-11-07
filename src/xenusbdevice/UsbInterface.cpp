@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -46,7 +46,7 @@ FdoConsumedBandwidth()
     return 0; // this is a lie.
 }
 
-VOID 
+VOID
 FdoInterfaceReference(
     PVOID Context)
 {
@@ -58,10 +58,10 @@ FdoInterfaceReference(
   InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
 }
 
-VOID 
+VOID
 FdoInterfaceDereference(
     PVOID Context)
-{ 
+{
   PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
 
   TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
@@ -76,11 +76,11 @@ FdoInterfaceDereference(
   }
 }
 
-/* 
+/*
 
 Routine Description:
 
-    Service Returns the Highest USBDI Interface Version supported 
+    Service Returns the Highest USBDI Interface Version supported
     by the port driver.
 
     Released Interface Versions are:
@@ -88,16 +88,16 @@ Routine Description:
     Win98Gold,usbd              0x00000102
     Win98SE,usbd                0x00000200
     Win2K,usbd                  0x00000300
-    Win98M (Millenium),usbd     0x00000400   
+    Win98M (Millenium),usbd     0x00000400
 
     Usbport                     0x00000500
 
     IRQL = ANY
-    
+
 Arguments:
 
-    VersionInformation - Ptr to USBD_VERSION_INFORMATION 
-    HcdCapabilities - Ptr to ULONG that will be filled in with 
+    VersionInformation - Ptr to USBD_VERSION_INFORMATION
+    HcdCapabilities - Ptr to ULONG that will be filled in with
                 the Host controller (port) driver capability flags.
 */
 VOID
@@ -105,7 +105,7 @@ FdoGetUSBDIVersion(
     IN PVOID Context,
     IN OUT PUSBD_VERSION_INFORMATION VersionInformation,
     IN OUT PULONG HcdCapabilities)
-{ 
+{
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__": Context %p\n",
         Context);
@@ -118,15 +118,15 @@ FdoGetUSBDIVersion(
   *HcdCapabilities = 0;
 }
 
-/* 
+/*
 
 Routine Description:
 
-    Returns the current 32 bit USB frame number.  The function 
+    Returns the current 32 bit USB frame number.  The function
     replaces the USBD_QueryBusTime Service.
 
     IRQL = ANY
-    
+
 Arguments:
 
 NOTE: unimplemented
@@ -134,7 +134,7 @@ NOTE: unimplemented
 */
 NTSTATUS
 FdoQueryBusTime(
-    IN PVOID Context,   
+    IN PVOID Context,
     IN OUT PULONG CurrentUsbFrame)
 {
 
@@ -160,19 +160,19 @@ FdoQueryBusTime(
 Routine Description:
 
     Service exported for Real-Time Thread support.  Allows a driver
-    to submit a request without going thru IoCallDriver or allocating 
-    an Irp.  
+    to submit a request without going thru IoCallDriver or allocating
+    an Irp.
 
     Additionally the request is scheduled while at high IRQL. The driver
     forfeits any packet level error information when calling this function.
 
     IRQL = ANY
-    
+
 Arguments:
 
     BusContext - Handle returned from get_bus_interface
 
-    Urb - 
+    Urb -
 
     NOTE: unimplemented
 */
@@ -188,12 +188,12 @@ FdoSubmitIsoOutUrb(
     return STATUS_UNSUCCESSFUL;
 }
 
-/* 
+/*
 
 Routine Description:
 
     IRQL = ANY
-    
+
 Arguments:
 
 NOTE: unimplemented
@@ -201,7 +201,7 @@ NOTE: unimplemented
 */
 NTSTATUS
 FdoQueryBusInformation(
-    IN PVOID Context,   
+    IN PVOID Context,
     IN ULONG Level,
     IN OUT PVOID BusInformationBuffer,
     IN OUT PULONG BusInformationBufferLength,
@@ -214,7 +214,7 @@ FdoQueryBusInformation(
         Context);
 
     NTSTATUS Status = STATUS_SUCCESS;
-    do 
+    do
     {
         if (BusInformationBuffer == NULL)
         {
@@ -231,7 +231,7 @@ FdoQueryBusInformation(
         {
         case 0:
             {
-                PUSB_BUS_INFORMATION_LEVEL_0 busInfo = 
+                PUSB_BUS_INFORMATION_LEVEL_0 busInfo =
                     (PUSB_BUS_INFORMATION_LEVEL_0) BusInformationBuffer;
                 if ((*BusInformationBufferLength) < sizeof (USB_BUS_INFORMATION_LEVEL_0))
                 {
@@ -249,7 +249,7 @@ FdoQueryBusInformation(
             break;
         case 1:
             {
-                PUSB_BUS_INFORMATION_LEVEL_1 busInfo = 
+                PUSB_BUS_INFORMATION_LEVEL_1 busInfo =
                     (PUSB_BUS_INFORMATION_LEVEL_1) BusInformationBuffer;
 
                 if ((*BusInformationBufferLength) < sizeof (USB_BUS_INFORMATION_LEVEL_1))
@@ -262,7 +262,7 @@ FdoQueryBusInformation(
                 //
                 UNICODE_STRING name;
                 WdfStringGetUnicodeString(fdoContext->hcdsymlink, &name);
-                ULONG bytesNeeded = sizeof(USB_BUS_INFORMATION_LEVEL_1) + 
+                ULONG bytesNeeded = sizeof(USB_BUS_INFORMATION_LEVEL_1) +
                     name.Length;
                 if (BusInformationActualLength)
                 {
@@ -276,7 +276,7 @@ FdoQueryBusInformation(
                 *BusInformationBufferLength = bytesNeeded;
                 //
                 // copy the fixed length data
-                //              
+                //
                 busInfo->TotalBandwidth = FdoTotalBandWidth();
                 busInfo->ConsumedBandwidth = FdoConsumedBandwidth();
                 busInfo->ControllerNameLength = name.Length;
@@ -302,7 +302,7 @@ FdoQueryBusInformation(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__": Context %p; Level %d Status %x\n",
-        Context, 
+        Context,
         Level,
         Status);
 
@@ -331,7 +331,7 @@ FdoIsDeviceHighSpeed(
     IN PVOID  Context)
 {
     //
-    // XXX lie 
+    // XXX lie
     //
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
         __FUNCTION__": Context %p\n",
@@ -345,7 +345,7 @@ FdoIsDeviceHighSpeed(
 //
 NTSTATUS
 FdoQueryBusTimeEx(
-    IN PVOID Context,   
+    IN PVOID Context,
     OUT PULONG)
 {
     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
@@ -406,7 +406,7 @@ FdoQueryControllerType(
  *
  * @param[in] Device. The handle to the WDFDEVICE object for the controller.
  * @param[in] Irp. The IRP_MN_QUERY_INTERFACE IRP.
- * 
+ *
  */
 NTSTATUS
 FdoPreProcessQueryInterface(
@@ -429,7 +429,7 @@ FdoPreProcessQueryInterface(
             if (IoStack->Parameters.QueryInterface.Size >=
                 sizeof(USB_BUS_INTERFACE_USBDI_V0))
             {
-                PUSB_BUS_INTERFACE_USBDI_V0 UsbdiInt = 
+                PUSB_BUS_INTERFACE_USBDI_V0 UsbdiInt =
                   (PUSB_BUS_INTERFACE_USBDI_V0) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V0);
@@ -440,8 +440,8 @@ FdoPreProcessQueryInterface(
                 UsbdiInt->GetUSBDIVersion = FdoGetUSBDIVersion;
                 UsbdiInt->QueryBusTime = FdoQueryBusTime;
                 UsbdiInt->SubmitIsoOutUrb = FdoSubmitIsoOutUrb;
-                UsbdiInt->QueryBusInformation = FdoQueryBusInformation;                
-                
+                UsbdiInt->QueryBusInformation = FdoQueryBusInformation;
+
                 provideInterface = TRUE;
                 Irp->IoStatus.Information = sizeof(USB_BUS_INTERFACE_USBDI_V0);
                 InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
@@ -452,7 +452,7 @@ FdoPreProcessQueryInterface(
             if (IoStack->Parameters.QueryInterface.Size >=
                 sizeof(USB_BUS_INTERFACE_USBDI_V1))
             {
-                PUSB_BUS_INTERFACE_USBDI_V1 UsbdiInt = 
+                PUSB_BUS_INTERFACE_USBDI_V1 UsbdiInt =
                   (PUSB_BUS_INTERFACE_USBDI_V1) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V1);
@@ -465,7 +465,7 @@ FdoPreProcessQueryInterface(
                 UsbdiInt->SubmitIsoOutUrb = FdoSubmitIsoOutUrb;
                 UsbdiInt->QueryBusInformation = FdoQueryBusInformation;
                 UsbdiInt->IsDeviceHighSpeed = FdoIsDeviceHighSpeed;
-                
+
                 provideInterface = TRUE;
                 Irp->IoStatus.Information = 0;
                 InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
@@ -476,7 +476,7 @@ FdoPreProcessQueryInterface(
             if (IoStack->Parameters.QueryInterface.Size >=
                 sizeof(USB_BUS_INTERFACE_USBDI_V2))
             {
-                PUSB_BUS_INTERFACE_USBDI_V2 UsbdiInt = 
+                PUSB_BUS_INTERFACE_USBDI_V2 UsbdiInt =
                   (PUSB_BUS_INTERFACE_USBDI_V2) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V2);
@@ -490,8 +490,8 @@ FdoPreProcessQueryInterface(
                 UsbdiInt->QueryBusInformation = FdoQueryBusInformation;
                 UsbdiInt->IsDeviceHighSpeed = FdoIsDeviceHighSpeed;
                 UsbdiInt->EnumLogEntry = FdoEnumLogEntry;
-                
-                provideInterface = TRUE; 
+
+                provideInterface = TRUE;
                 Irp->IoStatus.Information = 0;
                 InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
                 Status = STATUS_SUCCESS;
@@ -502,7 +502,7 @@ FdoPreProcessQueryInterface(
             if (IoStack->Parameters.QueryInterface.Size >=
                 sizeof(USB_BUS_INTERFACE_USBDI_V3))
             {
-                PUSB_BUS_INTERFACE_USBDI_V3 UsbdiInt = 
+                PUSB_BUS_INTERFACE_USBDI_V3 UsbdiInt =
                   (PUSB_BUS_INTERFACE_USBDI_V3) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V3);
@@ -518,7 +518,7 @@ FdoPreProcessQueryInterface(
                 UsbdiInt->EnumLogEntry = FdoEnumLogEntry;
                 UsbdiInt->QueryBusTimeEx = FdoQueryBusTimeEx;
                 UsbdiInt->QueryControllerType = FdoQueryControllerType;
-                
+
                 provideInterface = TRUE; // not yet supported
                 Irp->IoStatus.Information = 0;
                 InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
@@ -561,7 +561,7 @@ FdoPreProcessQueryInterface(
 // Implementation of the HUB interfaces.
 //
 
-VOID 
+VOID
 RootHubIfInterfaceReference(
     PVOID Context)
 {
@@ -573,10 +573,10 @@ RootHubIfInterfaceReference(
   InterlockedIncrement(&hubContext->BusInterfaceReferenceCount);
 }
 
-VOID 
+VOID
 RootHubIfInterfaceDereference(
     PVOID Context)
-{ 
+{
   PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
   TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
@@ -596,18 +596,18 @@ RootHubIfInterfaceDereference(
  * Which actually means that the hub driver has created a PDO for a new
  * USB device.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[out] DeviceHandle. On return, contains a handle to the new device 
+ * @param[out] DeviceHandle. On return, contains a handle to the new device
  * structure created by this routine.
  *
- * @param[in] HubDeviceHandle. Contains a handle to the hub PDO device. 
+ * @param[in] HubDeviceHandle. Contains a handle to the hub PDO device.
  *
  * @param[in] PortStatus. According to the existing documentation:
- * "On return, contains the status of the port." But that sense 
+ * "On return, contains the status of the port." But that sense
  * doesn't it make as it is an input parameter not an output parameter.
  *
  * @param[in] PortNumber. The port number for the new device.
@@ -628,10 +628,10 @@ RootHubIfCreateUsbDevice(
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     hubContext->PortDevice.DeviceHandleRefCount++;
     // we don't care, 1 hub 1 controller 1 port 1 device.
-    *NewDeviceHandle = (PUSB_DEVICE_HANDLE) &hubContext->PortDevice; 
+    *NewDeviceHandle = (PUSB_DEVICE_HANDLE) &hubContext->PortDevice;
     hubContext->PortDevice.HubPortNumber = PortNumber;
     hubContext->PortDevice.HubPortStatus = PortStatus;
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__": Context %p Port %x Status %x DeviceHandleRefCount %d\n",
         BusContext,
@@ -658,27 +658,27 @@ RootHubIfCreateUsbDevice(
 
 /**
  * @brief initializes a new USB device.
- * The hub driver calls the InitializeUsbDevice routine to assign a device 
- * address to a new USB device. This routine scans the list of device addresses 
- * that are recorded in the parent hub's device extension until it finds an 
- * unused address and assigns that unused address to the new device. 
- * There are 128 available addresses (0 - 127), as specified by version 1.1 
- * of the Universal Serial Bus specification. The address remains valid 
- * until the device is removed by a call to the RemoveUsbDevice routine, 
- * or until the device is reset or the system powered down. On the next 
- * enumeration, the device might be assigned a different address. For more 
- * information about how USB addresses are assigned, see the section of 
- * the Universal Serial Bus Specification that describes the Set Address 
- * request. 
- * 
+ * The hub driver calls the InitializeUsbDevice routine to assign a device
+ * address to a new USB device. This routine scans the list of device addresses
+ * that are recorded in the parent hub's device extension until it finds an
+ * unused address and assigns that unused address to the new device.
+ * There are 128 available addresses (0 - 127), as specified by version 1.1
+ * of the Universal Serial Bus specification. The address remains valid
+ * until the device is removed by a call to the RemoveUsbDevice routine,
+ * or until the device is reset or the system powered down. On the next
+ * enumeration, the device might be assigned a different address. For more
+ * information about how USB addresses are assigned, see the section of
+ * the Universal Serial Bus Specification that describes the Set Address
+ * request.
+ *
  * Actually we don't do anything.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
- * 
- * @param[in,out] DeviceHandle. Contains a handle to the device created 
+ *
+ * @param[in,out] DeviceHandle. Contains a handle to the device created
  * by CreateUsbDevice.
  *
  * @returns NTSTATUS indicating success or failure.
@@ -705,18 +705,18 @@ RootHubIfInitializeUsbDevice(
  * Which actually means that the hub driver has created a PDO for a new
  * USB device.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[out] DeviceHandle. On return, contains a handle to the new device 
+ * @param[out] DeviceHandle. On return, contains a handle to the new device
  * structure created by this routine.
  *
- * @param[in] HubDeviceHandle. Contains a handle to the hub PDO device. 
+ * @param[in] HubDeviceHandle. Contains a handle to the hub PDO device.
  *
  * @param[in] PortStatus. According to the existing documentation:
- * "On return, contains the status of the port." But that sense 
+ * "On return, contains the status of the port." But that sense
  * doesn't it make as it is an input parameter not an output parameter.
  *
  * @param[in] PortNumber. The port number for the new device.
@@ -804,12 +804,12 @@ RootHubIfCreateUsbDeviceV7 (
  * @brief initializes a new USB device.
  * See RootHubIfInitializeUsbDevice().
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
- * 
- * @param[in,out] DeviceHandle. Contains a handle to the device created 
+ *
+ * @param[in,out] DeviceHandle. Contains a handle to the device created
  * by CreateUsbDevice.
  *
  * @param[out] IdErrInfo. Undocumented Initialize Device Error Information.
@@ -846,20 +846,20 @@ RootHubIfInitializeUsbDeviceEx (
 /**
  * @brief removes a USB device.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[in,out] DeviceHandle. Contains, on input, a pointer to a handle to 
- * the device created by CreateUsbDevice. If successful, this routine frees 
+ * @param[in,out] DeviceHandle. Contains, on input, a pointer to a handle to
+ * the device created by CreateUsbDevice. If successful, this routine frees
  * the memory that this member points to. (Or not. We didn't allocate memory.)
  *
- * @param[in] Flags. Contains flag values that indicate how the port driver 
+ * @param[in] Flags. Contains flag values that indicate how the port driver
  * should interpret the call to RemoveUsbDevice. Flag values are:
  * Flag                  | Meaning
  * ----------------------|----------------
- * USBD_KEEP_DEVICE_DATA | Do not  free the device handle, after removing the device. 
+ * USBD_KEEP_DEVICE_DATA | Do not  free the device handle, after removing the device.
  * USBD_MARK_DEVICE_BUSY | Stop accepting requests for the device. Handle is valid.
  * 0                     | Handle is freed and device is removed.
  *
@@ -929,7 +929,7 @@ RootHubIfGetUsbDescriptors (
     UNREFERENCED_PARAMETER(DeviceHandle);
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
-    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);    
+    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     //
     // win8: DeviceDescriptorBuffer can be null.
     //
@@ -978,7 +978,7 @@ RootHubIfGetUsbDescriptors (
         {
             copybytes = sizeof(USB_CONFIGURATION_DESCRIPTOR);
         }
-        RtlCopyMemory(ConfigDescriptorBuffer, fdoContext->ConfigurationDescriptor, 
+        RtlCopyMemory(ConfigDescriptorBuffer, fdoContext->ConfigurationDescriptor,
             copybytes);
         *ConfigDescriptorBufferLength = copybytes;
     }
@@ -1021,22 +1021,22 @@ RootHubIfGetPortHackFlags (
 /**
  * @brief retrieves information about a USB device.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[in] DeviceHandle. Contains a handle to the device created by 
+ * @param[in] DeviceHandle. Contains a handle to the device created by
  * RootHubIfCreateUsbDevice().
  *
- * @param[out] DeviceInformationBuffer. Pointer to a buffer that contains 
+ * @param[out] DeviceInformationBuffer. Pointer to a buffer that contains
  * the device data formatted in a structure of type USB_DEVICE_INFORMATION_0.
  *
- * @param[in] DeviceInformationBufferLength. Indicates the length in bytes 
- * of the buffer pointed to by DeviceInformationBuffer. 
+ * @param[in] DeviceInformationBufferLength. Indicates the length in bytes
+ * of the buffer pointed to by DeviceInformationBuffer.
  *
- * @param[in,out] LengthOfDataCopied. Indicates the length in bytes of 
- * the data that was returned. 
+ * @param[in,out] LengthOfDataCopied. Indicates the length in bytes of
+ * the data that was returned.
  *
  * @returns NTSTATUS value indicating success or failure.
  */
@@ -1108,21 +1108,21 @@ RootHubIfQueryDeviceInformation (
     {
         usbInfo->DeviceDescriptor = fdoContext->DeviceDescriptor;
         usbInfo->CurrentConfigurationValue = fdoContext->CurrentConfigValue;
-        usbInfo->PortNumber =  1; 
+        usbInfo->PortNumber =  1;
         usbInfo->DeviceSpeed = fdoContext->DeviceSpeed;
         configInfo = fdoContext->ConfigData;
     }
 
     ULONG endpoints = configInfo->m_numEndpoints;
     ULONG additionalPipeEntries = endpoints ? endpoints -1 : 0;
-    size_t sizeNeeded = sizeof(USB_DEVICE_INFORMATION_0) + 
+    size_t sizeNeeded = sizeof(USB_DEVICE_INFORMATION_0) +
         additionalPipeEntries * sizeof(USB_PIPE_INFORMATION_0);
-    
-    usbInfo->ActualLength = (ULONG) sizeNeeded;    
+
+    usbInfo->ActualLength = (ULONG) sizeNeeded;
     usbInfo->DeviceAddress = 1;  // faked
     usbInfo->HubAddress = 1;  // faked
     usbInfo->DeviceType = Usb20Device; // faked
-    usbInfo->NumberOfOpenPipes = endpoints;    
+    usbInfo->NumberOfOpenPipes = endpoints;
     *LengthOfDataCopied = (ULONG) sizeNeeded;
 
     if ((ULONG) sizeNeeded > DeviceInformationBufferLength)
@@ -1137,7 +1137,7 @@ RootHubIfQueryDeviceInformation (
     }
     for (ULONG index = 0; index < endpoints; index++)
     {
-        usbInfo->PipeList[index].EndpointDescriptor = 
+        usbInfo->PipeList[index].EndpointDescriptor =
             *configInfo->m_pipeDescriptors[index].endpoint;
         usbInfo->PipeList[index].ScheduleOffset = 0; // ??
     }
@@ -1204,7 +1204,7 @@ RoottHubIfGetRootHubSymbolicName (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     PWCHAR buffer = (PWCHAR) HubSymNameBuffer;
-    
+
     UNICODE_STRING hub;
     WdfStringGetUnicodeString(fdoContext->hubsymlink, &hub);
     //
@@ -1245,24 +1245,24 @@ RoottHubIfGetRootHubSymbolicName (
 /**
  * @brief returns information for all of the ports on the indicated hub.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
  * @param[in] HubPhysicalDeviceObject.
  *
- * @param[in,out] HubInformationBuffer. Pointer to a structure of type 
- * USB_EXTHUB_INFORMATION_0. On input, the caller must set the 
- * InformationLevel member of USB_EXTHUB_INFORMATION_0 to 0. 
- * The port driver initializes the other members of the structure. 
- * On return, HubInformationBuffer points to the returned data. 
+ * @param[in,out] HubInformationBuffer. Pointer to a structure of type
+ * USB_EXTHUB_INFORMATION_0. On input, the caller must set the
+ * InformationLevel member of USB_EXTHUB_INFORMATION_0 to 0.
+ * The port driver initializes the other members of the structure.
+ * On return, HubInformationBuffer points to the returned data.
  *
- * @param[in] HubInformationBufferLength. Contains the length in 
+ * @param[in] HubInformationBufferLength. Contains the length in
  * bytes of the buffer pointed to by HubInformationBuffer.
  *
- * @param[in,out] LengthOfDataReturned. Contains the amount, in bytes, 
- * of the data returned. 
+ * @param[in,out] LengthOfDataReturned. Contains the amount, in bytes,
+ * of the data returned.
  *
  * @returns NTSTATUS value indicating success or failure.
  *
@@ -1308,14 +1308,14 @@ RootHubIfGetExtendedHubInformation (
 /**
  * @brief enables the selective-suspend facility on the indicated bus.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[in] Enable. Specifies whether selective suspend is enabled on the bus 
- * indicated by BusContext. A value of TRUE enables selective suspend; 
- * FALSE disables it. 
+ * @param[in] Enable. Specifies whether selective suspend is enabled on the bus
+ * indicated by BusContext. A value of TRUE enables selective suspend;
+ * FALSE disables it.
  *
  * @returns NTSTATUS value indicating success or failure.
  *
@@ -1350,25 +1350,25 @@ RootHubIfControllerSelectiveSuspend (
 /**
  * @brief retrieves information about the host controller.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[in,out] ControllerInformationBuffer. Pointer to a buffer that contains both 
- * the input and the output data, formatted as a USB_CONTROLLER_INFORMATION_0 
- * structure. On input, the caller must fill in the InformationLevel member of 
- * USB_CONTROLLER_INFORMATION_0, and then copy the contents of the structure 
- * into the buffer at ControllerInformationBuffer. InformationLevel must be 
- * set to 0. On completion of the routine, ControllerInformationBuffer points 
- * to a buffer containing a fully initialized USB_CONTROLLER_INFORMATION_0 
+ * @param[in,out] ControllerInformationBuffer. Pointer to a buffer that contains both
+ * the input and the output data, formatted as a USB_CONTROLLER_INFORMATION_0
+ * structure. On input, the caller must fill in the InformationLevel member of
+ * USB_CONTROLLER_INFORMATION_0, and then copy the contents of the structure
+ * into the buffer at ControllerInformationBuffer. InformationLevel must be
+ * set to 0. On completion of the routine, ControllerInformationBuffer points
+ * to a buffer containing a fully initialized USB_CONTROLLER_INFORMATION_0
  * structure.
  *
- * @param[in] ControllerInformationBufferLength. Indicates the length of the buffer 
- * that the caller allocated at ControllerInformationBuffer. 
+ * @param[in] ControllerInformationBufferLength. Indicates the length of the buffer
+ * that the caller allocated at ControllerInformationBuffer.
  *
- * @param[in,out] LengthOfDataReturned . Indicates the amount of data in bytes that 
- * was actually returned. 
+ * @param[in,out] LengthOfDataReturned . Indicates the amount of data in bytes that
+ * was actually returned.
  *
  * @returns NTSTATUS value indicating success or failure.
  */
@@ -1389,7 +1389,7 @@ RootHubIfGetControllerInformation (
         __FUNCTION__": %s\n",
         fdoContext->FrontEndPath);
 
-    PUSB_CONTROLLER_INFORMATION_0 pControllerInfo = 
+    PUSB_CONTROLLER_INFORMATION_0 pControllerInfo =
         (PUSB_CONTROLLER_INFORMATION_0) ControllerInformationBuffer;
     if (ControllerInformationBufferLength < sizeof(USB_CONTROLLER_INFORMATION_0))
     {
@@ -1450,15 +1450,15 @@ RootHubIfRootHubInitNotification (
 //
 
 /**
- * @brief Flush all pending IO for the port indicated by the 
+ * @brief Flush all pending IO for the port indicated by the
  * DeviceHandle parameter.
  *
- * @param[in] BusContext. Contains a handle to the bus context returned in the 
- * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request. 
- * The port driver provides this information when the hub driver queries 
+ * @param[in] BusContext. Contains a handle to the bus context returned in the
+ * BusContext member of the structure by an IRP_MN_QUERY_INTERFACE request.
+ * The port driver provides this information when the hub driver queries
  * for the interface.
  *
- * @param[in] DeviceHandle. Contains a handle to the device created by 
+ * @param[in] DeviceHandle. Contains a handle to the device created by
  * RootHubIfCreateUsbDevice().
  *
  * @todo functionality not implemented.
@@ -1539,7 +1539,7 @@ RootHubIfDerefDeviceHandle (
     UNREFERENCED_PARAMETER(Object);
     UNREFERENCED_PARAMETER(Tag);
 
-    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;    
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
 
     if (DeviceHandle == &hubContext->PortDevice)
     {
@@ -1567,7 +1567,7 @@ RootHubIfRefDeviceHandle (
     UNREFERENCED_PARAMETER(Tag);
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
-    
+
     if (DeviceHandle == &hubContext->PortDevice)
     {
         hubContext->PortDevice.DeviceHandleRefCount++;
@@ -1753,11 +1753,11 @@ RootHubIfHubIsRoot (
 {
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PDEVICE_OBJECT pdoDevice = WdfDeviceWdmGetDeviceObject(hubContext->WdfDevice);
-    
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
         __FUNCTION__": pdoDevice %p DeviceObject %p\n",
         pdoDevice,
-        DeviceObject);    
+        DeviceObject);
 
     if (pdoDevice == DeviceObject)
     {
@@ -1805,7 +1805,7 @@ RootHubIfSetContainerIdForPort (
     hubContext->PortDevice.ContainerId = *ContainerId;
 }
 
-_Function_class_(USB_BUSIFFN_ABORT_ALL_DEVICE_PIPES) 
+_Function_class_(USB_BUSIFFN_ABORT_ALL_DEVICE_PIPES)
 NTSTATUS
 USB_BUSIFFN
 RootHubIfAbortAllDevicePipes (
@@ -1862,7 +1862,7 @@ RootHubIfGetDebugPortNumber (
 // USB_BUS_INTERFACE_HUB_MINIDUMP functions
 //
 
-VOID 
+VOID
 RootHubIfMinidumpReference(
     PVOID Context)
 {
@@ -1874,10 +1874,10 @@ RootHubIfMinidumpReference(
   InterlockedIncrement(&hubContext->MinidumpInterfaceReferenceCount);
 }
 
-VOID 
+VOID
 RootHubIfMinidumpDereference(
     PVOID Context)
-{ 
+{
   PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
   TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
@@ -1902,9 +1902,9 @@ RootHubIfSetUsbPortMiniDumpFlags(
 
 //
 // USB_BUS_INTERFACE_HUB_SELECTIVE_SUSPEND
-// 
+//
 
-VOID 
+VOID
 RootHubIfSSReference(
     PVOID Context)
 {
@@ -1916,10 +1916,10 @@ RootHubIfSSReference(
   InterlockedIncrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
 }
 
-VOID 
+VOID
 RootHubIfSSDereference(
     PVOID Context)
-{ 
+{
   PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
   TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -1957,9 +1957,9 @@ RootHubIfSSSuspendHub(
 
 //
 // USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS SUPPORT (PRELIMINARY)
-// 
+//
 
-VOID 
+VOID
 RootHubIfFpReference(
     PVOID Context)
 {
@@ -1968,10 +1968,10 @@ RootHubIfFpReference(
   InterlockedIncrement(&hubContext->FowardProgressInterfaceReferenceCount);
 }
 
-VOID 
+VOID
 RootHubIfFpDereference(
     PVOID Context)
-{ 
+{
   PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
   if (hubContext->FowardProgressInterfaceReferenceCount > 0)
@@ -2035,7 +2035,7 @@ RootHubIfFpQueueWorkItem(
     else
     {
         //
-        // 
+        //
         IoQueueWorkItem(IoWorkItem, WorkerRoutine, QueueType, Context);
     }
 }
@@ -2044,7 +2044,7 @@ VOID
 USB_BUSIFFN
 RootHubIfFpFreeWorkItem(
     IN PIO_WORKITEM IoWorkItem)
-{	
+{
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
         __FUNCTION__": IoWorkItem %p\n",
         IoWorkItem);
@@ -2072,7 +2072,7 @@ ProcessIrpWorkItem(
     PVOID context)
 {
     PIRP_WORK_ITEM item = (PIRP_WORK_ITEM) context;
-    
+
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
         __FUNCTION__": device %p context %p\n",
         device,
@@ -2091,7 +2091,7 @@ ProcessIrpWorkItem(
 PIRP_WORK_ITEM
 AllocateIrpWorkItem()
 {
-    PIRP_WORK_ITEM irpItem =  (PIRP_WORK_ITEM) ExAllocatePoolWithTag(NonPagedPool, 
+    PIRP_WORK_ITEM irpItem =  (PIRP_WORK_ITEM) ExAllocatePoolWithTag(NonPagedPool,
         sizeof(IRP_WORK_ITEM), XVUH);
     if (irpItem)
     {
@@ -2112,7 +2112,7 @@ AllocateIrpWorkItem()
 //
 VOID
 USB_BUSIFFN
-RootHubIfFpDeferIrpProcessing(    
+RootHubIfFpDeferIrpProcessing(
     PDEVICE_OBJECT Device,
     DIRP_CALLBACK_FUNC Func,
     PIRP Irp)
@@ -2144,11 +2144,11 @@ RootHubIfFpDeferIrpProcessing(
         workitem->Func = Func;
         workitem->Irp = Irp;
 
-        RootHubIfFpQueueWorkItem(Device, 
-            workitem->IoWorkItem, 
-            ProcessIrpWorkItem, 
-            DelayedWorkQueue, 
-            workitem, 
+        RootHubIfFpQueueWorkItem(Device,
+            workitem->IoWorkItem,
+            ProcessIrpWorkItem,
+            DelayedWorkQueue,
+            workitem,
             TRUE);
     }
 }
@@ -2164,10 +2164,10 @@ RootHubPreProcessQueryInterface(
 {
     NTSTATUS Status = Irp->IoStatus.Status;
     PIO_STACK_LOCATION IoStack = IoGetCurrentIrpStackLocation(Irp);
-    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(Device);  
-    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);  
+    PUSB_HUB_PDO_CONTEXT hubContext = DeviceGetHubPdoContext(Device);
+    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     BOOLEAN provideInterface=FALSE;
-    PUSB_BUS_INTERFACE_HUB_V8 hubif = (PUSB_BUS_INTERFACE_HUB_V8) 
+    PUSB_BUS_INTERFACE_HUB_V8 hubif = (PUSB_BUS_INTERFACE_HUB_V8)
         IoStack->Parameters.QueryInterface.Interface;
 
     if (InlineIsEqualGUID( USB_BUS_INTERFACE_HUB_GUID,
@@ -2304,7 +2304,7 @@ RootHubPreProcessQueryInterface(
             fdoContext->FrontEndPath,
             IoStack->Parameters.QueryInterface.Version,
             provideInterface? "Implemented" : "Not Implemented");
-    }    
+    }
     else  if (InlineIsEqualGUID( USB_BUS_INTERFACE_HUB_MINIDUMP_GUID,
         *IoStack->Parameters.QueryInterface.InterfaceType))
     {
@@ -2327,7 +2327,7 @@ RootHubPreProcessQueryInterface(
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
                 __FUNCTION__": USB_BUS_INTERFACE_HUB_MINIDUMP_GUID supported size %d functions %d\n",
                 minidump->Size, 3);
-            
+
             InterlockedIncrement(&hubContext->MinidumpInterfaceReferenceCount);
             provideInterface = TRUE;
         }
@@ -2362,7 +2362,7 @@ RootHubPreProcessQueryInterface(
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
                 __FUNCTION__": USB_BUS_INTERFACE_HUB_SS_GUID supported size %d functions %d\n",
                 hubSuspend->Size, 4);
-            
+
             InterlockedIncrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
             provideInterface = TRUE;
         }
@@ -2422,7 +2422,7 @@ RootHubPreProcessQueryInterface(
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
                 __FUNCTION__": %s USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID unsupported size %d (%d) Version %d (%d)\n",
                 fdoContext->FrontEndPath,
-                IoStack->Parameters.QueryInterface.Size, 
+                IoStack->Parameters.QueryInterface.Size,
                 sizeof(USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS),
                 IoStack->Parameters.QueryInterface.Version, 0);
         }
@@ -2431,7 +2431,7 @@ RootHubPreProcessQueryInterface(
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
             __FUNCTION__": %s GUID unsupported: \n"
-            " %08.8x %04.4x %04.4x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2\n", 
+            " %08.8x %04.4x %04.4x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2\n",
             fdoContext->FrontEndPath,
             IoStack->Parameters.QueryInterface.InterfaceType->Data1,
             IoStack->Parameters.QueryInterface.InterfaceType->Data2,

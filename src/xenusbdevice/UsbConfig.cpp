@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -265,7 +265,7 @@ FreeUsbConfigData(
     //
     // config data
     //
-       
+
     if (fdoContext->ConfigData)
     {
         for (ULONG Index = 0;
@@ -308,10 +308,10 @@ FreeUsbConfigData(
 NTSTATUS
 ProcessGetDescriptorFromNode(
     IN PUSB_FDO_CONTEXT fdoContext,
-    IN PUSB_DESCRIPTOR_REQUEST descRequest,    
+    IN PUSB_DESCRIPTOR_REQUEST descRequest,
     PULONG DataLength)
 {
-    AcquireFdoLock(fdoContext);    
+    AcquireFdoLock(fdoContext);
     if (!WaitForScratchPadAccess(fdoContext))
     {
         ReleaseFdoLock(fdoContext);
@@ -339,7 +339,7 @@ ProcessGetDescriptorFromNode(
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
             __FUNCTION__": %s putScratchOnRing failed %x\n",
             fdoContext->FrontEndPath,
-            status);          
+            status);
         fdoContext->ConfigBusy = FALSE;
         ReleaseFdoLock(fdoContext);
         return status;
@@ -368,7 +368,7 @@ ProcessGetDescriptorFromNode(
         *DataLength = min((*DataLength), fdoContext->ScratchPad.BytesTransferred);
         RtlCopyMemory(descRequest->Data, fdoContext->ScratchPad.Buffer,
              *DataLength);
-    }           
+    }
     fdoContext->ConfigBusy = FALSE;
     ReleaseFdoLock(fdoContext);
     return status;
@@ -405,14 +405,14 @@ GetDescriptor(
         packet->Packet.wIndex.Value,
         packet->Packet.wLength);
 
-        
+
     NTSTATUS status = PutScratchOnRing(
         fdoContext,
         packet,
         Datalength,
         UsbdPipeTypeControl,
         USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
-        FALSE); 
+        FALSE);
 
     if (!NT_SUCCESS(status))
     {
@@ -509,7 +509,7 @@ GetDeviceDescriptor(
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s bNumConfigurations is zero\n",
-                fdoContext->FrontEndPath); 
+                fdoContext->FrontEndPath);
             status = STATUS_UNSUCCESSFUL;
         }
     }
@@ -613,7 +613,7 @@ GetDeviceSpeed(
             fdoContext->DeviceSpeed = UsbHighSpeed;
             break;
         };
-        
+
         TraceEvents(debugLevel, TRACE_DEVICE,
             __FUNCTION__": %s GetDeviceSpeed got %s (%d)\n",
             fdoContext->FrontEndPath,
@@ -845,7 +845,7 @@ ParseConfig(
     ASSERT(configInfo->m_configurationDescriptor);
     UCHAR configValue = configInfo->m_configurationDescriptor->bConfigurationValue;
 
-    PUCHAR descEnd = (PUCHAR)configInfo->m_configurationDescriptor + 
+    PUCHAR descEnd = (PUCHAR)configInfo->m_configurationDescriptor +
         configInfo->m_configurationDescriptor->wTotalLength;
     PUSB_COMMON_DESCRIPTOR commonDesc = (PUSB_COMMON_DESCRIPTOR)configInfo->m_configurationDescriptor;
     PUCHAR currentLocation = (PUCHAR) configInfo->m_configurationDescriptor;
@@ -855,7 +855,7 @@ ParseConfig(
     ULONG enumIndex = 0;
     PUSB_INTERFACE_DESCRIPTOR currentInterface = NULL;
     BOOLEAN isHidDevice = FALSE;
-    BOOLEAN isHidDescriptorBeforeEndpoint = FALSE;    
+    BOOLEAN isHidDescriptorBeforeEndpoint = FALSE;
     ULONG numHidEndPoints = 0;
     ULONG numHidEndpointsFound = 0;
 
@@ -925,7 +925,7 @@ ParseConfig(
                     configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceProtocol,
                     configInfo->m_interfaceDescriptors[numInterfaces]->iInterface);
 
-                if (configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceClass == 
+                if (configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceClass ==
                     USB_INTERFACE_CLASS_HID)
                 {
                     isHidDevice = TRUE;
@@ -1359,12 +1359,12 @@ GetConfigDescriptor(
 
         if (configDescriptor->bConfigurationValue == 0)
         {
-            if ((index == 0) && 
+            if ((index == 0) &&
                 (fdoContext->DeviceDescriptor.bNumConfigurations == 1))
             {
                 //
                 // UGH! This device has a single non-compliant config with a
-                // bConfigurationValue of zero, allow it to exist. 
+                // bConfigurationValue of zero, allow it to exist.
                 //
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                     __FUNCTION__": %s Non compliant single config zero value config descriptor allowed\n",
@@ -1375,7 +1375,7 @@ GetConfigDescriptor(
             {
                 //
                 // UGH! This device has a multiple non-compliant config with a
-                // bConfigurationValue of zero, don't allow it to exist. 
+                // bConfigurationValue of zero, don't allow it to exist.
                 //
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                     __FUNCTION__": %s Non compliant multi config zero value config descriptor not allowed\n",
@@ -1410,7 +1410,7 @@ GetConfigDescriptor(
 void
 GetDeviceStrings(
     IN PUSB_FDO_CONTEXT fdoContext)
-{  
+{
     //
     // support Microsoft OS Descriptors, and fetch this string first.
     //
@@ -1464,7 +1464,7 @@ GetDeviceStrings(
                 __FUNCTION__": manufacturer: %S\n",
                 fdoContext->Manufacturer->sString);
         }
-    }  
+    }
 }
 
 NTSTATUS
@@ -1494,7 +1494,7 @@ GetOsDescriptorString(
         }
 
         fdoContext->OsDescriptorString = (POS_DESCRIPTOR_STRING) GetString(
-            fdoContext, OS_STRING_DESCRIPTOR_INDEX); 
+            fdoContext, OS_STRING_DESCRIPTOR_INDEX);
         if (!fdoContext->OsDescriptorString)
         {
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -1505,7 +1505,7 @@ GetOsDescriptorString(
         }
 
         if (fdoContext->OsDescriptorString->osDescriptor.bLength != 0x12)
-        {                       
+        {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s OS Descriptor invalid length %x ignoring\n",
                 fdoContext->FrontEndPath,
@@ -1514,7 +1514,7 @@ GetOsDescriptorString(
         }
 
         if (fdoContext->OsDescriptorString->osDescriptor.bDescriptorType != 0x03)
-        {                      
+        {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s OS Descriptor invalid type %x ignoring\n",
                 fdoContext->FrontEndPath,
@@ -1523,7 +1523,7 @@ GetOsDescriptorString(
         }
 
         if (wcsncmp(MS_OS_STRING_SIGNATURE, fdoContext->OsDescriptorString->osDescriptor.MicrosoftString, 7))
-        {            
+        {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s OS Descriptor invalid String %C%C%C%C%C%C ignoring\n",
                 fdoContext->FrontEndPath,
@@ -1538,7 +1538,7 @@ GetOsDescriptorString(
         }
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
             __FUNCTION__": %s OS Descriptor String found for this device\n",
-            fdoContext->FrontEndPath);        
+            fdoContext->FrontEndPath);
         //
         //  fetch the feature descriptor
         //
@@ -1552,9 +1552,9 @@ GetOsDescriptorString(
         AcquireFdoLock(fdoContext);
         Status = PutScratchOnRing(
             fdoContext,
-            &packet, 
-            0x16, 
-            UsbdPipeTypeControl, 
+            &packet,
+            0x16,
+            UsbdPipeTypeControl,
             USB_ENDPOINT_DIRECTION_MASK,
             FALSE);
         ReleaseFdoLock(fdoContext);
@@ -1623,7 +1623,7 @@ GetOsDescriptorString(
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
                 __FUNCTION__": %s computed length %d != reported length %d bCount %d size %d\n",
                 fdoContext->FrontEndPath,
-                length, 
+                length,
                 compatIds->header.dwLength,
                 compatIds->header.bCount,
                 sizeof(OS_COMPATID_FUNCTION));
@@ -1639,13 +1639,13 @@ GetOsDescriptorString(
             0,
             4,
             length);
-        
+
         AcquireFdoLock(fdoContext);
         Status = PutScratchOnRing(
             fdoContext,
-            &packet, 
-            length, 
-            UsbdPipeTypeControl, 
+            &packet,
+            length,
+            UsbdPipeTypeControl,
             USB_ENDPOINT_DIRECTION_MASK,
             FALSE);
         ReleaseFdoLock(fdoContext);
@@ -1675,7 +1675,7 @@ GetOsDescriptorString(
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
-                
+
         if (compatIds->header.bcdVersion != 0x100)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
@@ -1746,7 +1746,7 @@ GetOsDescriptorString(
         }
         //
         // reset the device?
-        // 
+        //
         if (doReset)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
@@ -1904,7 +1904,7 @@ _Requires_lock_held_(fdoContext->WdfDevice)
 NTSTATUS
 GetCurrentConfigurationLocked(
     IN PUSB_FDO_CONTEXT fdoContext)
-{  
+{
     RtlZeroMemory(&fdoContext->ScratchPad.Packet, sizeof(fdoContext->ScratchPad.Packet));
     fdoContext->ScratchPad.Packet.Packet.bm.Request.Dir = BMREQUEST_DEVICE_TO_HOST;
     fdoContext->ScratchPad.Packet.Packet.bm.Request.Type = BMREQUEST_STANDARD;
@@ -1949,7 +1949,7 @@ GetCurrentConfigurationLocked(
                 //
                 // This is most likely a reset failure catastrophe.
                 // Indicate that this device should avoid initialization resets.
-                //            
+                //
                 ReleaseFdoLock(fdoContext);
                 SetUsbInfo(fdoContext, fdoContext->FetchOsDescriptor);
                 AcquireFdoLock(fdoContext);
@@ -1976,7 +1976,7 @@ SetCurrentConfiguration(
     if (fdoContext->CurrentConfigValue != configValue)
     {
         AcquireFdoLock(fdoContext);
-        Status = SetCurrentConfigurationLocked(fdoContext, configValue, FALSE, 0, 0);        
+        Status = SetCurrentConfigurationLocked(fdoContext, configValue, FALSE, 0, 0);
         ReleaseFdoLock(fdoContext);
     }
 
@@ -1994,7 +1994,7 @@ SetCurrentConfigurationLocked(
     IN BOOLEAN SetInterface,
     IN USHORT InterfaceNumber,
     IN USHORT AlternateSetting)
-{ 
+{
 
     RtlZeroMemory(&fdoContext->ScratchPad.Packet, sizeof(fdoContext->ScratchPad.Packet));
     fdoContext->ScratchPad.Packet.Packet.bRequest = USB_REQUEST_SET_CONFIGURATION;
@@ -2075,7 +2075,7 @@ SetCurrentConfigurationLocked(
 }
 
 /**
- This function probes the device for a Microsoft OS String Descriptor 
+ This function probes the device for a Microsoft OS String Descriptor
  and for a Microsoft Extended Compat ID OS Feature Descriptor.
  If the Compat ID exists then it is prepended to the PnP enumerator
  for the device.
@@ -2092,7 +2092,7 @@ SetCurrentConfigurationLocked(
           pppp - 4 digit product
           rrrr - 4 digit revision
     each subkey contains:
-       osvc REG_BINARY 
+       osvc REG_BINARY
           0x0000 - no MSFT OS string descriptor
           0x01xx - valid response to OS string descriptor
               xx - bVendorCode hex value.
@@ -2125,7 +2125,7 @@ GetUsbInfo(
     }
     //
     // the device key exists, read the osvc value.
-    //   
+    //
     USHORT Value = 0x0100;
     ULONG  Reset = FALSE;
     RTL_QUERY_REGISTRY_TABLE QueryTable[3]; // over allocated!
@@ -2243,7 +2243,7 @@ SetUsbInfo(
     IN BOOLEAN enable)
 {
     USHORT value = enable ? 0x0100 : 0x0000;
-    ULONG resetSupport = FdoContext->ResetDevice ? 1 : 0;    
+    ULONG resetSupport = FdoContext->ResetDevice ? 1 : 0;
     FdoContext->FetchOsDescriptor = enable;
 
     NTSTATUS Status = RtlCheckRegistryKey(
@@ -2252,7 +2252,7 @@ SetUsbInfo(
 
     if (!NT_SUCCESS(Status))
     {
-        Status = RtlCreateRegistryKey(            
+        Status = RtlCreateRegistryKey(
             RTL_REGISTRY_CONTROL,
             L"usbflags");
         if (!NT_SUCCESS(Status))
@@ -2271,7 +2271,7 @@ SetUsbInfo(
 
     if (!NT_SUCCESS(Status))
     {
-        Status = RtlCreateRegistryKey(            
+        Status = RtlCreateRegistryKey(
             RTL_REGISTRY_CONTROL,
             FdoContext->UsbInfoEntryName);
         if (!NT_SUCCESS(Status))
@@ -2307,7 +2307,7 @@ SetUsbInfo(
             FdoContext->FrontEndPath,
             FdoContext->UsbInfoEntryName,
             enable ? "enabled" : "disabled");
-    }    
+    }
 
     Status = RtlWriteRegistryValue(
         RTL_REGISTRY_CONTROL,
@@ -2489,7 +2489,7 @@ SetInterfaceDescriptorPipes(
         pipe->Interval = endpoint->bInterval;
         pipe->PipeType = (USBD_PIPE_TYPE) (endpoint->bmAttributes & 0x03);
         pipe->PipeHandle = (USBD_PIPE_HANDLE) pipeDesc;
-        
+
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
             __FUNCTION__": pipe %d maxpacket %d ea %x interval %d type %d handle %p\n",
             pipeIndex,
@@ -2811,7 +2811,7 @@ PCHAR UsbIoctlToString(
 
     PCHAR String="Unknown URB function";
 
-    switch (IoControlCode) 
+    switch (IoControlCode)
     {
     case IOCTL_USB_HCD_GET_STATS_1:
         String="IOCTL_USB_HCD_GET_STATS_1";
@@ -2888,7 +2888,7 @@ PCHAR
 UsbFeatureSelectorString(
     USHORT featureSelector)
 {
-    
+
     PCHAR featureString = "UNKNOWN";
     switch (featureSelector)
     {
@@ -2937,7 +2937,7 @@ DbgPrintBuffer(
     if ((gDebugLevel >= Level) &&
         (gDebugFlag & Flag))
     {
-        ULONG index = 0; 
+        ULONG index = 0;
         WDF_USB_CONTROL_SETUP_PACKET packet;
         while (index < bytesTransferred)
         {

@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,13 +35,13 @@
 #pragma warning(pop)
 
 #define NO_INTERFACE_LENGTH (ULONG) (sizeof(_URB_SELECT_CONFIGURATION) - sizeof(USBD_INTERFACE_INFORMATION))
-   
+
 
 struct SCRATCHPAD
 {
     PVOID                        Buffer;
     PMDL                         Mdl;
-    KEVENT                       CompletionEvent; 
+    KEVENT                       CompletionEvent;
     USBD_STATUS                  Status;
     ULONG                        BytesTransferred;
     WDF_USB_CONTROL_SETUP_PACKET Packet;
@@ -104,20 +104,20 @@ struct USB_FDO_CONTEXT
     BOOLEAN                   FetchOsDescriptor; //!< this device supports os descriptor strings.
     BOOLEAN                   ResetDevice;       //!< this device supports reset without malfunctions.
     KEVENT                    resetCompleteEvent;
-    
+
     USB_DEVICE_DESCRIPTOR     DeviceDescriptor;
     //
     /// an array of DeviceDescriptor.bNumConfigurations
-    /// USB_CONFIG_INFO objects. These are fetched from the 
-    /// device using a GET_DESCRIPTOR request where "The range 
-    /// of values used for a descriptor index is from 0 to one 
-    /// less than the number of descriptors of that type implemented 
+    /// USB_CONFIG_INFO objects. These are fetched from the
+    /// device using a GET_DESCRIPTOR request where "The range
+    /// of values used for a descriptor index is from 0 to one
+    /// less than the number of descriptors of that type implemented
     /// by the device." (m_deviceDescriptor.bNumConfigurations).
     ///
     /// Note that configs are read from the device by zero based index but that
     /// the PUSB_CONFIGURATION_DESCRIPTOR.bConfigurationValue is not
     /// the zero based index of a config. Instead the bConfigurationValue of
-    /// a configuration descriptor is used in GET_CONFIGURATION and 
+    /// a configuration descriptor is used in GET_CONFIGURATION and
     /// SET_CONFIGURATION requests to identify the current
     /// configuration and select a specific configuration and ZERO is
     /// considered a special configuration value meaning set the device to
@@ -153,12 +153,12 @@ struct USB_FDO_CONTEXT
     /// one for each possible endpoint in each interface and interface alternate.
     //
     PIPE_DESCRIPTOR *         PipeDescriptors;
-    
+
     PUSB_STRING               Manufacturer;
     PUSB_STRING               Product;
     PUSB_STRING               SerialNumber;
     POS_DESCRIPTOR_STRING     OsDescriptorString;
-    POS_COMPAT_ID             CompatIds; 
+    POS_COMPAT_ID             CompatIds;
     USHORT                    LangId;
     //
     /// scratch buffer. For internal URB requests.
@@ -220,7 +220,7 @@ struct USB_FDO_CONTEXT
     ULONG                    maxRequestsProcessed;
     ULONG                    maxRequeuedRequestsProcessed;
     XENBUS_STORE_INTERFACE   StoreInterface;
-}; 
+};
 //
 // This macro will generate an inline function called DeviceGetContext
 // which will be used to get a pointer to the device context memory
@@ -276,7 +276,7 @@ FreeWorkItem(
 
 EVT_WDF_WORKITEM  EvtFdoDeviceGenericWorkItem;
 
-EVT_WDF_DRIVER_DEVICE_ADD FdoEvtDeviceAdd; 
+EVT_WDF_DRIVER_DEVICE_ADD FdoEvtDeviceAdd;
 
 EVT_WDFDEVICE_WDM_IRP_PREPROCESS  FdoPreProcessQueryInterface;
 
@@ -335,7 +335,7 @@ ProcessDriverKeyNameRequest(
 NTSTATUS
 ProcessGetDescriptorFromNode(
     IN PUSB_FDO_CONTEXT fdoContext,
-    IN PUSB_DESCRIPTOR_REQUEST descRequest,    
+    IN PUSB_DESCRIPTOR_REQUEST descRequest,
     PULONG DataLength);
 
 PWCHAR

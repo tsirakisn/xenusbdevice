@@ -10,10 +10,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -48,7 +48,7 @@ struct ROOT_HUB_CONFIG
 //
 /// Context for the Hub PDO.
 /// The Hub PDO represents a root hub usb device and
-/// provides information about each device connected to 
+/// provides information about each device connected to
 /// the hub. Currently each root hub has exactly one port.
 //
 //
@@ -67,7 +67,7 @@ struct USB_HUB_PDO_CONTEXT
     WDFQUEUE                  StatusChangeQueue;
     USHORT                    ReportedStatus;
     USHORT                    PortFeatureStatus;
-    USHORT                    PortFeatureChange; 
+    USHORT                    PortFeatureChange;
     BOOLEAN                   HubDisconnectReported;
     //
     /// Hub interface
@@ -93,7 +93,7 @@ struct USB_HUB_PDO_CONTEXT
     /// obsolete
     //
     WDFCHILDLIST              ChildList;
-}; 
+};
 typedef USB_HUB_PDO_CONTEXT * PUSB_HUB_PDO_CONTEXT;
 //
 // This macro will generate an inline function called DeviceGetContext
@@ -104,7 +104,7 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(USB_HUB_PDO_CONTEXT, DeviceGetHubPdoContext)
 
 struct PDO_INDENTIFICATION_DESCRIPTION
 {
-    WDF_CHILD_IDENTIFICATION_DESCRIPTION_HEADER Header; 
+    WDF_CHILD_IDENTIFICATION_DESCRIPTION_HEADER Header;
     USHORT                                      Port;
 };
 typedef PDO_INDENTIFICATION_DESCRIPTION *PPDO_INDENTIFICATION_DESCRIPTION;
@@ -178,13 +178,13 @@ EVT_WDF_DEVICE_D0_ENTRY HubEvtDeviceD0Entry;
 EVT_WDF_DEVICE_D0_EXIT HubEvtDeviceD0Exit;
 EVT_WDF_DEVICE_SURPRISE_REMOVAL HubEvtDeviceSurpriseRemoval;
 
-NTSTATUS 
+NTSTATUS
 RootHubIfGetLocationString(
   _Inout_  PVOID Context,
   _Out_    PWCHAR *LocationStrings);
 
 // {DC253819-5174-4B3D-8471-36F48701FCB3}
-DEFINE_GUID(XEN_VROOT_HUB_DEVICE, 
+DEFINE_GUID(XEN_VROOT_HUB_DEVICE,
 0xdc253819, 0x5174, 0x4b3d, 0x84, 0x71, 0x36, 0xf4, 0x87, 0x1, 0xfc, 0xb3);
 
 
