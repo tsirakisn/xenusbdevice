@@ -285,8 +285,6 @@ static VOID
 XenLowerReleaseInterfaces(
     PXEN_LOWER XenLower)
 {
-    NTSTATUS status;
-
     // DEBUG_INTERFACE
 
     XENBUS_DEBUG(Release, &XenLower->DebugInterface);
@@ -346,6 +344,8 @@ XenLowerFree(
 
     XenLowerDisconnectEvtChnDPC(XenLower);
 
+	XenLowerRevokeGrantRef(XenLower);
+
     if (XenLower->GnttabCache)
     {
         XENBUS_GNTTAB(DestroyCache,
@@ -395,8 +395,6 @@ XenLowerInit(
     ULONG DeviceId)
 {
     NTSTATUS status;
-
-    int BytesRead;
 
     XenLower->XenUpper = XenUpper;
     XenLower->Pdo = Pdo;
@@ -626,8 +624,6 @@ XenLowerConnectEvtChnDPC(
     PKSERVICE_ROUTINE DpcCallback,
     VOID *Context)
 {
-    NTSTATUS status;
-
     XenLower->Channel = XENBUS_EVTCHN(Open,
                                       &XenLower->EvtchnInterface,
                                       XENBUS_EVTCHN_TYPE_UNBOUND,
@@ -642,12 +638,11 @@ XenLowerConnectEvtChnDPC(
         return FALSE;
     }
 
-    KIRQL irql;
-
     XENBUS_EVTCHN(Unmask,
                   &XenLower->EvtchnInterface,
                   XenLower->Channel,
-                  FALSE);
+                  FALSE,
+                  TRUE);
 
 
     return TRUE;
@@ -1031,6 +1026,8 @@ XenLowerResumeConnectBackend(
     PXEN_LOWER XenLower,
     VOID *Internal)
 {
+    UNREFERENCED_PARAMETER(Internal);
+
     return XenLowerConnectBackendInternal(XenLower);
 }
 
@@ -1059,7 +1056,7 @@ XenLowerDisonnectBackend(
     festate = XenbusStateClosing;
     while (bestate != XenbusStateClosing && bestate != XenbusStateClosed && XenbusStateClosing != XenbusStateUnknown)
     {
-        NTSTATUS status = XENBUS_STORE(Printf,
+        status = XENBUS_STORE(Printf,
                                        &XenLower->StoreInterface,
                                        NULL,
                                        XenLower->FrontendPath,
@@ -1253,5 +1250,8 @@ XenLowerGetOnline(
                  &XenLower->StoreInterface,
                  Buffer);
 
-    return (state == 1);
+    if (state == 1)
+        return TRUE;
+
+	return FALSE;
 }
