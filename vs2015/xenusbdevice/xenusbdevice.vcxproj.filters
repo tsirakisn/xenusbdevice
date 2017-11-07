@@ -40,6 +40,9 @@
     <ClCompile Include="..\..\src\xenusbdevice\UsbResponse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClInclude Include="..\..\src\xenusbdevice\usbxenif.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClCompile Include="..\..\src\xenusbdevice\xenif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -115,9 +118,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\unplug_interface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\usbxenif.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\xen.h">

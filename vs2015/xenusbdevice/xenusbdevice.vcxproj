@@ -295,7 +295,6 @@
     <ClInclude Include="..\..\include\store_interface.h" />
     <ClInclude Include="..\..\include\suspend_interface.h" />
     <ClInclude Include="..\..\include\unplug_interface.h" />
-    <ClInclude Include="..\..\include\usbxenif.h" />
     <ClInclude Include="..\..\include\xen-errno.h" />
     <ClInclude Include="..\..\include\xen-types.h" />
     <ClInclude Include="..\..\include\xen-version.h" />
@@ -322,6 +321,7 @@
     <ClInclude Include="..\..\src\xenusbdevice\UsbRequest.h" />
     <ClInclude Include="..\..\src\xenusbdevice\UsbResponse.h" />
     <ClInclude Include="..\..\src\xenusbdevice\UsbUserKm.h" />
+    <ClInclude Include="..\..\src\xenusbdevice\usbxenif.h" />
     <ClInclude Include="..\..\src\xenusbdevice\version.h" />
     <ClInclude Include="..\..\src\xenusbdevice\xenif.h" />
     <ClInclude Include="..\..\src\xenusbdevice\xenlower.h" />
