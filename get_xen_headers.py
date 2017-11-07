@@ -1,4 +1,4 @@
-    #!python -u
+#!python -u
 
 import os, sys
 import shutil
@@ -9,7 +9,7 @@ def shell(command, dir = '.'):
     print("in '%s' execute '%s'" % (dir, ' '.join(command)))
     sys.stdout.flush()
 
-    sub = subprocess.Popen(' '.join(command), cwd=dir,
+    sub = subprocess.Popen(command, cwd=dir,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT)
 
@@ -30,16 +30,25 @@ def put_branch(working):
     shell(['git', 'checkout', 'master'], working)
     shell(['git', 'branch', '-d', 'tmp'], working)
 
-def copy_file(working, dir, name):
+def copy_file(working, dirlist, name):
+    parts = [working, 'xen', 'include'] + dirlist + [name]
+    srcpath = os.path.join(*parts)
+
+    parts = ['include', 'xen'] + dirlist
+    dstdirpath = os.path.join(*parts)
+    parts.append(name)
+    dstpath = os.path.join(*parts)
+
     try:
-        os.makedirs('include\\xen\\%s' % dir)
+        print('creating:', dstdirpath)
+        os.makedirs(dstdirpath)
     except OSError:
         None
 
-    src = open('%s\\xen\\include\\%s\\%s' % (working, dir, name), 'r')
-    dst = open('include\\xen\\%s\\%s' % (dir, name), 'w', newline='\n')
+    src = open(srcpath, 'r')
+    dst = open(dstpath, 'w', newline='\n')
 
-    print(name)
+    print('%s -> %s' % (srcpath, dstpath))
 
     for line in src:
         line = re.sub(' unsigned long', ' ULONG_PTR', line)
@@ -60,21 +69,21 @@ if __name__ == '__main__':
 
     shell(['git', 'rm', '-r', '-f', 'xen'], 'include')
 
-    copy_file(working, 'public', 'xen.h')
-    copy_file(working, 'public', 'xen-compat.h')
-    copy_file(working, 'public', 'trace.h')
-    copy_file(working, 'public', 'grant_table.h')
-    copy_file(working, 'public', 'errno.h')
+    copy_file(working, ['public'], 'xen.h')
+    copy_file(working, ['public'], 'xen-compat.h')
+    copy_file(working, ['public'], 'trace.h')
+    copy_file(working, ['public'], 'grant_table.h')
+    copy_file(working, ['public'], 'errno.h')
 
-    copy_file(working, 'xen', 'errno.h')
+    copy_file(working, ['xen'], 'errno.h')
 
-    copy_file(working, 'public\\arch-x86', 'xen.h')
-    copy_file(working, 'public\\arch-x86', 'xen-x86_32.h')
-    copy_file(working, 'public\\arch-x86', 'xen-x86_64.h')
+    copy_file(working, ['public', 'arch-x86'], 'xen.h')
+    copy_file(working, ['public', 'arch-x86'], 'xen-x86_32.h')
+    copy_file(working, ['public', 'arch-x86'], 'xen-x86_64.h')
 
-    copy_file(working, 'public\\io', 'ring.h')
-    copy_file(working, 'public\\io', 'usbif.h')
-    copy_file(working, 'public\\io', 'xenbus.h')
+    copy_file(working, ['public', 'io'], 'ring.h')
+    copy_file(working, ['public', 'io'], 'usbif.h')
+    copy_file(working, ['public', 'io'], 'xenbus.h')
 
     put_branch(working)
 
