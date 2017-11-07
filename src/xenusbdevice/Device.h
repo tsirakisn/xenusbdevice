@@ -23,12 +23,16 @@
 // THE SOFTWARE.
 //
 #pragma once
+
 #include "Trace.h"
 #include "xenusb.h"
 #include "xenif.h"
+
+#pragma warning(push, 0)
 #include <usbioctl.h>
 #include <hubbusif.h>
-
+#include <store_interface.h>
+#pragma warning(pop)
 
 #define NO_INTERFACE_LENGTH (ULONG) (sizeof(_URB_SELECT_CONFIGURATION) - sizeof(USBD_INTERFACE_INFORMATION))
    
@@ -57,6 +61,7 @@ struct USB_FDO_CONTEXT
     // --XT-- WDFINTERRUPT              WdfInterrupt;
     // --XT-- WDFDPC                    WdfDpc;
     CHAR                      FrontEndPath[128];
+    ULONG                     DeviceId;
     //
     // Device state
     //
@@ -214,6 +219,7 @@ struct USB_FDO_CONTEXT
     ULONG                    maxDpcPasses;
     ULONG                    maxRequestsProcessed;
     ULONG                    maxRequeuedRequestsProcessed;
+    XENBUS_STORE_INTERFACE   StoreInterface;
 }; 
 //
 // This macro will generate an inline function called DeviceGetContext
