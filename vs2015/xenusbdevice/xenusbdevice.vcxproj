@@ -270,7 +270,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\xenusbdevice\Device.cpp" />
-    <ClCompile Include="..\..\src\xenusbdevice\driver.cpp" />
+    <ClCompile Include="..\..\src\xenusbdevice\Driver.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\Queue.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\RootHubPdo.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\Trace.cpp" />

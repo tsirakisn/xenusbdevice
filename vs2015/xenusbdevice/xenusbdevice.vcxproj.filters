@@ -52,7 +52,7 @@
     <ClCompile Include="..\..\src\xenusbdevice\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenusbdevice\driver.cpp">
+    <ClCompile Include="..\..\src\xenusbdevice\Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
