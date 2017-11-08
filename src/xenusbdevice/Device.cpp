@@ -256,30 +256,6 @@ FdoEvtDeviceAdd(
     RtlZeroMemory(fdoContext, sizeof(USB_FDO_CONTEXT));
     fdoContext->WdfDevice = device;
 
-    // STORE_INTERFACE
-    status = WdfFdoQueryForInterface(device,
-        &GUID_XENBUS_STORE_INTERFACE,
-        &fdoContext->StoreInterface.Interface,
-        sizeof(fdoContext->StoreInterface),
-        XENBUS_STORE_INTERFACE_VERSION_MAX,
-        NULL);
-
-    if (!NT_SUCCESS(status))
-    {
-        Error("Failed to query xenbus store interface: 0x%x\n", status);
-        return STATUS_SUCCESS;
-    }
-
-    status = XENBUS_STORE(Acquire, &fdoContext->StoreInterface);
-
-    if (!NT_SUCCESS(status))
-    {
-        Error("Failed to acquire xenbus store interface: 0x%x\n", status);
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    Info("successfully acquired xenbus store interface\n");
-
     status = WdfDeviceQueryProperty(device,
         DevicePropertyAddress,
         sizeof(fdoContext->DeviceId),
@@ -515,30 +491,6 @@ FdoEvtDevicePrepareHardware (
         __FUNCTION__"\n");
 
     Trace("====>\n");
-
-    // STORE_INTERFACE
-    status = WdfFdoQueryForInterface(Device,
-        &GUID_XENBUS_STORE_INTERFACE,
-        &fdoContext->StoreInterface.Interface,
-        sizeof(fdoContext->StoreInterface),
-        XENBUS_STORE_INTERFACE_VERSION_MAX,
-        NULL);
-
-    if (!NT_SUCCESS(status))
-    {
-        Error("Failed to query xenbus store interface: 0x%x\n", status);
-        return STATUS_SUCCESS;
-    }
-
-    status = XENBUS_STORE(Acquire, &fdoContext->StoreInterface);
-
-    if (!NT_SUCCESS(status))
-    {
-        Error("Failed to acquire xenbus store interface: 0x%x\n", status);
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    Info("successfully acquired xenbus store interface\n");
 
     //
     // map the hardware resources

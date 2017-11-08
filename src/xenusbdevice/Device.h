@@ -219,7 +219,6 @@ struct USB_FDO_CONTEXT
     ULONG                    maxDpcPasses;
     ULONG                    maxRequestsProcessed;
     ULONG                    maxRequeuedRequestsProcessed;
-    XENBUS_STORE_INTERFACE   StoreInterface;
 };
 //
 // This macro will generate an inline function called DeviceGetContext
