@@ -311,6 +311,7 @@ VOID
 FdoUnplugDevice(
     IN PUSB_FDO_CONTEXT fdoContext);
 
+#if 0
 _Acquires_lock_(fdoContext->WdfDevice)
 VOID
 AcquireFdoLock(
@@ -320,7 +321,7 @@ _Requires_lock_held_(fdoContext->WdfDevice)
 VOID
 ReleaseFdoLock(
     IN PUSB_FDO_CONTEXT fdoContext);
-
+#endif
 
 PCHAR UsbIoctlToString(
     ULONG IoControlCode);
@@ -343,4 +344,40 @@ AllocAndQueryPropertyString(
     IN DEVICE_REGISTRY_PROPERTY  DeviceProperty,
     OUT PULONG ResultLength);
 
+#define AcquireFdoLock(fdoContext) \
+    do { \
+        PETHREAD caller = PsGetCurrentThread(); \
+        Trace("ACQUIRE FDO LOCK: fdoContext = %p -- caller = %p -- lockOwner = %p\n", fdoContext, caller, fdoContext->lockOwner); \
+        if (fdoContext->lockOwner == caller) \
+        { \
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, \
+                __FUNCTION__": POSSIBLE DOUBLE LOCK? lockowner %p == caller %p\n", \
+                fdoContext->lockOwner, \
+                caller); \
+        } \
+        WdfObjectAcquireLock(fdoContext->WdfDevice); \
+        Trace("ACQUIRED FDO LOCK: fdoContext = %p -- caller = %p -- lockOwner = %p\n", fdoContext, caller, fdoContext->lockOwner); \
+        if (!HTSASSERT(fdoContext->lockOwner == NULL)) \
+        { \
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, \
+                __FUNCTION__": Assertion failure lockowner %p == NULL\n", \
+                fdoContext->lockOwner); \
+        } \
+        fdoContext->lockOwner = PsGetCurrentThread(); \
+   } while (0)
 
+#define ReleaseFdoLock(fdoContext) \
+    do { \
+        PETHREAD caller = PsGetCurrentThread(); \
+        Trace("RELEASE FDO LOCK: fdoContext = %p -- caller = %p -- lockOwner = %p\n", fdoContext, caller, fdoContext->lockOwner); \
+        if (!HTSASSERT(caller == fdoContext->lockOwner)) \
+        { \
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, \
+                __FUNCTION__": Assertion failure caller %p == lockOwner %p\n", \
+                caller, \
+                fdoContext->lockOwner); \
+        } \
+        fdoContext->lockOwner = NULL; \
+        WdfObjectReleaseLock(fdoContext->WdfDevice); \
+        Trace("RELEASED FDO LOCK: fdoContext = %p -- caller = %p -- lockOwner = %p\n", fdoContext, caller, fdoContext->lockOwner); \
+   } while (0)

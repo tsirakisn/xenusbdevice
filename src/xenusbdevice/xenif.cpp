@@ -40,19 +40,13 @@
 #include <store_interface.h>
 #include <suspend_interface.h>
 #include <unplug_interface.h>
+#include "assert.h"
 #include "usbxenif.h"
-#include "xenif.h"
 #include "UsbResponse.h"
 #include "UsbRequest.h"
-#include "xenlower.h"
+#include "xenif.h"
 #pragma warning(pop)
 #pragma warning(disable : 4127) //conditional expression is constant
-
-// --XT-- XXX TODO the logging was just sort of bolted on to get things
-// working. It really needs to be integrated to deal with noisy logging
-// in a cleaner way (w/o introducing performance issues). The current
-// solution involves a fucntion call for every line of logging.
-XXX_TODO("--XT-- Better logging integration.");
 
 #define XEN_BUS L"Xen"
 #define RB_VERSION_REQUIRED "3"
@@ -101,15 +95,11 @@ struct XEN_BUS_PLATFORM_RESOURCE
 //
 struct XEN_INTERFACE
 {
-    PXEN_LOWER                  XenLower;
     PUSB_FDO_CONTEXT            FdoContext;
-
-    //
-    // Xenstore paths
-    //
-    CHAR FrontendPath[XEN_LOWER_MAX_PATH]; // --XT-- pulled out of vectors struct
-    CHAR BackendPath[XEN_LOWER_MAX_PATH];  // --XT-- pulled out of vectors struct
+    CHAR FrontendPath[XEN_LOWER_MAX_PATH];
+    CHAR BackendPath[XEN_LOWER_MAX_PATH];
     ULONG DeviceId;
+    KDPC Dpc;
 
     //
     // Xen ringbuffer and grant ref interface.
@@ -132,55 +122,25 @@ struct XEN_INTERFACE
     USHORT                    ShadowFree;
     USHORT                    ShadowMinFree;
 
+    XENBUS_DEBUG_INTERFACE      DebugInterface;
+    XENBUS_SUSPEND_INTERFACE    SuspendInterface;
+    XENBUS_EVTCHN_INTERFACE     EvtchnInterface;
+    XENBUS_STORE_INTERFACE      StoreInterface;
+    XENBUS_GNTTAB_INTERFACE     GnttabInterface;
 
-    BOOLEAN                   IndirectGrefSupport; //!< has to be true!
+    PXENBUS_EVTCHN_CHANNEL Channel;
+    PXENBUS_GNTTAB_ENTRY SringGrantRef;
+    PXENBUS_GNTTAB_CACHE GnttabCache;
+    KSPIN_LOCK                      GnttabLock;
+    PXENBUS_SUSPEND_CALLBACK    SuspendCallbackLate;
+    XENBUS_SUSPEND_FUNCTION     ResumeCallback;
+    USHORT BackendDomid;
+
 };
-
-PXEN_INTERFACE
-AllocateXenInterface(
-    PUSB_FDO_CONTEXT fdoContext)
-{
-    PXEN_INTERFACE xen = (PXEN_INTERFACE)
-        ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_INTERFACE), XVU9);
-
-    if (!xen)
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to allocate xeninterface\n");
-        return NULL;
-    }
-
-    RtlZeroMemory(xen, sizeof(XEN_INTERFACE));
-    xen->FdoContext = fdoContext;
-
-    xen->XenLower = XenLowerAlloc();
-    if (!xen->XenLower)
-    {
-        ExFreePool(xen);
-        return NULL;
-    }
-
-    return xen;
-}
-
-VOID
-DeallocateXenInterface(
-    IN PXEN_INTERFACE Xen)
-{
-    ExFreePool(Xen);
-}
 
 //
 // local declarations.
 //
-static BOOLEAN
-InitXenDevice(
-    IN PXEN_INTERFACE Xen,
-    IN PUCHAR *ptr);
-
-static BOOLEAN
-ConnectXenDevice(
-    IN PXEN_INTERFACE Xen,
-    IN PUCHAR *ptr);
 
 static usbif_shadow_ex_t *
 GetShadowFromFreeList(
@@ -227,33 +187,40 @@ PutShadowOnFreelist(
 // Implementation.
 //
 
-static PMDL
-XenAllocatePage(VOID)
+
+PXEN_INTERFACE
+AllocateXenInterface(
+    PUSB_FDO_CONTEXT fdoContext)
 {
-    PMDL mdl;
-    PVOID buf;
+    PXEN_INTERFACE xen = (PXEN_INTERFACE)
+                         ExAllocatePoolWithTag(NonPagedPool, sizeof(XEN_INTERFACE), XVU9);
 
-    buf = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, XVU9);
-    if (buf == NULL)
+    if (!xen)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": page allocation failed\n");
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, __FUNCTION__": Failed to allocate xeninterface\n");
         return NULL;
     }
 
-    mdl = (PMDL)ExAllocatePoolWithTag(NonPagedPool, MmSizeOfMdl(buf, PAGE_SIZE), XVU9);
-    if (mdl == NULL)
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": MDL allocation failed\n");
-        ExFreePoolWithTag(buf, XVU9);
-        return NULL;
-    }
+    RtlZeroMemory(xen, sizeof(XEN_INTERFACE));
+    xen->FdoContext = fdoContext;
 
-    MmInitializeMdl(mdl, buf, PAGE_SIZE);
-    MmBuildMdlForNonPagedPool(mdl);
+    return xen;
+}
 
-    return mdl;
+static VOID
+XenRevokeSringGrant(
+    IN PXEN_INTERFACE Xen)
+{
+    if (!Xen->SringGrantRef)
+        return;
+
+    XENBUS_GNTTAB(RevokeForeignAccess,
+                  &Xen->GnttabInterface,
+                  Xen->GnttabCache,
+                  TRUE,
+                  Xen->SringGrantRef);
+
+    Xen->SringGrantRef = NULL;
 }
 
 static VOID
@@ -265,62 +232,136 @@ XenFreePage(PMDL Mdl)
     ExFreePoolWithTag(buf, XVU9);
 }
 
-static BOOLEAN
-XenGetPaths(
+static VOID
+XenInterfaceCleanup(
+    IN PXEN_INTERFACE Xen)
+{
+    if (Xen->SringPage)
+    {
+        XenRevokeSringGrant(Xen);
+        XenFreePage(Xen->SringPage);
+    }
+
+    if (Xen->Shadows)
+    {
+        ExFreePoolWithTag(Xen->Shadows, XVUA);
+        Xen->Shadows = NULL;
+    }
+
+    if (Xen->ShadowFreeList)
+    {
+        ExFreePoolWithTag(Xen->ShadowFreeList, XVUB);
+        Xen->ShadowFreeList = NULL;
+    }
+}
+
+VOID
+DeallocateXenInterface(
+    IN PXEN_INTERFACE Xen)
+{
+    ExFreePool(Xen);
+}
+
+static VOID
+XenRegisterSuspendHandler(
     IN PXEN_INTERFACE Xen)
 {
     NTSTATUS status;
 
-    status = RtlStringCchCopyA(Xen->FrontendPath,
-        sizeof(Xen->FrontendPath),
-        XenLowerGetFrontendPath(Xen->XenLower));;
-    if (status != STATUS_SUCCESS)
+    Trace("====>\n");
+#if 0
+    status = XENBUS_SUSPEND(Register,
+                            &Xen->SuspendInterface,
+                            SUSPEND_CALLBACK_LATE,
+                            ResumeCallback,
+                            Xen,
+                            &Xen->SuspendCallbackLate);
+
+    if (!NT_SUCCESS(status))
     {
-        Xen->FrontendPath[0] = 0;
+        TraceError("failed to register suspend handler.\n");
+    }
+#endif
+    Trace("<====\n");
+}
+
+static VOID
+XenUnregisterSuspendHandler(
+    IN PXEN_INTERFACE Xen)
+{
+    Trace("====>\n");
+#if 0
+    if (!Xen->SuspendCallbackLate)
+        return;
+
+    XENBUS_SUSPEND(Deregister,
+                   &Xen->SuspendInterface,
+                   Xen->SuspendCallbackLate);
+    Xen->SuspendCallbackLate = NULL;
+#endif
+    Trace("====>\n");
+}
+
+static PMDL
+XenAllocatePage(VOID)
+{
+    PMDL mdl;
+    PVOID buf;
+
+    buf = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, XVU9);
+    if (buf == NULL)
+    {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": to copy front end path - status: 0x%x\n", status);
-        return FALSE;
+                    __FUNCTION__ ": page allocation failed\n");
+        return NULL;
     }
 
-    status = RtlStringCchCopyA(Xen->BackendPath,
-        sizeof(Xen->BackendPath),
-        XenLowerGetBackendPath(Xen->XenLower));;
-    if (status != STATUS_SUCCESS)
+    mdl = (PMDL)ExAllocatePoolWithTag(NonPagedPool, MmSizeOfMdl(buf, PAGE_SIZE), XVU9);
+    if (mdl == NULL)
     {
-        Xen->BackendPath[0] = 0;
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": to copy back end path - status: 0x%x\n", status);
-        return FALSE;
+                    __FUNCTION__ ": MDL allocation failed\n");
+        ExFreePoolWithTag(buf, XVU9);
+        return NULL;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__ ": Fetched xenstore paths - Front: %s Back: %s\n",
-        Xen->FrontendPath, Xen->BackendPath);
+    MmInitializeMdl(mdl, buf, PAGE_SIZE);
+    MmBuildMdlForNonPagedPool(mdl);
 
-    return TRUE;
+    return mdl;
 }
 
 static BOOLEAN
 XenCreateSring(
     IN PXEN_INTERFACE Xen)
 {
+    NTSTATUS status;
     PMDL ring = XenAllocatePage();
     usbif_sring *address;
 
     if (!ring)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": failed to allocate sring page.\n");
+                    __FUNCTION__ ": failed to allocate sring page.\n");
         return FALSE;
     }
 
     address = (usbif_sring *)MmGetMdlVirtualAddress(ring);
     SHARED_RING_INIT(address);
 
-    if (!XenLowerGetSring(Xen->XenLower, (uint32_t)*MmGetMdlPfnArray(ring)))
+    status = XENBUS_GNTTAB(PermitForeignAccess,
+                           &Xen->GnttabInterface,
+                           Xen->GnttabCache,
+                           TRUE,
+                           Xen->BackendDomid,
+                           (uint32_t)*MmGetMdlPfnArray(ring),
+                           FALSE,
+                           &Xen->SringGrantRef);
+
+    if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": Xen config incomplete no ringbuffer\n");
+                    __FUNCTION__ ": Xen config incomplete no ringbuffer\n");
         XenFreePage(ring);
         return FALSE;
     }
@@ -329,37 +370,364 @@ XenCreateSring(
     Xen->SringPage = ring;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__ ": Setup shared ring: %p\n", Xen->Sring);
+                __FUNCTION__ ": Setup shared ring: %p\n", Xen->Sring);
 
     return TRUE;
 }
 
 static VOID
-XenInterfaceCleanup(
+__drv_requiresIRQL(DISPATCH_LEVEL)
+XenGnttabAcquireLock(
+    IN  PVOID       Argument
+)
+{
+    PXEN_INTERFACE Xen = (PXEN_INTERFACE)Argument;
+
+    ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
+    KeAcquireSpinLockAtDpcLevel(&Xen->GnttabLock);
+}
+
+static VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
+XenGnttabReleaseLock(
+    IN  PVOID       Argument
+)
+{
+    PXEN_INTERFACE Xen = (PXEN_INTERFACE)Argument;
+
+    ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
+#pragma prefast(disable:26110)
+    KeReleaseSpinLockFromDpcLevel(&Xen->GnttabLock);
+}
+
+
+static BOOLEAN
+XenAcquireInterfaces(
     IN PXEN_INTERFACE Xen)
 {
-    if (Xen->SringPage)
+    NTSTATUS status;
+
+    // DEBUG_INTERFACE
+
+    status = WdfFdoQueryForInterface(Xen->FdoContext->WdfDevice,
+                                     &GUID_XENBUS_DEBUG_INTERFACE,
+                                     (PINTERFACE)&Xen->DebugInterface,
+                                     sizeof(Xen->DebugInterface),
+                                     XENBUS_DEBUG_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
     {
-        XenFreePage(Xen->SringPage);
+        TraceError("Failed to query xenbus debug interface: 0x%x\n", status);
+        goto fail;
     }
 
-    if (Xen->Shadows)
+    status = XENBUS_DEBUG(Acquire, &Xen->DebugInterface);
+
+    if (!NT_SUCCESS(status))
     {
-        ExFreePool(Xen->Shadows);
-        Xen->Shadows = NULL;
+        TraceError("Failed to query xenbus debug interface: 0x%x\n", status);
+        goto fail;
     }
 
-    if (Xen->ShadowFreeList)
+    Trace("successfully acquired xenbus debug interface\n");
+
+    // EVTCHN_INTERFACE
+
+    status = WdfFdoQueryForInterface(Xen->FdoContext->WdfDevice,
+                                     &GUID_XENBUS_EVTCHN_INTERFACE,
+                                     (PINTERFACE)&Xen->EvtchnInterface,
+                                     sizeof(Xen->EvtchnInterface),
+                                     XENBUS_EVTCHN_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
     {
-        ExFreePool(Xen->ShadowFreeList);
-        Xen->ShadowFreeList = NULL;
+        TraceError("Failed to query xenbus evtchn interface: 0x%x\n", status);
+        goto fail;
     }
+
+    status = XENBUS_EVTCHN(Acquire, &Xen->EvtchnInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus evtchn interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus evtchn interface\n");
+
+    // GNTTAB_INTERFACE
+
+    status = WdfFdoQueryForInterface(Xen->FdoContext->WdfDevice,
+                                     &GUID_XENBUS_GNTTAB_INTERFACE,
+                                     &Xen->GnttabInterface.Interface,
+                                     sizeof(Xen->GnttabInterface),
+                                     XENBUS_GNTTAB_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus gnttab interface: 0x%x\n", status);
+        return NULL;
+    }
+
+    status = XENBUS_GNTTAB(Acquire, &Xen->GnttabInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to acquire xenbus gnttab interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus gnttab interface\n");
+
+    // STORE_INTERFACE
+
+    status = WdfFdoQueryForInterface(Xen->FdoContext->WdfDevice,
+                                     &GUID_XENBUS_STORE_INTERFACE,
+                                     &Xen->StoreInterface.Interface,
+                                     sizeof(Xen->StoreInterface),
+                                     XENBUS_STORE_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus store interface: 0x%x\n", status);
+        return NULL;
+    }
+
+    status = XENBUS_STORE(Acquire, &Xen->StoreInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to acquire xenbus store interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus store interface\n");
+
+    // SUSPEND_INTERFACE
+
+    status = WdfFdoQueryForInterface(Xen->FdoContext->WdfDevice,
+                                     &GUID_XENBUS_SUSPEND_INTERFACE,
+                                     &Xen->SuspendInterface.Interface,
+                                     sizeof(Xen->SuspendInterface),
+                                     XENBUS_SUSPEND_INTERFACE_VERSION_MAX,
+                                     NULL);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to query xenbus suspend interface: 0x%x\n", status);
+        return NULL;
+    }
+
+    status = XENBUS_SUSPEND(Acquire, &Xen->SuspendInterface);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to acquire xenbus suspend interface: 0x%x\n", status);
+        goto fail;
+    }
+
+    Trace("successfully acquired xenbus suspend interface\n");
+
+    return TRUE;
+fail:
+    return FALSE;
+}
+
+static VOID
+XenReleaseInterfaces(
+    IN PXEN_INTERFACE Xen)
+{
+    // DEBUG_INTERFACE
+
+    XENBUS_DEBUG(Release, &Xen->DebugInterface);
+
+    Trace("successfully released xenbus debug interface\n");
+
+    // EVTCHN_INTERFACE
+
+    XENBUS_EVTCHN(Release, &Xen->EvtchnInterface);
+
+    Trace("successfully released xenbus evtchn interface\n");
+
+    // GNTTAB_INTERFACE
+
+    XENBUS_GNTTAB(Release, &Xen->GnttabInterface);
+
+    Trace("successfully released xenbus gnttab interface\n");
+
+    // STORE_INTERFACE
+
+    XENBUS_STORE(Release, &Xen->StoreInterface);
+
+    Trace("successfully released xenbus store interface\n");
+
+    // SUSPEND_INTERFACE
+
+    XENBUS_SUSPEND(Release, &Xen->SuspendInterface);
+
+    Trace("successfully released xenbus suspend interface\n");
+}
+
+static VOID
+XenDeviceDestroy(
+    IN PXEN_INTERFACE Xen
+)
+{
+    XenUnregisterSuspendHandler(Xen);
+
+    XenDisconnectDPC(Xen);
+
+    XenInterfaceCleanup(Xen);
+
+    if (Xen->GnttabCache)
+    {
+        XENBUS_GNTTAB(DestroyCache,
+                      &Xen->GnttabInterface,
+                      Xen->GnttabCache);
+        Xen->GnttabCache = NULL;
+    }
+
+    XenReleaseInterfaces(Xen);
+}
+
+static BOOLEAN
+XenDeviceInit(
+    IN PXEN_INTERFACE Xen)
+{
+    NTSTATUS status;
+
+    Trace("XenDeviceInit for device id = %lu\n", Xen->DeviceId);
+
+    if (!XenAcquireInterfaces(Xen))
+    {
+        Error("Failed to acquire xenbus interfaces.\n");
+        return FALSE;
+    }
+
+    status = XENBUS_GNTTAB(CreateCache,
+                           &Xen->GnttabInterface,
+                           "usb_0",
+                           Xen->BackendDomid,
+                           XenGnttabAcquireLock,
+                           XenGnttabReleaseLock,
+                           Xen,
+                           &Xen->GnttabCache);
+
+    if (!NT_SUCCESS(status))
+    {
+        Error("Failed to create gnttab cache.\n");
+        return FALSE;
+    }
+
+    status = RtlStringCbPrintfA(
+                 Xen->FrontendPath,
+                 sizeof(Xen->FrontendPath),
+                 "device/vusb/%d",
+                 Xen->DeviceId);
+
+    if (status != STATUS_SUCCESS)
+    {
+        Xen->FrontendPath[0] = 0;
+        TraceError("Failed to copy front end path - status: 0x%x\n", status);
+        return FALSE;
+    }
+
+    Trace("device path: %s\n", Xen->FrontendPath);
+
+    return TRUE;
+}
+
+static BOOLEAN
+XenDeviceBackendInit(
+    IN PXEN_INTERFACE Xen)
+{
+    PCHAR Buffer;
+    NTSTATUS status;
+
+    status = XENBUS_STORE(Read,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->FrontendPath,
+                          "backend",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("XENBUS_STORE READ failed to return the back end path, fatal.\n");
+        return FALSE;
+    }
+
+    status = RtlStringCchCopyA(Xen->BackendPath,
+                               sizeof(Xen->BackendPath),
+                               Buffer);
+
+    XENBUS_STORE(Free,
+                 &Xen->StoreInterface,
+                 Buffer);
+
+    // READ DOMAIN ID
+    status = XENBUS_STORE(Read,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->FrontendPath,
+                          "backend-id",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("XENBUS_STORE READ failed to return the backend-id, fatal.\n");
+        return FALSE;
+    }
+
+    if (sscanf_s(Buffer, "%hu", &Xen->BackendDomid) != 1)
+    {
+        TraceError("failed to parse backend domid\n");
+        return FALSE;
+    }
+
+    XENBUS_STORE(Free,
+                 &Xen->StoreInterface,
+                 Buffer);
+
+    // XXX TODO for now we only support a dom0 backend so check that here. Later
+    // when we support a device domain for vusb, other domids will be fine.
+    XXX_TODO("--XT-- For now we only support a dom0 backend so check that here");
+    if (Xen->BackendDomid != 0)
+    {
+        TraceError("cannot connect to backend Domid: %d, only dom0 supported currently\n",
+                   Xen->BackendDomid);
+        return FALSE;
+    }
+
+    Trace("XenLower initialized - FrontendPath: %s  BackendPath: %s BackendDomid: %hd\n",
+          Xen->FrontendPath, Xen->BackendPath, Xen->BackendDomid);
+
+    return TRUE;
+}
+
+KSERVICE_ROUTINE EvtchnCallback;
+
+static BOOLEAN
+EvtchnCallback(
+    IN PKINTERRUPT InterruptObject,
+    IN PVOID       Argument
+)
+{
+    PXEN_INTERFACE Xen = (PXEN_INTERFACE)Argument;
+    KeInsertQueueDpc(&Xen->Dpc, NULL, NULL);
+    return TRUE;
 }
 
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PKSERVICE_ROUTINE DpcCallback,
+    IN PKDEFERRED_ROUTINE DpcCallback,
     ULONG DeviceId)
 {
     ULONG version;
@@ -367,214 +735,429 @@ XenDeviceInitialize(
     PDEVICE_OBJECT pdo;
     BOOLEAN rc;
     ULONG i;
+    PCHAR Buffer;
 
-    do {
-        pdo = WdfDeviceWdmGetPhysicalDevice(Xen->FdoContext->WdfDevice);
-        if (!pdo)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": failed to get the PDO device\n");
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
+    KeInitializeDpc(&Xen->Dpc, DpcCallback, Xen->FdoContext);
 
-        // Init XenLower
-        Xen->DeviceId = DeviceId;
-        rc = XenLowerInit(Xen->XenLower, Xen, pdo, Xen->FdoContext->WdfDevice, Xen->DeviceId);
-        if (!rc)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": failed to initialize the Xen Lower interface\n");
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
-
-        // Init XenLower backend values
-        rc = XenLowerBackendInit(Xen->XenLower);
-        if (!rc)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": failed to initialize the Xen Lower backend values\n");
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
-
-        // Get the interface version - only 3 is supported. This also sets up the
-        // the frontend version information which is also 3.
-        version = XenLowerInterfaceVersion(Xen->XenLower);
-        if (version != XEN_LOWER_INTERFACE_VERSION)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": interface version %d unsupported\n",
-                version);
-            status = STATUS_NOT_IMPLEMENTED;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__ ": version = %d\n",
-            version);
-
-        Xen->XenifVersion = version;
-        Xen->IndirectGrefSupport = TRUE;
-        Xen->MaxIsoSegments = USBIF_URB_MAX_ISO_SEGMENTS;
-        Xen->MaxSegments = USBIF_URB_MAX_SEGMENTS_PER_REQUEST;
-
-        Xen->ShadowFree = 0;
-
-        // Somewhere around here the initial setup code called XenPci_XenConfigDevice
-        // which setup the backend. This involved setting up all the values in the
-        // "registers" reported in the memory resource. This made those values available
-        // to the setup code to fetch. It then start the front-back state machine and
-        // start connecting. The XT xenbus code does this rather differently.
-
-        rc = XenGetPaths(Xen);
-        if (!rc)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": failed to get xenstore paths\n");
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
-
-        //
-        // Set the front end path in the caller's context.
-        //
-        status = RtlStringCchCopyA(Xen->FdoContext->FrontEndPath,
-            sizeof(Xen->FdoContext->FrontEndPath),
-            Xen->FrontendPath);
-        if ((status == STATUS_SUCCESS) || (status == STATUS_BUFFER_OVERFLOW))
-        {
-            int port = 0;
-            sscanf_s(Xen->FdoContext->FrontEndPath, "device/vusb/%d", &port);
-            Xen->FdoContext->Port = (USHORT)port;
-
-            TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__ ": %s port %d returns success\n",
-                Xen->FdoContext->FrontEndPath,
-                Xen->FdoContext->Port);
-        }
-        else
-        {
-            Xen->FdoContext->FrontEndPath[0] = 0;
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": FrontEndPath invalid, error %x\n",
-                status);
-            break;
-        }
-
-        // The event channel is not setup here. It is setup later where the KMDF code in
-        // Device.cpp would have hooked up the ISR to the shared interrupt. In this case
-        // we will just directly wire the DPC routine into the EC processor ISR in our xenbus.
-
-        // Grant refs are not allocate during initialization. They are fetched by the ring
-        // processing code below via Vectors.GntTbl_GetRef. Removing those bits.
-
-        rc = XenCreateSring(Xen);
-        if (!rc)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": Xen config incomplete no ringbuffer\n");
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
-        FRONT_RING_INIT(&Xen->Ring, Xen->Sring, PAGE_SIZE);
-
-        Xen->ShadowArrayEntries = SHADOW_ENTRIES;
-        Xen->Shadows = (usbif_shadow_ex_t *)ExAllocatePoolWithTag(NonPagedPool,
-            sizeof(usbif_shadow_ex_t)* SHADOW_ENTRIES,
-            XVUA);
-        if (!Xen->Shadows)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": Xen config shadow allocation failure\n");
-            status = STATUS_NO_MEMORY;
-            break;
-        }
-        RtlZeroMemory(Xen->Shadows, sizeof(usbif_shadow_ex_t)* SHADOW_ENTRIES);
-
-        Xen->ShadowFreeList = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool,
-            sizeof(USHORT)* SHADOW_ENTRIES,
-            XVUB);
-        if (!Xen->ShadowFreeList)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": Xen config shadow free list allocation failure\n");
-            status = STATUS_NO_MEMORY;
-            break;
-        }
-        RtlZeroMemory(Xen->ShadowFreeList, sizeof(USHORT)* SHADOW_ENTRIES);
-
-        //
-        // set up the mapping from shadow request to request/respons through
-        // the request.id field.
-        //
-        memset(Xen->Shadows, 0, sizeof(usbif_shadow_t)* SHADOW_ENTRIES);
-        for (i = 0; i < SHADOW_ENTRIES; i++)
-        {
-            Xen->Shadows[i].req.id = i;
-            Xen->Shadows[i].Tag = SHADOW_TAG;
-            Xen->Shadows[i].InUse = TRUE;
-            PutShadowOnFreelist(Xen, &Xen->Shadows[i]);
-        }
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__ ": Fetched shared ring and setup shadows\n");
-
-        //
-        // Setup the event channel DPC here. It will not be active
-        // until the backend is connected.
-        //
-        rc = XenLowerConnectEvtChnDPC(Xen->XenLower,
-            DpcCallback, Xen->FdoContext);
-        if (!rc)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__ ": failed to connect event channel to DPC\n");
-            status = STATUS_UNSUCCESSFUL;
-            break;
-        }
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__ ": Setup event channel DPC callback: %p\n", DpcCallback);
-
-    } while (FALSE);
-
-    if (status != STATUS_SUCCESS)
-    {
-        XenInterfaceCleanup(Xen);
-    }
-
-    return status;
-}
-
-NTSTATUS
-XenDeviceConnectBackend(
-    IN PXEN_INTERFACE Xen)
-{
-    NTSTATUS status;
-    BOOLEAN rc;
-
-    // Start the backend connect, wait for it to be initialized and
-    // ready to proceed. Write the xenstore values and then connect.
-    status = XenLowerConnectBackend(Xen->XenLower, NULL);
-    if (!NT_SUCCESS(status))
+    pdo = WdfDeviceWdmGetPhysicalDevice(Xen->FdoContext->WdfDevice);
+    if (!pdo)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": failed to connect backend\n");
-        return status;
+                    __FUNCTION__ ": failed to get the PDO device\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
     }
 
-    // The connect routine re-reads backend values for resume or chaning
-    // backend device domains. Update the upper lever path values here.
-    rc = XenGetPaths(Xen);
+    // Init XenLower
+    Xen->DeviceId = DeviceId;
+    rc = XenDeviceInit(Xen);
     if (!rc)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__ ": failed to get xenstore paths\n");
-        return STATUS_UNSUCCESSFUL;
+                    __FUNCTION__ ": failed to initialize the Xen Lower interface\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+
+    // Init XenLower backend values
+    rc = XenDeviceBackendInit(Xen);
+    if (!rc)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__ ": failed to initialize the Xen Lower backend values\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+
+    // Get the interface version - only 3 is supported. This also sets up the
+    // the frontend version information which is also 3.
+
+    status = XENBUS_STORE(Read,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->BackendPath,
+                          "version",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("XENBUS_STORE READ failed to return the back end version, fatal.\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+
+    int args = sscanf_s(Buffer, "%lu", &version);
+
+    XENBUS_STORE(Free,
+                 &Xen->StoreInterface,
+                 Buffer);
+
+    if (args != 1)
+    {
+        TraceError("failed to parse interface version\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+
+    // Need to now write the version we support to the frontend
+    status = XENBUS_STORE(Printf,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->FrontendPath,
+                          "version",
+                          "%d",
+                          XEN_VUSB_INTERFACE_VERSION);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("xenstore printf for version failed.\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+
+    if (version != XEN_VUSB_INTERFACE_VERSION)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__ ": interface version %d unsupported\n",
+                    version);
+        status = STATUS_NOT_IMPLEMENTED;
+        goto fail;
+    }
+
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__ ": version = %d\n",
+                version);
+
+    Xen->XenifVersion = version;
+    Xen->MaxIsoSegments = USBIF_URB_MAX_ISO_SEGMENTS;
+    Xen->MaxSegments = USBIF_URB_MAX_SEGMENTS_PER_REQUEST;
+    Xen->ShadowFree = 0;
+
+    // The event channel is not setup here. It is setup later where the KMDF code in
+    // Device.cpp would have hooked up the ISR to the shared interrupt. In this case
+    // we will just directly wire the DPC routine into the EC processor ISR in our xenbus.
+
+    // Grant refs are not allocate during initialization. They are fetched by the ring
+    // processing code below via Vectors.GntTbl_GetRef. Removing those bits.
+
+    rc = XenCreateSring(Xen);
+    if (!rc)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__ ": Xen config incomplete no ringbuffer\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+    FRONT_RING_INIT(&Xen->Ring, Xen->Sring, PAGE_SIZE);
+
+    Xen->ShadowArrayEntries = SHADOW_ENTRIES;
+    Xen->Shadows = (usbif_shadow_ex_t *)ExAllocatePoolWithTag(NonPagedPool,
+                   sizeof(usbif_shadow_ex_t)* SHADOW_ENTRIES,
+                   XVUA);
+    if (!Xen->Shadows)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__ ": Xen config shadow allocation failure\n");
+        status = STATUS_NO_MEMORY;
+        goto fail;
+    }
+    RtlZeroMemory(Xen->Shadows, sizeof(usbif_shadow_ex_t)* SHADOW_ENTRIES);
+
+    Xen->ShadowFreeList = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool,
+                          sizeof(USHORT)* SHADOW_ENTRIES,
+                          XVUB);
+    if (!Xen->ShadowFreeList)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__ ": Xen config shadow free list allocation failure\n");
+        status = STATUS_NO_MEMORY;
+        goto fail;
+    }
+    RtlZeroMemory(Xen->ShadowFreeList, sizeof(USHORT)* SHADOW_ENTRIES);
+
+    //
+    // set up the mapping from shadow request to request/respons through
+    // the request.id field.
+    //
+    memset(Xen->Shadows, 0, sizeof(usbif_shadow_t)* SHADOW_ENTRIES);
+    for (i = 0; i < SHADOW_ENTRIES; i++)
+    {
+        Xen->Shadows[i].req.id = i;
+        Xen->Shadows[i].Tag = SHADOW_TAG;
+        Xen->Shadows[i].InUse = TRUE;
+        PutShadowOnFreelist(Xen, &Xen->Shadows[i]);
     }
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__ ": Xen backend connected!\n");
+                __FUNCTION__ ": Fetched shared ring and setup shadows\n");
 
+    //
+    // Setup the event channel DPC here. It will not be active
+    // until the backend is connected.
+    //
+    Xen->Channel = XENBUS_EVTCHN(Open,
+                                 &Xen->EvtchnInterface,
+                                 XENBUS_EVTCHN_TYPE_UNBOUND,
+                                 EvtchnCallback,
+                                 Xen,
+                                 Xen->BackendDomid,
+                                 FALSE);
+
+    if (!Xen->Channel)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__ ": failed to connect event channel to DPC\n");
+        status = STATUS_UNSUCCESSFUL;
+        goto fail;
+    }
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
+                __FUNCTION__ ": Setup event channel DPC callback: %p\n", DpcCallback);
+
+    return status;
+
+fail:
+    XenInterfaceCleanup(Xen);
+    return status;
+}
+
+static BOOLEAN
+__drv_requiresIRQL(PASSIVE_LEVEL)
+FrontendWaitForBackendXenbusStateChange(
+    IN PXEN_INTERFACE               Xen,
+    IN PKEVENT                      WatchEvent,
+    IN OUT  XenbusState             *State
+)
+{
+    NTSTATUS                    status;
+    PCHAR                       Buffer;
+
+    ASSERT3U(KeGetCurrentIrql(), == , PASSIVE_LEVEL);
+
+    Trace("%s: ====> %d\n", Xen->BackendPath, *State);
+
+    status = KeWaitForSingleObject(WatchEvent,
+                                   Executive,
+                                   KernelMode,
+                                   TRUE,
+                                   NULL);
+
+    KeClearEvent(WatchEvent);
+
+    status = XENBUS_STORE(Read,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->BackendPath,
+                          "state",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status)) {
+        TraceError("Failed to read backend state\n");
+        *State = XenbusStateUnknown;
+        return FALSE;
+    }
+
+    if (sscanf_s(Buffer, "%d", State) != 1)
+    {
+        TraceError("failed to parse xenbus state\n");
+        *State = XenbusStateUnknown;
+        return FALSE;
+    }
+
+    XENBUS_STORE(Free,
+                 &Xen->StoreInterface,
+                 Buffer);
+
+    Trace("%s: <==== (%d)\n", Xen->BackendPath, *State);
+    return TRUE;
+}
+
+NTSTATUS
+__drv_requiresIRQL(PASSIVE_LEVEL)
+XenDeviceConnectBackend(
+    IN PXEN_INTERFACE Xen)
+{
+    NTSTATUS                        status;
+    XenbusState                     state;
+    ULONG                           Port;
+    KEVENT                          Event;
+    PXENBUS_STORE_WATCH             Watch;
+
+    KeInitializeEvent(&Event, NotificationEvent, FALSE);
+
+    ASSERT3U(KeGetCurrentIrql(), == , PASSIVE_LEVEL);
+
+    if (!Xen->Channel)
+    {
+        TraceError("no event channel port, this routine must be called after event channel initialization\n");
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    status = XENBUS_STORE(WatchAdd,
+                          &Xen->StoreInterface,
+                          Xen->BackendPath,
+                          "state",
+                          &Event,
+                          &Watch);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to setup xenstore watch on: %s/state\n", Xen->BackendPath);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    //---------------------------Backend Wait Ready-------------------------------//
+    //
+    // Wait for backend to get ready for initialization.
+    //
+
+    status = XENBUS_STORE(Printf,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->FrontendPath,
+                          "state",
+                          "%u",
+                          XenbusStateInitialising);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to change front end state to XenbusStateInitialising(%d) status: 0x%x\n",
+                   XenbusStateInitialising, status);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    Trace("Front end state set to XenbusStateInitialising(%d)\n", XenbusStateInitialising);
+
+    for (state = XenbusStateUnknown; state != XenbusStateInitWait; )
+    {
+        FrontendWaitForBackendXenbusStateChange(Xen, &Event, &state);
+
+        if (state == XenbusStateClosing || state == XenbusStateUnknown)
+        {
+            TraceError("backend '%s' went away before we could connect to it?\n", Xen->BackendPath);
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+
+    Trace("Back end state went to XenbusStateInitWait(%d)\n", XenbusStateInitWait);
+
+    //----------------------------Backend Connect---------------------------------//
+
+    //
+    // Communicate configuration to backend.
+    //
+    ULONG Attempt = 0;
+    do
+    {
+        PXENBUS_STORE_TRANSACTION   Transaction;
+
+        status = XENBUS_STORE(TransactionStart,
+                              &Xen->StoreInterface,
+                              &Transaction);
+
+        ULONG ref = XENBUS_GNTTAB(GetReference,
+                                  &Xen->GnttabInterface,
+                                  Xen->SringGrantRef);
+
+        Trace("ring-ref: %lu\n", ref);
+
+        status = XENBUS_STORE(Printf,
+                              &Xen->StoreInterface,
+                              Transaction,
+                              Xen->FrontendPath,
+                              "ring-ref",
+                              "%u",
+                              (int)ref);
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        Port = XENBUS_EVTCHN(GetPort,
+                             &Xen->EvtchnInterface,
+                             Xen->Channel);
+
+        status = XENBUS_STORE(Printf,
+                              &Xen->StoreInterface,
+                              Transaction,
+                              Xen->FrontendPath,
+                              "event-channel",
+                              "%u",
+                              (int)Port);
+
+        Trace("port: %lu\n", Port);
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        status = XENBUS_STORE(Printf,
+                              &Xen->StoreInterface,
+                              Transaction,
+                              Xen->FrontendPath,
+                              "state",
+                              "%u",
+                              XenbusStateConnected);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("Failed to change front end state to XenbusStateConnected(%d) status: 0x%x\n",
+                       XenbusStateConnected, status);
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        if (!NT_SUCCESS(status))
+            goto abort;
+
+        status = XENBUS_STORE(TransactionEnd,
+                              &Xen->StoreInterface,
+                              Transaction,
+                              TRUE);
+
+        Trace("Transaction End: %d\n", status);
+
+        if (status != STATUS_RETRY || ++Attempt > 1000)
+            break;
+
+        continue;
+
+abort:
+        (VOID)XENBUS_STORE(TransactionEnd,
+                           &Xen->StoreInterface,
+                           Transaction,
+                           FALSE);
+        break;
+    } while (status == STATUS_RETRY);
+
+    Trace("Front end state set to XenbusStateConnected(%d)\n", XenbusStateConnected);
+
+    //
+    // Wait for backend to accept configuration and complete initialization.
+    //
+
+    for (state = XenbusStateUnknown; state != XenbusStateConnected; )
+    {
+        FrontendWaitForBackendXenbusStateChange(Xen, &Event, &state);
+
+        if (state == XenbusStateClosing || state == XenbusStateClosed || state == XenbusStateUnknown)
+        {
+            TraceError("Failed to connect '%s' <-> '%s' backend state: %d\n",
+                       Xen->FrontendPath,
+                       Xen->BackendPath,
+                       state);
+
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+
+    XENBUS_EVTCHN(Unmask,
+                  &Xen->EvtchnInterface,
+                  Xen->Channel,
+                  FALSE,
+                  TRUE);
+
+    XENBUS_STORE(WatchRemove,
+                 &Xen->StoreInterface,
+                 Watch);
+
+    Trace("Connected '%s' <-> '%s' \n", Xen->FrontendPath, Xen->BackendPath);
     return STATUS_SUCCESS;
 }
 
@@ -582,41 +1165,152 @@ VOID
 XenScheduleDPC(
     IN PXEN_INTERFACE Xen)
 {
-    XenLowerScheduleEvtChnDPC(Xen->XenLower);
+    Trace("====>\n");
+
+    if (!Xen->Channel)
+    {
+        TraceError("request to schedule evtchn dpc, but no channel exists\n");
+        Trace("<====\n");
+        return;
+    }
+
+    XENBUS_EVTCHN(Trigger, &Xen->EvtchnInterface, Xen->Channel);
+
+    Trace("<====\n");
 }
 
 VOID
 XenDisconnectDPC(
     IN PXEN_INTERFACE Xen)
 {
-    XenLowerDisconnectEvtChnDPC(Xen->XenLower);
+    Trace("====>\n");
+
+    if (!Xen->Channel)
+    {
+        Trace("No channel\n");
+        Trace("<====\n");
+        return;
+    }
+
+    XENBUS_EVTCHN(Close,
+                  &Xen->EvtchnInterface,
+                  Xen->Channel);
+
+    Xen->Channel = NULL;
+
+    Trace("<====\n");
 }
 
 VOID
 XenDeviceDisconnectBackend(
     IN PXEN_INTERFACE Xen)
 {
-    XenLowerDisonnectBackend(Xen->XenLower);
+    BOOLEAN errror;
+    NTSTATUS status;
+    XenbusState festate;
+    XenbusState bestate;
+    KEVENT                          Event;
+    PXENBUS_STORE_WATCH             Watch;
+
+    Trace("====>\n");
+
+    if (strlen(Xen->BackendPath) == 0)
+    {
+        TraceError("shutting down an adapter %s which wasn't properly created?\n", Xen->FrontendPath);
+        return;
+    }
+
+    status = XENBUS_STORE(WatchAdd,
+                          &Xen->StoreInterface,
+                          Xen->BackendPath,
+                          "state",
+                          &Event,
+                          &Watch);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("Failed to setup xenstore watch on: %s/state\n", Xen->BackendPath);
+        return;
+    }
+
+    Trace("Added xenstore watch on: %s/state\n", Xen->BackendPath);
+
+    // Wait for the backend to stabilise before we close it
+    // XXX: That is, if it's still initialising, wait until it exits that state?
+    do {
+        FrontendWaitForBackendXenbusStateChange(Xen, &Event, &bestate);
+    } while (bestate != XenbusStateInitialising && bestate != XenbusStateUnknown);
+
+    // Now declare frontend as closing & wait for backend to do the same
+    do {
+        status = XENBUS_STORE(Printf,
+                              &Xen->StoreInterface,
+                              NULL,
+                              Xen->FrontendPath,
+                              "state",
+                              "%u",
+                              XenbusStateClosing);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("Failed to change front end (%s/state) state to XenbusStateClosing(%d) status: 0x%x\n",
+                       Xen->FrontendPath, XenbusStateClosing, status);
+            break;
+        }
+
+        FrontendWaitForBackendXenbusStateChange(Xen, &Event, &bestate);
+    } while (bestate != XenbusStateClosing && bestate != XenbusStateClosed && bestate != XenbusStateUnknown);
+
+    // set frontend state to closed and wait until backend has closed
+    do {
+        status = XENBUS_STORE(Printf,
+                              &Xen->StoreInterface,
+                              NULL,
+                              Xen->FrontendPath,
+                              "state",
+                              "%u",
+                              XenbusStateClosed);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("Failed to change front end (%s) state to XenbusStateClosed(%d) status: 0x%x\n",
+                       Xen->FrontendPath, XenbusStateClosed, status);
+            break;
+        }
+
+        FrontendWaitForBackendXenbusStateChange(Xen, &Event, &bestate);
+    } while (bestate != XenbusStateClosed && bestate != XenbusStateUnknown);
+
+    Trace("Removing xenstore watch\n");
+
+    XENBUS_STORE(WatchRemove,
+                 &Xen->StoreInterface,
+                 Watch);
+
+    // Unhook this here since there will be no reconnecting at this point.
+    XenUnregisterSuspendHandler(Xen);
+
+    Trace("<====\n");
 }
 
-void
+VOID
 FreeShadowForRequest(
     IN PXEN_INTERFACE Xen,
     WDFREQUEST Request)
 {
     for (ULONG index = 0;
-        index < SHADOW_ENTRIES;
-        index++)
+            index < SHADOW_ENTRIES;
+            index++)
     {
         if (Request == Xen->Shadows[index].Request)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__ ": Device %p Found backend Request %p shadow %p index %d requests on ringbuffer: %d\n",
-                Xen->FdoContext->WdfDevice,
-                Request,
-                &Xen->Shadows[index],
-                index,
-                OnRingBuffer(Xen));
+                        __FUNCTION__ ": Device %p Found backend Request %p shadow %p index %d requests on ringbuffer: %d\n",
+                        Xen->FdoContext->WdfDevice,
+                        Request,
+                        &Xen->Shadows[index],
+                        index,
+                        OnRingBuffer(Xen));
             //
             // reclaim any shadow resources
             //
@@ -633,13 +1327,14 @@ PutShadowOnFreelist(
     IN PXEN_INTERFACE Xen,
     IN usbif_shadow_ex_t *shadow)
 {
+    NTSTATUS status;
     uint8_t index;
     ASSERT(shadow->InUse == TRUE);
     if (!shadow->InUse)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__ ": shadow %d not in use!\n",
-            shadow->req.id);
+                    __FUNCTION__ ": shadow %d not in use!\n",
+                    shadow->req.id);
         return;
     }
 
@@ -673,15 +1368,22 @@ PutShadowOnFreelist(
         for (index = 0; index <shadow->req.nr_segments; index++)
         {
             for (uint32_t index2 = 0;
-                index2 < indirectPage[index].nr_segments;
-                index2++)
+                    index2 < indirectPage[index].nr_segments;
+                    index2++)
             {
-                if (!XenLowerGntTblEndAccess(Xen->XenLower, shadow->IndirectGrantEntries[index][index2]))
+                status = XENBUS_GNTTAB(RevokeForeignAccess,
+                                       &Xen->GnttabInterface,
+                                       Xen->GnttabCache,
+                                       TRUE,
+                                       shadow->IndirectGrantEntries[index][index2]);
+
+                if (!NT_SUCCESS(status))
                 {
                     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                        __FUNCTION__": leaked grant ref %p (%p) for indirect data segment\n",
-                        indirectPage[index].gref[index2], shadow->IndirectGrantEntries[index][index2]);
+                                __FUNCTION__": leaked grant ref %p (%p) for indirect data segment\n",
+                                indirectPage[index].gref[index2], shadow->IndirectGrantEntries[index][index2]);
                 }
+
                 indirectPage[index].gref[index2] = 0;
                 shadow->IndirectGrantEntries[index][index2] = NULL;
             }
@@ -692,12 +1394,19 @@ PutShadowOnFreelist(
 
     for (index = 0; index < shadow->req.nr_segments; index++)
     {
-        if (!XenLowerGntTblEndAccess(Xen->XenLower, shadow->ReqGrantEntries[index]))
+        status = XENBUS_GNTTAB(RevokeForeignAccess,
+                               &Xen->GnttabInterface,
+                               Xen->GnttabCache,
+                               TRUE,
+                               shadow->ReqGrantEntries[index]);
+
+        if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": leaked grant ref %p (%p) for data segment\n",
-                shadow->req.gref[index], shadow->ReqGrantEntries[index]);
+                        __FUNCTION__": leaked grant ref %p (%p) for data segment\n",
+                        shadow->req.gref[index], shadow->ReqGrantEntries[index]);
         }
+
         shadow->req.gref[index] = 0;
         shadow->ReqGrantEntries[index] = NULL;
     }
@@ -709,9 +1418,9 @@ PutShadowOnFreelist(
     if (Xen->ShadowFree >= Xen->ShadowArrayEntries)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": ShadowFree %d >= ShadowArrayEntries %d!\n",
-            Xen->ShadowFree,
-            Xen->ShadowArrayEntries);
+                    __FUNCTION__": ShadowFree %d >= ShadowArrayEntries %d!\n",
+                    Xen->ShadowFree,
+                    Xen->ShadowArrayEntries);
         return;
     }
     Xen->ShadowFreeList[Xen->ShadowFree] = (USHORT)shadow->req.id;
@@ -727,13 +1436,13 @@ CompleteRequestsFromShadow(
     AcquireFdoLock(fdoContext);;
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Device %p %d requests on ringbuffer\n",
-        fdoContext->WdfDevice,
-        OnRingBuffer(fdoContext->Xen));
+                __FUNCTION__": Device %p %d requests on ringbuffer\n",
+                fdoContext->WdfDevice,
+                OnRingBuffer(fdoContext->Xen));
 
     for (ULONG index = 0;
-        index < SHADOW_ENTRIES;
-        index++)
+            index < SHADOW_ENTRIES;
+            index++)
     {
         WDFREQUEST Request = fdoContext->Xen->Shadows[index].Request;
         if (Request)
@@ -746,9 +1455,9 @@ CompleteRequestsFromShadow(
                 // this shouldn't happen!
 
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": Device %p Request %p Completed! Should not happen.\n",
-                    fdoContext->WdfDevice,
-                    Request);
+                            __FUNCTION__": Device %p Request %p Completed! Should not happen.\n",
+                            fdoContext->WdfDevice,
+                            Request);
                 WdfObjectDereference(Request);
                 continue;
             }
@@ -769,9 +1478,9 @@ CompleteRequestsFromShadow(
                         // cancel routine.
                         //
                         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                            __FUNCTION__": Device %p Request %p Cancelled\n",
-                            fdoContext->WdfDevice,
-                            Request);
+                                    __FUNCTION__": Device %p Request %p Cancelled\n",
+                                    fdoContext->WdfDevice,
+                                    Request);
                         WdfObjectDereference(Request);
                         continue;
                     }
@@ -779,10 +1488,10 @@ CompleteRequestsFromShadow(
                     // note but ignore.
                     //
                     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                        __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
-                        fdoContext->WdfDevice,
-                        Request,
-                        Status);
+                                __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
+                                fdoContext->WdfDevice,
+                                Request,
+                                Status);
                 }
             }
             //
@@ -797,18 +1506,18 @@ CompleteRequestsFromShadow(
             AcquireFdoLock(fdoContext);;
 
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": Device %p completing on hardware Request %p\n",
-                fdoContext->WdfDevice,
-                Request);
+                        __FUNCTION__": Device %p completing on hardware Request %p\n",
+                        fdoContext->WdfDevice,
+                        Request);
         }
     }
 
     ReleaseFdoLock(fdoContext);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Device %p removed %d requests from ringbuffer\n",
-        fdoContext->WdfDevice,
-        RequestsProcessed);
+                __FUNCTION__": Device %p removed %d requests from ringbuffer\n",
+                fdoContext->WdfDevice,
+                RequestsProcessed);
 }
 
 static usbif_shadow_ex_t *
@@ -854,30 +1563,44 @@ AllocateGrefs(
     IN PPFN_NUMBER pfnArray,
     IN ULONG PagesUsed)
 {
+    NTSTATUS status;
     ULONG index;
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__ "==> PagesUsed: %d (0x%x)\n", PagesUsed, PagesUsed);
+                __FUNCTION__ "==> PagesUsed: %d (0x%x)\n", PagesUsed, PagesUsed);
 
     for (index = 0;
-        index < PagesUsed;
-        index++)
+            index < PagesUsed;
+            index++)
     {
         PXENBUS_GNTTAB_ENTRY entry;
         PFN_NUMBER pfn = pfnArray[index];
 
-        entry = XenLowerGntTblGrantAccess(Xen->XenLower, 0, (uint32_t) pfn, FALSE);
+        status = XENBUS_GNTTAB(PermitForeignAccess,
+                               &Xen->GnttabInterface,
+                               Xen->GnttabCache,
+                               TRUE,
+                               Xen->BackendDomid,
+                               pfn,
+                               FALSE,
+                               &entry);
+
+        if (!NT_SUCCESS(status))
+        {
+            TraceError("failed to permit foreign access for pfn=0x%x\n", pfn);
+            return FALSE;
+        }
 
         shadow->ReqGrantEntries[shadow->req.nr_segments] = entry;
-        shadow->req.gref[shadow->req.nr_segments] = XenLowerGntTblGetReference(Xen->XenLower, entry);
+        shadow->req.gref[shadow->req.nr_segments] = XENBUS_GNTTAB(GetReference, &Xen->GnttabInterface, entry);
 
         shadow->req.nr_segments++;
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__ "Mapped PFN(%d): %d (0x%x) - gref = 0x%x (%p)\n", index, pfn, pfn, shadow->req.gref[shadow->req.nr_segments], entry);
+                    __FUNCTION__ "Mapped PFN(%d): %d (0x%x) - gref = 0x%x (%p)\n", index, pfn, pfn, shadow->req.gref[shadow->req.nr_segments], entry);
     }
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__ "<==\n");
+                __FUNCTION__ "<==\n");
     return TRUE;
 }
 
@@ -909,6 +1632,8 @@ AllocateIndirectGrefs(
     IN ULONG PagesUsed,
     IN PPFN_NUMBER PacketPfnArray)
 {
+    NTSTATUS status;
+
     ASSERT(Shadow);
     Shadow->req.nr_segments = 0;
     //
@@ -943,15 +1668,25 @@ AllocateIndirectGrefs(
         // of the first indirect page. We have to fill in pagesUsed + 1 pages;
         // The first gref of the first page points to the iso packet descriptor page.
         //
-        PXENBUS_GNTTAB_ENTRY entry = XenLowerGntTblGrantAccess(Xen->XenLower, 0, (uint32_t)PacketPfnArray[0], FALSE);
-        if (!entry)
+        PXENBUS_GNTTAB_ENTRY entry;
+
+        status = XENBUS_GNTTAB(PermitForeignAccess,
+                               &Xen->GnttabInterface,
+                               Xen->GnttabCache,
+                               TRUE,
+                               Xen->BackendDomid,
+                               PacketPfnArray[0],
+                               FALSE,
+                               &entry);
+
+        if (!NT_SUCCESS(status))
         {
-            TraceError("failed to grant access to pfn=0x%x\n", (int)pfnArray[pfnIndex]);
+            TraceError("failed to permit foreign access for pfn=0x%x\n", PacketPfnArray[0]);
             return FALSE;
         }
 
         Shadow->IndirectGrantEntries[0][0] = entry;
-        indirectPages[0].gref[0] = XenLowerGntTblGetReference(Xen->XenLower, entry);
+        indirectPages[0].gref[0] = XENBUS_GNTTAB(GetReference, &Xen->GnttabInterface, entry);
         Trace("added indirect page grant reference: 0x%x (%p)", (int)indirectPages[0].gref[0], entry);
 
         indirectPages[0].nr_segments = 1;
@@ -962,16 +1697,25 @@ AllocateIndirectGrefs(
     //
     while ( pfnIndex < PagesUsed )
     {
-        PXENBUS_GNTTAB_ENTRY entry = XenLowerGntTblGrantAccess(Xen->XenLower, 0, (uint32_t)pfnArray[pfnIndex], FALSE);
+        PXENBUS_GNTTAB_ENTRY entry;
 
-        if (!entry)
+        status = XENBUS_GNTTAB(PermitForeignAccess,
+                               &Xen->GnttabInterface,
+                               Xen->GnttabCache,
+                               TRUE,
+                               Xen->BackendDomid,
+                               PacketPfnArray[0],
+                               FALSE,
+                               &entry);
+
+        if (!NT_SUCCESS(status))
         {
-            TraceError("failed to grant access to pfn=0x%x\n", (int)pfnArray[pfnIndex]);
+            TraceError("failed to permit foreign access for pfn=0x%x\n", (int)pfnArray[pfnIndex]);
             return FALSE;
         }
 
         Shadow->IndirectGrantEntries[indirectArrayIndex][indirectIndex] = entry;
-        indirectPages[indirectArrayIndex].gref[indirectIndex] = XenLowerGntTblGetReference(Xen->XenLower, entry);
+        indirectPages[indirectArrayIndex].gref[indirectIndex] = XENBUS_GNTTAB(GetReference, &Xen->GnttabInterface, entry);
         Trace("added indirect page grant reference: 0x%x", (int)indirectPages[indirectArrayIndex].gref[indirectIndex]);
 
         pfnIndex++;
@@ -996,24 +1740,24 @@ PutRequest(
     if (NT_VERIFY(req))
     {
         memcpy(req,
-            shadowReq,
-            sizeof(usbif_request_t));
+               shadowReq,
+               sizeof(usbif_request_t));
 
         // XXX STUB: print level too high
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__": req %p index %d id %I64d pipetype %x endpointId %x\n"
-            "           offset %x length %x segments %x flags %x packets %x startframe %x\n",
-            req,
-            Xen->Ring.req_prod_pvt,
-            req->id,
-            req->type,
-            req->endpoint,
-            req->offset,
-            req->length,
-            req->nr_segments,
-            req->flags,
-            req->nr_packets,
-            req->startframe);
+                    __FUNCTION__": req %p index %d id %I64d pipetype %x endpointId %x\n"
+                    "           offset %x length %x segments %x flags %x packets %x startframe %x\n",
+                    req,
+                    Xen->Ring.req_prod_pvt,
+                    req->id,
+                    req->type,
+                    req->endpoint,
+                    req->offset,
+                    req->length,
+                    req->nr_segments,
+                    req->flags,
+                    req->nr_packets,
+                    req->startframe);
         Xen->Ring.req_prod_pvt++;
         Xen->RequestsOnRingbuffer++;
     }
@@ -1027,8 +1771,8 @@ PutOnRing(
     int notify;
     PutRequest(Xen, &shadow->req);
     RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&Xen->Ring, notify);
-    // --XT-- Lower context is holding on the the EC port, arg not used.
-    XenLowerEvtChnNotify(Xen->XenLower);
+
+    XENBUS_EVTCHN(Send, &Xen->EvtchnInterface, Xen->Channel);
 }
 
 //
@@ -1059,23 +1803,23 @@ PutScratchOnRing(
         if (packet)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s reset with packet?\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s reset with packet?\n",
+                        fdoContext->FrontEndPath);
             return STATUS_INVALID_PARAMETER;
         }
         if (TransferLength)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s reset with data?\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s reset with data?\n",
+                        fdoContext->FrontEndPath);
             return STATUS_INVALID_PARAMETER;
         }
     }
     if (TransferLength)
     {
         pagesUsed =  ADDRESS_AND_SIZE_TO_SPAN_PAGES(
-            fdoContext->ScratchPad.Buffer,
-            TransferLength);
+                         fdoContext->ScratchPad.Buffer,
+                         TransferLength);
         offset = MmGetMdlByteOffset(fdoContext->ScratchPad.Mdl);
         pfnArray = MmGetMdlPfnArray(fdoContext->ScratchPad.Mdl);
     }
@@ -1113,8 +1857,8 @@ PutScratchOnRing(
     {
         PutShadowOnFreelist(fdoContext->Xen, shadow);
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s no grefs.\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s no grefs.\n",
+                    fdoContext->FrontEndPath);
         return STATUS_UNSUCCESSFUL;
     }
     PutOnRing(fdoContext->Xen, shadow);
@@ -1147,8 +1891,8 @@ WaitForScratchPadAccess(
         if (fdoContext->DeviceUnplugged)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__ ": Device %p While waiting for config access, already unplugged bail\n",
-                fdoContext->WdfDevice);
+                        __FUNCTION__ ": Device %p While waiting for config access, already unplugged bail\n",
+                        fdoContext->WdfDevice);
             return FALSE;
         }
     }
@@ -1173,20 +1917,20 @@ WaitForScratchCompletion(
 
         Timeout.QuadPart = WDF_REL_TIMEOUT_IN_SEC( 2 );
         Status = KeWaitForSingleObject(
-            &fdoContext->ScratchPad.CompletionEvent,
-            Executive,
-            KernelMode,
-            FALSE,
-            &Timeout);
+                     &fdoContext->ScratchPad.CompletionEvent,
+                     Executive,
+                     KernelMode,
+                     FALSE,
+                     &Timeout);
 
         if (Status == STATUS_TIMEOUT)
         {
             WaitCounter++;
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s wait timeout %d unplugged %d\n",
-                fdoContext->FrontEndPath,
-                WaitCounter,
-                fdoContext->DeviceUnplugged);
+                        __FUNCTION__": %s wait timeout %d unplugged %d\n",
+                        fdoContext->FrontEndPath,
+                        WaitCounter,
+                        fdoContext->DeviceUnplugged);
             Status = STATUS_UNSUCCESSFUL;
 
             if (fdoContext->DeviceUnplugged)
@@ -1205,9 +1949,9 @@ WaitForScratchCompletion(
         else
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s wait failed %x\n",
-                fdoContext->FrontEndPath,
-                Status);
+                        __FUNCTION__": %s wait failed %x\n",
+                        fdoContext->FrontEndPath,
+                        Status);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
@@ -1240,8 +1984,8 @@ PutResetOrCycleUrbOnRing(
     if (!Request)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s reset with no Request?\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s reset with no Request?\n",
+                    fdoContext->FrontEndPath);
         return;
     }
 
@@ -1253,8 +1997,8 @@ PutResetOrCycleUrbOnRing(
         if (!AvailableRequests(fdoContext->Xen))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s no available request\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s no available request\n",
+            fdoContext->FrontEndPath);
 
             RequeueRequest(fdoContext, Request);
             Request = NULL;
@@ -1267,23 +2011,23 @@ PutResetOrCycleUrbOnRing(
         if (!shadow)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p No shadows for request?\n",
-                fdoContext->WdfDevice);
+            __FUNCTION__": Device %p No shadows for request?\n",
+            fdoContext->WdfDevice);
 
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
         }
 
         Status = WdfRequestMarkCancelableEx(Request,
-            EvtFdoOnHardwareRequestCancelled);
+        EvtFdoOnHardwareRequestCancelled);
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
-                fdoContext->WdfDevice,
-                Request,
-                Status);
+            __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
+            fdoContext->WdfDevice,
+            Request,
+            Status);
             LEAVE;
         }
         RequestGetRequestContext(Request)->CancelSet = 1;
@@ -1306,13 +2050,13 @@ PutResetOrCycleUrbOnRing(
         shadow->isReset = TRUE;
 
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__":request: id %I64d type %d endpoint %x length %x offset %x nr_segs %d\n",
-            shadow->req.id,
-            shadow->req.type,
-            shadow->req.endpoint,
-            shadow->req.length,
-            shadow->req.offset,
-            shadow->req.nr_segments);
+        __FUNCTION__":request: id %I64d type %d endpoint %x length %x offset %x nr_segs %d\n",
+        shadow->req.id,
+        shadow->req.type,
+        shadow->req.endpoint,
+        shadow->req.length,
+        shadow->req.offset,
+        shadow->req.nr_segments);
 
         PutOnRing(fdoContext->Xen, shadow);
     }
@@ -1330,11 +2074,11 @@ PutResetOrCycleUrbOnRing(
                 // Complete the request.
                 //
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__": Device %p Request %p shadow %p Cleanup request status %x\n",
-                    fdoContext->WdfDevice,
-                    Request,
-                    shadow,
-                    Status);
+                            __FUNCTION__": Device %p Request %p shadow %p Cleanup request status %x\n",
+                            fdoContext->WdfDevice,
+                            Request,
+                            shadow,
+                            Status);
 
                 RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
@@ -1380,8 +2124,8 @@ PutUrbOnRing(
         if (!Request)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Urb with no Request?\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s Urb with no Request?\n",
+            fdoContext->FrontEndPath);
             Status = STATUS_INVALID_PARAMETER;
             LEAVE;
         }
@@ -1403,8 +2147,8 @@ PutUrbOnRing(
         if (!shadow)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p No shadows for request?\n",
-                fdoContext->WdfDevice);
+            __FUNCTION__": Device %p No shadows for request?\n",
+            fdoContext->WdfDevice);
 
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
@@ -1414,8 +2158,8 @@ PutUrbOnRing(
             if (USB_ENDPOINT_DIRECTION_OUT(EndpointAddress))
             {
                 TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                    __FUNCTION__": %s Out packet with shortok!\n",
-                    fdoContext->FrontEndPath);
+                __FUNCTION__": %s Out packet with shortok!\n",
+                fdoContext->FrontEndPath);
             }
 
             shadow->req.flags = REQ_SHORT_PACKET_OK;
@@ -1456,11 +2200,11 @@ PutUrbOnRing(
                 // we have to allocate it
                 //
                 Mdl = IoAllocateMdl(
-                    buffer,
-                    transferLength,
-                    FALSE,
-                    FALSE,
-                    NULL);
+                          buffer,
+                          transferLength,
+                          FALSE,
+                          FALSE,
+                          NULL);
 
                 if (Mdl)
                 {
@@ -1470,25 +2214,25 @@ PutUrbOnRing(
                 else
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": %s cannot allocate mdl for transfer\n",
-                        fdoContext->FrontEndPath);
+                                __FUNCTION__": %s cannot allocate mdl for transfer\n",
+                                fdoContext->FrontEndPath);
                     Status = STATUS_UNSUCCESSFUL;
                     LEAVE;
                 }
 
                 pagesUsed =  ADDRESS_AND_SIZE_TO_SPAN_PAGES(
-                    MmGetMdlVirtualAddress(Mdl),
-                    transferLength);
+                                 MmGetMdlVirtualAddress(Mdl),
+                                 transferLength);
             }
             else
             {
                 // no buffer and no mdl? what?
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s no buffer and no mdl for Urb %p function %s (%x)\n",
-                    fdoContext->FrontEndPath,
-                    Urb,
-                    UrbFunctionToString(Urb->UrbHeader.Function),
-                    Urb->UrbHeader.Function);
+                            __FUNCTION__": %s no buffer and no mdl for Urb %p function %s (%x)\n",
+                            fdoContext->FrontEndPath,
+                            Urb,
+                            UrbFunctionToString(Urb->UrbHeader.Function),
+                            Urb->UrbHeader.Function);
                 Status = STATUS_UNSUCCESSFUL;
                 LEAVE;
             }
@@ -1503,10 +2247,10 @@ PutUrbOnRing(
                 if (PipeType != UsbdPipeTypeBulk)
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": %s pagesUsed: %d greater than max allowed %d!\n",
-                        fdoContext->FrontEndPath,
-                        pagesUsed,
-                        MaxSegments(fdoContext->Xen));
+                                __FUNCTION__": %s pagesUsed: %d greater than max allowed %d!\n",
+                                fdoContext->FrontEndPath,
+                                pagesUsed,
+                                MaxSegments(fdoContext->Xen));
 
                     Status = STATUS_UNSUCCESSFUL;
                     LEAVE;
@@ -1514,10 +2258,10 @@ PutUrbOnRing(
                 if (pagesUsed > MAX_PAGES_FOR_INDIRECT_REQUEST)
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": %s pagesUsed: %d greater than MAX_INDIRECT_PAGES %d\n",
-                        fdoContext->FrontEndPath,
-                        pagesUsed,
-                        MAX_INDIRECT_PAGES);
+                                __FUNCTION__": %s pagesUsed: %d greater than MAX_INDIRECT_PAGES %d\n",
+                                fdoContext->FrontEndPath,
+                                pagesUsed,
+                                MAX_INDIRECT_PAGES);
 
                     Status = STATUS_UNSUCCESSFUL;
                     LEAVE;
@@ -1528,17 +2272,17 @@ PutUrbOnRing(
 #pragma warning(push)
 #pragma warning(disable: 28197)
                 shadow->indirectPageMemory = ExAllocatePoolWithTag(
-                    NonPagedPool,
-                    (PAGE_SIZE * indirectPagesNeeded),
-                    XVUC);
+                                                 NonPagedPool,
+                                                 (PAGE_SIZE * indirectPagesNeeded),
+                                                 XVUC);
 #pragma warning(pop)
 
                 if (!shadow->indirectPageMemory )
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": %s Request %d no memory for indirect pages, failing request\n",
-                        fdoContext->FrontEndPath,
-                        Request);
+                                __FUNCTION__": %s Request %d no memory for indirect pages, failing request\n",
+                                fdoContext->FrontEndPath,
+                                Request);
 
                     Status = STATUS_INSUFFICIENT_RESOURCES;
                     LEAVE;
@@ -1546,33 +2290,33 @@ PutUrbOnRing(
                 RtlZeroMemory(shadow->indirectPageMemory, (PAGE_SIZE * indirectPagesNeeded));
 
                 IndirectPageMdl = IoAllocateMdl(shadow->indirectPageMemory,
-                    (PAGE_SIZE * indirectPagesNeeded),
-                    FALSE,
-                    FALSE,
-                    NULL);
+                                                (PAGE_SIZE * indirectPagesNeeded),
+                                                FALSE,
+                                                FALSE,
+                                                NULL);
                 if (!IndirectPageMdl)
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": %s Request %p can't allocate indirect MDL, failing request\n",
-                        fdoContext->FrontEndPath,
-                        Request);
+                                __FUNCTION__": %s Request %p can't allocate indirect MDL, failing request\n",
+                                fdoContext->FrontEndPath,
+                                Request);
                     Status = STATUS_INSUFFICIENT_RESOURCES;
                     LEAVE;
                 }
                 MmBuildMdlForNonPagedPool(IndirectPageMdl);
 
                 if (!AllocateIndirectGrefs(
-                    fdoContext->Xen,
-                    shadow,
-                    indirectPagesNeeded,
-                    Mdl,
-                    IndirectPageMdl,
-                    pagesUsed,
-                    NULL))
+                            fdoContext->Xen,
+                            shadow,
+                            indirectPagesNeeded,
+                            Mdl,
+                            IndirectPageMdl,
+                            pagesUsed,
+                            NULL))
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": %s AllocateIndirectGrefs failed\n",
-                        fdoContext->FrontEndPath);
+                                __FUNCTION__": %s AllocateIndirectGrefs failed\n",
+                                fdoContext->FrontEndPath);
 
                     Status = STATUS_INSUFFICIENT_RESOURCES;
                     LEAVE;
@@ -1596,15 +2340,15 @@ PutUrbOnRing(
         // Mark the request as cancelable, unfortunately this step can fail.
         //
         Status = WdfRequestMarkCancelableEx(Request,
-            EvtFdoOnHardwareRequestCancelled);
+                                            EvtFdoOnHardwareRequestCancelled);
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
-                fdoContext->WdfDevice,
-                Request,
-                Status);
+                        __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
+                        fdoContext->WdfDevice,
+                        Request,
+                        Status);
             //
             // we own the request. Cleanup and complete below.
             //
@@ -1676,13 +2420,13 @@ PutUrbOnRing(
                 // Complete the request.
                 //
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__": Device %p Request %p shadow %p Mdl %p mdlAllocated %d Cleanup request status %x\n",
-                    fdoContext->WdfDevice,
-                    Request,
-                    shadow,
-                    Mdl,
-                    mdlAllocated,
-                    Status);
+                            __FUNCTION__": Device %p Request %p shadow %p Mdl %p mdlAllocated %d Cleanup request status %x\n",
+                            fdoContext->WdfDevice,
+                            Request,
+                            shadow,
+                            Mdl,
+                            mdlAllocated,
+                            Status);
 
                 RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
@@ -1752,8 +2496,8 @@ PutIsoUrbOnRing(
         if (!shadow)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p No shadows for request?\n",
-                fdoContext->WdfDevice);
+            __FUNCTION__": Device %p No shadows for request?\n",
+            fdoContext->WdfDevice);
 
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
@@ -1763,28 +2507,28 @@ PutIsoUrbOnRing(
         numberOfPackets = Urb->UrbIsochronousTransfer.NumberOfPackets;
 
         packetBuffer = (iso_packet_info *)  ExAllocatePoolWithTag(NonPagedPool,
-            PAGE_SIZE, XVUD);
+        PAGE_SIZE, XVUD);
 
         if (!packetBuffer)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s packet buffer allocation failed\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s packet buffer allocation failed\n",
+            fdoContext->FrontEndPath);
 
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
         }
 
         packetMdl = IoAllocateMdl(packetBuffer,
-            PAGE_SIZE,
-            FALSE,
-            FALSE,
-            NULL);
+        PAGE_SIZE,
+        FALSE,
+        FALSE,
+        NULL);
         if (!packetMdl)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s packet buffer mdl allocation failed\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s packet buffer mdl allocation failed\n",
+            fdoContext->FrontEndPath);
             LEAVE;
         }
         MmBuildMdlForNonPagedPool(packetMdl);
@@ -1795,8 +2539,8 @@ PutIsoUrbOnRing(
         ULONG segLength32 = Urb->UrbIsochronousTransfer.TransferBufferLength / numberOfPackets;
 
         for (ULONG Index = 0;
-            Index < numberOfPackets;
-            Index++)
+        Index < numberOfPackets;
+        Index++)
         {
             //
             /// set the offsets and lengths.
@@ -1807,9 +2551,9 @@ PutIsoUrbOnRing(
         }
 
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__": transferLength %d packets %d\n",
-            transferLength,
-            numberOfPackets);
+        __FUNCTION__": transferLength %d packets %d\n",
+        transferLength,
+        numberOfPackets);
         //
         // we have to handle the case where the usb function driver has
         // sent us a request with no MDL.
@@ -1828,7 +2572,7 @@ PutIsoUrbOnRing(
             // This is not an error. Use the MDL.
             //
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": buffer and Mdl specified!\n");
+            __FUNCTION__": buffer and Mdl specified!\n");
         }
         else if (Mdl && !buffer)
         {
@@ -1854,8 +2598,8 @@ PutIsoUrbOnRing(
             else
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s cannot allocate mdl for transfer\n",
-                    fdoContext->FrontEndPath);
+                            __FUNCTION__": %s cannot allocate mdl for transfer\n",
+                            fdoContext->FrontEndPath);
                 Status = STATUS_UNSUCCESSFUL;
                 LEAVE;
             }
@@ -1864,11 +2608,11 @@ PutIsoUrbOnRing(
         {
             // no buffer and no mdl? what?
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s no buffer and no mdl for Urb %p function %s (%x)\n",
-                fdoContext->FrontEndPath,
-                Urb,
-                UrbFunctionToString(Urb->UrbHeader.Function),
-                Urb->UrbHeader.Function);
+            __FUNCTION__": %s no buffer and no mdl for Urb %p function %s (%x)\n",
+            fdoContext->FrontEndPath,
+            Urb,
+            UrbFunctionToString(Urb->UrbHeader.Function),
+            Urb->UrbHeader.Function);
 
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
@@ -1895,10 +2639,10 @@ PutIsoUrbOnRing(
                 // this should never happen.
                 //
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s pagesUsed: %d greater than MAX_INDIRECT_PAGES %d\n",
-                    fdoContext->FrontEndPath,
-                    pagesUsed,
-                    MAX_PAGES_FOR_INDIRECT_ISO_REQUEST);
+                __FUNCTION__": %s pagesUsed: %d greater than MAX_INDIRECT_PAGES %d\n",
+                fdoContext->FrontEndPath,
+                pagesUsed,
+                MAX_PAGES_FOR_INDIRECT_ISO_REQUEST);
 
                 Status = STATUS_INSUFFICIENT_RESOURCES;
                 LEAVE;
@@ -1909,17 +2653,17 @@ PutIsoUrbOnRing(
 #pragma warning(push)
 #pragma warning(disable: 28197)
             shadow->indirectPageMemory = ExAllocatePoolWithTag(
-                NonPagedPool,
-                (PAGE_SIZE * indirectPagesNeeded),
-                XVUE);
+                                             NonPagedPool,
+                                             (PAGE_SIZE * indirectPagesNeeded),
+                                             XVUE);
 #pragma warning(pop)
 
             if (!shadow->indirectPageMemory)
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s Request %d no memory for indirect pages, failing request\n",
-                    fdoContext->FrontEndPath,
-                    Request);
+                            __FUNCTION__": %s Request %d no memory for indirect pages, failing request\n",
+                            fdoContext->FrontEndPath,
+                            Request);
 
                 Status = STATUS_INSUFFICIENT_RESOURCES;
                 LEAVE;
@@ -1927,29 +2671,29 @@ PutIsoUrbOnRing(
             RtlZeroMemory(shadow->indirectPageMemory, (PAGE_SIZE * indirectPagesNeeded));
 
             IndirectPageMdl = IoAllocateMdl(shadow->indirectPageMemory,
-                (PAGE_SIZE * indirectPagesNeeded),
-                FALSE,
-                FALSE,
-                NULL);
+                                            (PAGE_SIZE * indirectPagesNeeded),
+                                            FALSE,
+                                            FALSE,
+                                            NULL);
             if (!IndirectPageMdl)
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s Request %p can't allocate indirect MDL, failing request\n",
-                    fdoContext->FrontEndPath,
-                    Request);
+                            __FUNCTION__": %s Request %p can't allocate indirect MDL, failing request\n",
+                            fdoContext->FrontEndPath,
+                            Request);
                 Status = STATUS_INSUFFICIENT_RESOURCES;
                 LEAVE;
             }
             MmBuildMdlForNonPagedPool(IndirectPageMdl);
 
             if (!AllocateIndirectGrefs(
-                fdoContext->Xen,
-                shadow,
-                indirectPagesNeeded,
-                Mdl,
-                IndirectPageMdl,
-                pagesUsed,
-                packetPfnArray))
+                        fdoContext->Xen,
+                        shadow,
+                        indirectPagesNeeded,
+                        Mdl,
+                        IndirectPageMdl,
+                        pagesUsed,
+                        packetPfnArray))
             {
                 Status = STATUS_INSUFFICIENT_RESOURCES;
                 LEAVE;
@@ -1959,15 +2703,15 @@ PutIsoUrbOnRing(
             // Mark the request as cancelable, unfortunately this step can fail.
             //
             Status = WdfRequestMarkCancelableEx(Request,
-                EvtFdoOnHardwareRequestCancelled);
+                                                EvtFdoOnHardwareRequestCancelled);
 
             if (!NT_SUCCESS(Status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
-                    fdoContext->WdfDevice,
-                    Request,
-                    Status);
+                            __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
+                            fdoContext->WdfDevice,
+                            Request,
+                            Status);
                 //
                 // we own the request. Cleanup and complete below.
                 //
@@ -2011,28 +2755,28 @@ PutIsoUrbOnRing(
         //
         pfnArray = MmGetMdlPfnArray(Mdl);
         if (!AllocateGrefs(fdoContext->Xen,
-            shadow,
-            packetPfnArray,
-            1))
+                           shadow,
+                           packetPfnArray,
+                           1))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Request %p gref exhaustion, requeuing\n",
-                fdoContext->FrontEndPath,
-                Request);
+                        __FUNCTION__": %s Request %p gref exhaustion, requeuing\n",
+                        fdoContext->FrontEndPath,
+                        Request);
             LEAVE;
         }
         //
         // set up the descriptors for the data buffer
         //
         if (!AllocateGrefs(fdoContext->Xen,
-            shadow,
-            pfnArray,
-            pagesUsed))
+                           shadow,
+                           pfnArray,
+                           pagesUsed))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Request %p gref exhaustion, requeuing\n",
-                fdoContext->FrontEndPath,
-                Request);
+                        __FUNCTION__": %s Request %p gref exhaustion, requeuing\n",
+                        fdoContext->FrontEndPath,
+                        Request);
             LEAVE;
         }
         //
@@ -2040,15 +2784,15 @@ PutIsoUrbOnRing(
         // Mark the request as cancelable, unfortunately this step can fail.
         //
         Status = WdfRequestMarkCancelableEx(Request,
-            EvtFdoOnHardwareRequestCancelled);
+                                            EvtFdoOnHardwareRequestCancelled);
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
-                fdoContext->WdfDevice,
-                Request,
-                Status);
+                        __FUNCTION__": Device %p Request %p WdfRequestMarkCancelableEx error %x\n",
+                        fdoContext->WdfDevice,
+                        Request,
+                        Status);
             //
             // we own the request. Cleanup and complete below.
             //
@@ -2080,13 +2824,13 @@ PutIsoUrbOnRing(
 
         RtlCopyMemory(&shadow->req.setup, packet, sizeof(shadow->req.setup));
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": request: id %I64d type %d endpoint %x length %x offset %x nr_segs %d\n",
-            shadow->req.id,
-            shadow->req.type,
-            shadow->req.endpoint,
-            shadow->req.length,
-            shadow->req.offset,
-            shadow->req.nr_segments);
+                    __FUNCTION__": request: id %I64d type %d endpoint %x length %x offset %x nr_segs %d\n",
+                    shadow->req.id,
+                    shadow->req.type,
+                    shadow->req.endpoint,
+                    shadow->req.length,
+                    shadow->req.offset,
+                    shadow->req.nr_segments);
 
         fdoContext->totalDirectTransfers++;
 
@@ -2132,13 +2876,13 @@ PutIsoUrbOnRing(
                 // Complete the request.
                 //
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__": Device %p Request %p shadow %p Mdl %p mdlAllocated %d Cleanup request status %x\n",
-                    fdoContext->WdfDevice,
-                    Request,
-                    shadow,
-                    Mdl,
-                    mdlAllocated,
-                    Status);
+                            __FUNCTION__": Device %p Request %p shadow %p Mdl %p mdlAllocated %d Cleanup request status %x\n",
+                            fdoContext->WdfDevice,
+                            Request,
+                            shadow,
+                            Mdl,
+                            mdlAllocated,
+                            Status);
 
                 RequestGetRequestContext(Request)->RequestCompleted = 1;
                 ReleaseFdoLock(fdoContext);
@@ -2166,11 +2910,11 @@ GetResponse(
     if (NT_VERIFY(rsp))
     {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-            __FUNCTION__": %p id %I64d status %x bytesTransferred %x\n",
-            rsp,
-            rsp->id,
-            rsp->status,
-            rsp->bytesTransferred);
+                    __FUNCTION__": %p id %I64d status %x bytesTransferred %x\n",
+                    rsp,
+                    rsp->id,
+                    rsp->status,
+                    rsp->bytesTransferred);
     }
     return rsp;
 }
@@ -2183,18 +2927,18 @@ TraceUsbIfRequest(
     WDF_USB_CONTROL_SETUP_PACKET packet;
     RtlCopyMemory(&packet, &request->setup, sizeof(packet));
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_URB,
-        "%s Device %p usbif_request %p\n"
-        "  id %x type %x endpoint %x\n"
-        "  offset %x length %x nr_segments %x\n"
-        "  flags %x nr_packets %x startframe %x\n"
-        "  bm %x brequest %x wValue %x wIndex %x wLength %x\n",
-        fdoContext->FrontEndPath, fdoContext->WdfDevice, request,
-        request->id, request->type, request->endpoint,
-        request->offset, request->length, request->nr_segments,
-        request->flags, request->nr_packets, request->startframe,
-        packet.Packet.bm.Byte, packet.Packet.bRequest,
-        packet.Packet.wValue.Value, packet.Packet.wIndex.Value,
-        packet.Packet.wLength);
+                "%s Device %p usbif_request %p\n"
+                "  id %x type %x endpoint %x\n"
+                "  offset %x length %x nr_segments %x\n"
+                "  flags %x nr_packets %x startframe %x\n"
+                "  bm %x brequest %x wValue %x wIndex %x wLength %x\n",
+                fdoContext->FrontEndPath, fdoContext->WdfDevice, request,
+                request->id, request->type, request->endpoint,
+                request->offset, request->length, request->nr_segments,
+                request->flags, request->nr_packets, request->startframe,
+                packet.Packet.bm.Byte, packet.Packet.bRequest,
+                packet.Packet.wValue.Value, packet.Packet.wIndex.Value,
+                packet.Packet.wLength);
 }
 
 
@@ -2230,9 +2974,9 @@ XenDpc(
             /// let somebody else clean up the mess.
             //
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-                __FUNCTION__": %s device %p DeviceUnplugged set.\n",
-                fdoContext->FrontEndPath,
-                fdoContext->WdfDevice);
+                        __FUNCTION__": %s device %p DeviceUnplugged set.\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->WdfDevice);
             return FALSE;
         }
 
@@ -2248,10 +2992,10 @@ XenDpc(
             //
             ASSERT(shadow->Request == NULL);
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                __FUNCTION__": %s shadow %p request %p already processed\n",
-                fdoContext->FrontEndPath,
-                shadow,
-                shadow->Request);
+                        __FUNCTION__": %s shadow %p request %p already processed\n",
+                        fdoContext->FrontEndPath,
+                        shadow,
+                        shadow->Request);
             continue;
         }
 
@@ -2261,10 +3005,10 @@ XenDpc(
         PCHAR usbdStatusString = "";
 
         NTSTATUS usbdStatus = MapUsbifToUsbdStatus(
-            shadow->isReset,
-            response->status,
-            &usbifStatusString,
-            &usbdStatusString);
+                                  shadow->isReset,
+                                  response->status,
+                                  &usbifStatusString,
+                                  &usbdStatusString);
 
         if (usbdStatus == USBD_STATUS_DEVICE_GONE)
         {
@@ -2277,11 +3021,11 @@ XenDpc(
             if ((fdoContext->Xen->DeviceGoneRequestCount % 100) == 1)
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-                    __FUNCTION__": %s device unplugged request %p count %d detected by USBD_STATUS_DEVICE_GONE (%s)\n",
-                    fdoContext->FrontEndPath,
-                    Request,
-                    fdoContext->Xen->DeviceGoneRequestCount,
-                    usbifStatusString);
+                            __FUNCTION__": %s device unplugged request %p count %d detected by USBD_STATUS_DEVICE_GONE (%s)\n",
+                            fdoContext->FrontEndPath,
+                            Request,
+                            fdoContext->Xen->DeviceGoneRequestCount,
+                            usbifStatusString);
             }
         }
         //
@@ -2302,9 +3046,9 @@ XenDpc(
                     // defer to the cancel callback routine.
                     // @TODO debug print too high
                     TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                        __FUNCTION__": %s Request %p owned by cancel routine\n",
-                        fdoContext->FrontEndPath,
-                        Request);
+                                __FUNCTION__": %s Request %p owned by cancel routine\n",
+                                fdoContext->FrontEndPath,
+                                Request);
                     WdfObjectDereference(Request);
                     Request = NULL;
                     continue;
@@ -2312,10 +3056,10 @@ XenDpc(
                 else if (!NT_SUCCESS(NtStatus))
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-                        __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
-                        fdoContext->WdfDevice,
-                        Request,
-                        NtStatus);
+                                __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
+                                fdoContext->WdfDevice,
+                                Request,
+                                NtStatus);
 
                     XXX_TODO("Ignoring bad status from WdfRequestUnmarkCancelable");
                 }
@@ -2325,9 +3069,9 @@ XenDpc(
                 // defer to the cancel callback routine.
                 // @TODO debug print too high
                 TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                    __FUNCTION__": %s Request %p already completed\n",
-                    fdoContext->FrontEndPath,
-                    Request);
+                            __FUNCTION__": %s Request %p already completed\n",
+                            fdoContext->FrontEndPath,
+                            Request);
                 WdfObjectDereference(Request);
                 Request = NULL;
                 continue;
@@ -2349,8 +3093,8 @@ XenDpc(
                 // resets always work.
                 //
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                    __FUNCTION__": %s reset completion\n",
-                    fdoContext->FrontEndPath);
+                            __FUNCTION__": %s reset completion\n",
+                            fdoContext->FrontEndPath);
                 NtStatus = STATUS_SUCCESS;
                 fdoContext->ResetInProgress = FALSE;
                 //
@@ -2373,12 +3117,12 @@ XenDpc(
                 }
 
                 NtStatus = PostProcessUrb(
-                    fdoContext,
-                    Urb,
-                    &usbdStatus,
-                    response->bytesTransferred,
-                    response->data,
-                    shadow->isoPacketDescriptor);
+                               fdoContext,
+                               Urb,
+                               &usbdStatus,
+                               response->bytesTransferred,
+                               response->data,
+                               shadow->isoPacketDescriptor);
 
                 if (!NT_SUCCESS(NtStatus))
                 {
@@ -2415,35 +3159,35 @@ XenDpc(
                 // --XT-- Originally shorting this logging out but that was a mess. Logged
                 // warnings abovel and make this verbose.
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                    __FUNCTION__": %s %s usbif status %x (%s) usbd status %x (%s) ntstatus %x\n"
-                    "request type %x endpoint %x offset %d length %d nr_segments %d flags %x\n"
-                    "nr_packets %d startframe %d indirectPageMemory %p\n",
-                    fdoContext->FrontEndPath,
-                    response->status ? "response error" : "response",
-                    response->status,
-                    usbifStatusString,
-                    usbdStatus,
-                    usbdStatusString,
-                    NtStatus,
-                    shadow->req.type,
-                    shadow->req.endpoint,
-                    shadow->req.offset,
-                    shadow->req.length,
-                    shadow->req.nr_segments,
-                    shadow->req.flags,
-                    shadow->req.nr_packets,
-                    shadow->req.startframe,
-                    shadow->indirectPageMemory);
+                            __FUNCTION__": %s %s usbif status %x (%s) usbd status %x (%s) ntstatus %x\n"
+                            "request type %x endpoint %x offset %d length %d nr_segments %d flags %x\n"
+                            "nr_packets %d startframe %d indirectPageMemory %p\n",
+                            fdoContext->FrontEndPath,
+                            response->status ? "response error" : "response",
+                            response->status,
+                            usbifStatusString,
+                            usbdStatus,
+                            usbdStatusString,
+                            NtStatus,
+                            shadow->req.type,
+                            shadow->req.endpoint,
+                            shadow->req.offset,
+                            shadow->req.length,
+                            shadow->req.nr_segments,
+                            shadow->req.flags,
+                            shadow->req.nr_packets,
+                            shadow->req.startframe,
+                            shadow->indirectPageMemory);
             }
         }
         else
         {
             PostProcessScratch(fdoContext,
-                usbdStatus,
-                usbifStatusString,
-                usbdStatusString,
-                response->bytesTransferred,
-                response->data);
+                               usbdStatus,
+                               usbifStatusString,
+                               usbdStatusString,
+                               response->bytesTransferred,
+                               response->data);
         }
         PutShadowOnFreelist(fdoContext->Xen, shadow);
         if (Request)
@@ -2461,13 +3205,13 @@ XenDpc(
                 ReleaseFdoLock(fdoContext);
 
                 WdfRequestCompleteWithPriorityBoost(Request,
-                    WdfRequestWdmGetIrp(Request)->IoStatus.Status,
-                    IO_SOUND_INCREMENT);
+                                                    WdfRequestWdmGetIrp(Request)->IoStatus.Status,
+                                                    IO_SOUND_INCREMENT);
 
                 AcquireFdoLock(fdoContext);
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-                    __FUNCTION__": WdfCollectionAdd error %x\n",
-                    NtStatus);
+                            __FUNCTION__": WdfCollectionAdd error %x\n",
+                            NtStatus);
             }
 
         }
@@ -2514,8 +3258,8 @@ XenPostProcessIsoResponse(
         ULONG totalBytes = 0;
 
         for (ULONG Index = 0;
-            Index < numberOfPackets;
-            Index++)
+                Index < numberOfPackets;
+                Index++)
         {
             PCHAR usbifStatusString = "UnknownUsbIf";
             PCHAR usbdStatusString = "";
@@ -2543,13 +3287,13 @@ XenPostProcessIsoResponse(
             }
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": packet %d offset %d length %d status %x %s %s\n",
-                Index,
-                Urb->UrbIsochronousTransfer.IsoPacket[Index].Offset,
-                Urb->UrbIsochronousTransfer.IsoPacket[Index].Length,
-                Urb->UrbIsochronousTransfer.IsoPacket[Index].Status, //@@@packetStatus,
-                usbifStatusString,
-                usbdStatusString);
+                        __FUNCTION__": packet %d offset %d length %d status %x %s %s\n",
+                        Index,
+                        Urb->UrbIsochronousTransfer.IsoPacket[Index].Offset,
+                        Urb->UrbIsochronousTransfer.IsoPacket[Index].Length,
+                        Urb->UrbIsochronousTransfer.IsoPacket[Index].Status, //@@@packetStatus,
+                        usbifStatusString,
+                        usbdStatusString);
         }
         if (totalBytes == 0)
         {
@@ -2573,8 +3317,8 @@ XenPostProcessIsoResponse(
                     totalBytes += Urb->UrbIsochronousTransfer.IsoPacket[1].Offset;
                 }
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-                    __FUNCTION__": Urb %p succeed zero length ISO request xp usbaudio bug\n",
-                    Urb);
+                            __FUNCTION__": Urb %p succeed zero length ISO request xp usbaudio bug\n",
+                            Urb);
             }
         }
 
@@ -2582,9 +3326,9 @@ XenPostProcessIsoResponse(
         if (Urb->UrbIsochronousTransfer.ErrorCount != bytesTransferred)
         {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": packet completion: Urb ErrorCount %d != response ErrorCount %d\n",
-                Urb->UrbIsochronousTransfer.ErrorCount,
-                bytesTransferred);
+                        __FUNCTION__": packet completion: Urb ErrorCount %d != response ErrorCount %d\n",
+                        Urb->UrbIsochronousTransfer.ErrorCount,
+                        bytesTransferred);
         }
 
         if (Urb->UrbIsochronousTransfer.TransferFlags & USBD_START_ISO_TRANSFER_ASAP)
@@ -2594,9 +3338,9 @@ XenPostProcessIsoResponse(
         else if (startFrame != Urb->UrbIsochronousTransfer.StartFrame)
         {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": packet completion: Urb.startFrame %d != response startframe %d\n",
-                Urb->UrbIsochronousTransfer.StartFrame,
-                startFrame);
+                        __FUNCTION__": packet completion: Urb.startFrame %d != response startframe %d\n",
+                        Urb->UrbIsochronousTransfer.StartFrame,
+                        startFrame);
         }
 
 
@@ -2617,15 +3361,15 @@ XenPostProcessIsoResponse(
             Status = STATUS_SUCCESS;
         }
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
-            __FUNCTION__": Urb %p usbd status %x status %x\n"
-            "TransferFlags %x TransferBufferLength %d StartFrame %d NumberOfPackets %d\n",
-            Urb,
-            *usbdStatus,
-            Status,
-            Urb->UrbIsochronousTransfer.TransferFlags,
-            Urb->UrbIsochronousTransfer.TransferBufferLength,
-            Urb->UrbIsochronousTransfer.StartFrame,
-            Urb->UrbIsochronousTransfer.NumberOfPackets);
+                    __FUNCTION__": Urb %p usbd status %x status %x\n"
+                    "TransferFlags %x TransferBufferLength %d StartFrame %d NumberOfPackets %d\n",
+                    Urb,
+                    *usbdStatus,
+                    Status,
+                    Urb->UrbIsochronousTransfer.TransferFlags,
+                    Urb->UrbIsochronousTransfer.TransferBufferLength,
+                    Urb->UrbIsochronousTransfer.StartFrame,
+                    Urb->UrbIsochronousTransfer.NumberOfPackets);
     }
 
     return Status;
@@ -2674,16 +3418,9 @@ DecrementRingBufferRequests(
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DPC,
-            __FUNCTION__": RequestsOnRingbuffer is zero!\n");
+                    __FUNCTION__": RequestsOnRingbuffer is zero!\n");
     }
 
-}
-
-BOOLEAN
-IndirectGrefs(
-    IN PXEN_INTERFACE Xen)
-{
-    return Xen->IndirectGrefSupport;
 }
 
 ULONG
@@ -2799,7 +3536,7 @@ MapUsbifToUsbdStatus(
     // treat device gone errors as transient if ResetInProgress.
     //
     if ((UsbdStatus == USBD_STATUS_DEVICE_GONE) &&
-        (ResetInProgress))
+            (ResetInProgress))
     {
         UsbdStatus = USBD_STATUS_CANCELED;
         UsbdString = "USBD_STATUS_CANCELED";
@@ -2819,24 +3556,79 @@ BOOLEAN
 XenCheckOnline(
     IN PXEN_INTERFACE Xen)
 {
-    return XenLowerGetOnline(Xen->XenLower);
+    NTSTATUS status;
+    PCHAR Buffer;
+    int state;
+
+    status = XENBUS_STORE(Read,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->BackendPath,
+                          "online",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("failed to read backend online state\n");
+        return FALSE;
+    }
+
+    if (sscanf_s(Buffer, "%d", &state) != 1)
+    {
+        TraceError("failed to parse backend online state");
+        return FALSE;
+    }
+
+    XENBUS_STORE(Free,
+                 &Xen->StoreInterface,
+                 Buffer);
+
+    if (state == 1)
+        return TRUE;
+
+    return FALSE;
 }
 
 BOOLEAN
 XenCheckOperationalState(
     IN PXEN_INTERFACE Xen)
 {
-    xenbus_state xenstate = (xenbus_state)XenLowerGetBackendState(Xen->XenLower);
-    BOOLEAN Operational = TRUE;
+    NTSTATUS status;
+    PCHAR Buffer;
+    XenbusState state;
 
-    switch (xenstate)
+    status = XENBUS_STORE(Read,
+                          &Xen->StoreInterface,
+                          NULL,
+                          Xen->BackendPath,
+                          "state",
+                          &Buffer);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceError("failed to read backend state\n");
+        return XenbusStateUnknown;
+    }
+
+    if (sscanf_s(Buffer, "%d", &state) != 1)
+    {
+        TraceError("failed to parse backend state\n");
+        return XenbusStateUnknown;
+    }
+
+    XENBUS_STORE(Free,
+                 &Xen->StoreInterface,
+                 Buffer);
+
+    switch (state)
     {
     case XenbusStateUnknown: //0
     case XenbusStateClosed:  //6
     case XenbusStateClosing: //5
-        Operational = FALSE;
+        return FALSE;
     default:
         break;
     };
-    return Operational;
+
+    return TRUE;
 }

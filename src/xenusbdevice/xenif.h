@@ -40,7 +40,7 @@ DeallocateXenInterface(
 NTSTATUS
 XenDeviceInitialize(
     IN PXEN_INTERFACE Xen,
-    IN PKSERVICE_ROUTINE DpcCallback,
+    IN KDEFERRED_ROUTINE DpcCallback,
     IN ULONG DeviceId);
 
 NTSTATUS
@@ -147,12 +147,12 @@ CompleteRequestsFromShadow(
 //
 
 ULONG
-MaxIsoPackets(
-        IN PXEN_INTERFACE Xen);
-
-ULONG
 MaxIsoSegments(
     IN PXEN_INTERFACE Xen);
+
+ULONG
+MaxIsoPackets(
+    IN PXEN_INTERFACE);
 
 ULONG
 MaxSegments(
@@ -160,10 +160,6 @@ MaxSegments(
 
 ULONG
 OnRingBuffer(
-    IN PXEN_INTERFACE Xen);
-
-BOOLEAN
-IndirectGrefs(
     IN PXEN_INTERFACE Xen);
 
 ULONG
@@ -180,6 +176,7 @@ MapUsbifToUsbdStatus(
 BOOLEAN
 XenCheckOperationalState(
     IN PXEN_INTERFACE Xen);
+
 BOOLEAN
 XenCheckOnline(
     IN PXEN_INTERFACE Xen);

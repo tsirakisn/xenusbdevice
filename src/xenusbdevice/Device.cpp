@@ -24,6 +24,7 @@
 //
 
 #pragma warning(push, 0)
+#include "assert.h"
 #include "driver.h"
 #include "UsbConfig.h"
 #include <wdmguid.h>
@@ -59,7 +60,7 @@ EVT_WDF_DEVICE_FILE_CREATE  FdoEvtDeviceFileCreate;
 EVT_WDF_FILE_CLOSE  FdoEvtFileClose;
 
 // --XT-- New callback type for the DPC
-KSERVICE_ROUTINE FdoEvtDeviceDpcFunc;
+KDEFERRED_ROUTINE FdoEvtDeviceDpcFunc;
 
 NTSTATUS LateSetup(IN WDFDEVICE);
 NTSTATUS XenConfigure(IN PUSB_FDO_CONTEXT);
@@ -85,6 +86,8 @@ SetPdoDescriptors(
     PUSB_CONFIGURATION_DESCRIPTOR config,
     PUSB_INTERFACE_DESCRIPTOR interfaceDescriptor,
     POS_COMPAT_ID compatIds);
+
+#if 0
 /**
  * @brief Wraps WDFDEVICE lock acquire operations.
  * Records the lock owner for debugging. Sanity tests are DBG only.
@@ -101,16 +104,16 @@ AcquireFdoLock(
     if (!HTSASSERT(fdoContext->lockOwner != caller))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER,
-            __FUNCTION__": Assertion failure lockowner %p != caller %p\n",
-            fdoContext->lockOwner,
-            caller);
+                    __FUNCTION__": Assertion failure lockowner %p != caller %p\n",
+                    fdoContext->lockOwner,
+                    caller);
     }
     WdfObjectAcquireLock(fdoContext->WdfDevice);
     if (!HTSASSERT(fdoContext->lockOwner == NULL))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER,
-            __FUNCTION__": Assertion failure lockowner %p == NULL\n",
-            fdoContext->lockOwner);
+                    __FUNCTION__": Assertion failure lockowner %p == NULL\n",
+                    fdoContext->lockOwner);
     }
     fdoContext->lockOwner = PsGetCurrentThread();
 }
@@ -130,13 +133,14 @@ ReleaseFdoLock(
     if (!HTSASSERT(caller == fdoContext->lockOwner))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER,
-            __FUNCTION__": Assertion failure caller %p == lockOwner %p\n",
-            caller,
-            fdoContext->lockOwner);
+                    __FUNCTION__": Assertion failure caller %p == lockOwner %p\n",
+                    caller,
+                    fdoContext->lockOwner);
     }
     fdoContext->lockOwner = NULL;
     WdfObjectReleaseLock(fdoContext->WdfDevice);
 }
+#endif
 
 /**
  * @brief Called by the framework when a new PDO has arrived that this driver manages.
@@ -161,7 +165,7 @@ FdoEvtDeviceAdd(
     ULONG Size;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     WdfDeviceInitSetDeviceType(DeviceInit, FILE_DEVICE_BUS_EXTENDER);
     WdfDeviceInitSetExclusive(DeviceInit, FALSE);
@@ -198,29 +202,29 @@ FdoEvtDeviceAdd(
     //
     WDF_CHILD_LIST_CONFIG  config;
     WDF_CHILD_LIST_CONFIG_INIT(&config,
-        sizeof(PDO_INDENTIFICATION_DESCRIPTION),
-        FdoEvtChildListCreateDevice);
+                               sizeof(PDO_INDENTIFICATION_DESCRIPTION),
+                               FdoEvtChildListCreateDevice);
 
     WdfFdoInitSetDefaultChildListConfig(DeviceInit,
-        &config,
-        WDF_NO_OBJECT_ATTRIBUTES);
+                                        &config,
+                                        WDF_NO_OBJECT_ATTRIBUTES);
     //
     // add a preprocess callback for QueryInterface to support multi-version USBDI intefaces
     //
     UCHAR MinorFunctionTable[1] = {IRP_MN_QUERY_INTERFACE};
 
     status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
-        DeviceInit,
-        FdoPreProcessQueryInterface,
-        IRP_MJ_PNP,
-        MinorFunctionTable,
-        1);
+                 DeviceInit,
+                 FdoPreProcessQueryInterface,
+                 IRP_MJ_PNP,
+                 MinorFunctionTable,
+                 1);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": WdfDeviceInitAssignWdmIrpPreprocessCallback failed error %x\n",
-            status);
+                    __FUNCTION__": WdfDeviceInitAssignWdmIrpPreprocessCallback failed error %x\n",
+                    status);
         return status;
     }
 
@@ -247,8 +251,8 @@ FdoEvtDeviceAdd(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": WdfDeviceCreate failed error %x\n",
-            status);
+                    __FUNCTION__": WdfDeviceCreate failed error %x\n",
+                    status);
         return status;
     }
 
@@ -257,10 +261,10 @@ FdoEvtDeviceAdd(
     fdoContext->WdfDevice = device;
 
     status = WdfDeviceQueryProperty(device,
-        DevicePropertyAddress,
-        sizeof(fdoContext->DeviceId),
-        &fdoContext->DeviceId,
-        &Size);
+                                    DevicePropertyAddress,
+                                    sizeof(fdoContext->DeviceId),
+                                    &fdoContext->DeviceId,
+                                    &Size);
 
     if (!NT_SUCCESS(status))
     {
@@ -277,28 +281,28 @@ FdoEvtDeviceAdd(
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.ParentObject = device;
     status = WdfCollectionCreate(&attributes,
-        &fdoContext->RequestCollection);
+                                 &fdoContext->RequestCollection);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-        __FUNCTION__": WdfCollectionCreate failed\n");
+                    __FUNCTION__": WdfCollectionCreate failed\n");
         return status;
     };
     //
     // The FDO is the USB Controller, create a device interface for that.
     //
     status = WdfDeviceCreateDeviceInterface(
-        device,
-        &GUID_DEVINTERFACE_USB_HOST_CONTROLLER,
-        NULL);
+                 device,
+                 &GUID_DEVINTERFACE_USB_HOST_CONTROLLER,
+                 NULL);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": WdfDeviceCreateDeviceInterface for device %p error %x\n",
-            device,
-            status);
+                    __FUNCTION__": WdfDeviceCreateDeviceInterface for device %p error %x\n",
+                    device,
+                    status);
         return status;
     }
 
@@ -308,22 +312,22 @@ FdoEvtDeviceAdd(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": WdfStringCreate for device %p error %x\n",
-            device,
-            status);
+                    __FUNCTION__": WdfStringCreate for device %p error %x\n",
+                    device,
+                    status);
         return status;
     }
 
     status = WdfDeviceRetrieveDeviceInterfaceString(device,
-        &GUID_DEVINTERFACE_USB_HOST_CONTROLLER,
-        NULL,
-        fdoContext->hcdsymlink);
+             &GUID_DEVINTERFACE_USB_HOST_CONTROLLER,
+             NULL,
+             fdoContext->hcdsymlink);
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": WdfStringCreate for device %p error %x\n",
-            device,
-            status);
+                    __FUNCTION__": WdfStringCreate for device %p error %x\n",
+                    device,
+                    status);
         return status;
     }
     //
@@ -367,15 +371,15 @@ FdoEvtDeviceAdd(
     timerAttributes.ExecutionLevel = WdfExecutionLevelDispatch;
 
     status = WdfTimerCreate(
-        &timerConfig,
-        &timerAttributes,
-        &fdoContext->WatchdogTimer);
+                 &timerConfig,
+                 &timerAttributes,
+                 &fdoContext->WatchdogTimer);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-        __FUNCTION__": WdfTimerCreate error %x\n",
-        status);
+                    __FUNCTION__": WdfTimerCreate error %x\n",
+                    status);
         return status;
     }
 
@@ -385,29 +389,29 @@ FdoEvtDeviceAdd(
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.ParentObject = device;
     status = WdfCollectionCreate(&attributes,
-        &fdoContext->FreeWorkItems);
+                                 &fdoContext->FreeWorkItems);
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-        __FUNCTION__": WdfCollectionCreate error %x\n",
-        status);
+                    __FUNCTION__": WdfCollectionCreate error %x\n",
+                    status);
         return status;
     }
 
     for (ULONG index = 0; index < INIT_WORK_ITEM_COUNT; index++)
     {
         WDFWORKITEM workitem = NewWorkItem(fdoContext,
-            NULL,
-            0,0,0,0);
+                                           NULL,
+                                           0,0,0,0);
         if (workitem)
         {
             status = WdfCollectionAdd(fdoContext->FreeWorkItems, workitem);
             if (!NT_SUCCESS(status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": WdfCollectionAdd for workitem index %d error %x\n",
-                    index,
-                    status);
+                            __FUNCTION__": WdfCollectionAdd for workitem index %d error %x\n",
+                            index,
+                            status);
 
                 WdfObjectDelete(workitem);
                 return status;
@@ -445,7 +449,7 @@ FdoEvtDeviceContextCleanup (
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     CleanupDisconnectedDevice(fdoContext);
 
@@ -488,7 +492,7 @@ FdoEvtDevicePrepareHardware (
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     Trace("====>\n");
 
@@ -518,7 +522,7 @@ FdoEvtDeviceReleaseHardware(
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     FreeUsbConfigData(fdoContext);
 
@@ -544,8 +548,8 @@ FdoEvtDeviceD0Entry(
     NTSTATUS status = STATUS_SUCCESS;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": PreviousState %s\n",
-        DbgDevicePowerString(PreviousState));
+                __FUNCTION__": PreviousState %s\n",
+                DbgDevicePowerString(PreviousState));
 
     XXX_TODO("STUB");
     return status;
@@ -564,9 +568,9 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p xen configuration error %x",
-                fdoContext->WdfDevice,
-                status);
+                        __FUNCTION__": Device %p xen configuration error %x",
+                        fdoContext->WdfDevice,
+                        status);
             return status;
         }
         //
@@ -576,15 +580,15 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s GetUsbConfigData error %x\n",
-                fdoContext->FrontEndPath,
-                status);
+                        __FUNCTION__": %s GetUsbConfigData error %x\n",
+                        fdoContext->FrontEndPath,
+                        status);
         }
         else if (fdoContext->BlacklistDevice)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Device is blacklisted. No PDO.\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s Device is blacklisted. No PDO.\n",
+                        fdoContext->FrontEndPath);
         }
         else
         {
@@ -604,11 +608,11 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
     }
 
     TraceEvents(NT_SUCCESS(status) ? TRACE_LEVEL_INFORMATION : TRACE_LEVEL_ERROR,
-        TRACE_DEVICE,
-        __FUNCTION__": %s Device %p status %x\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice,
-        status);
+                TRACE_DEVICE,
+                __FUNCTION__": %s Device %p status %x\n",
+                fdoContext->FrontEndPath,
+                fdoContext->WdfDevice,
+                status);
 
     return status;
 }
@@ -660,14 +664,18 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
 }
 
 NTSTATUS
+__drv_requiresIRQL(PASSIVE_LEVEL)
 XenConfigure(
     IN PUSB_FDO_CONTEXT fdoContext)
 {
     NTSTATUS status;
+
+    ASSERT3U(KeGetCurrentIrql(), == , PASSIVE_LEVEL);
+
     if (fdoContext->XenConfigured)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": xen connection already configured");
+                    __FUNCTION__": xen connection already configured");
         return STATUS_SUCCESS;
     }
 
@@ -680,7 +688,7 @@ XenConfigure(
     if (!fdoContext->Xen)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": AllocateXenInterface failed\n");
+                    __FUNCTION__": AllocateXenInterface failed\n");
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -688,7 +696,7 @@ XenConfigure(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": failed to initialize xen device");
+                    __FUNCTION__": failed to initialize xen device");
         return status;
     }
 
@@ -696,7 +704,7 @@ XenConfigure(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": failed to connect backend");
+                    __FUNCTION__": failed to connect backend");
         return status;
     }
 
@@ -707,11 +715,13 @@ XenConfigure(
 NTSTATUS
 XenDeconfigure(IN PUSB_FDO_CONTEXT fdoContext)
 {
+    AcquireFdoLock(fdoContext);
     if (!fdoContext->XenConfigured)
     {
         return STATUS_SUCCESS;
     }
     fdoContext->XenConfigured = FALSE;
+    ReleaseFdoLock(fdoContext);
     XenDisconnectDPC(fdoContext->Xen);
     XenDeviceDisconnectBackend(fdoContext->Xen);
     return STATUS_SUCCESS;
@@ -731,33 +741,33 @@ VOID RemoveAllChildDevices(
     WDFDEVICE  hChild = NULL;
 
     while ((hChild = WdfFdoRetrieveNextStaticChild(
-        Device,
-        hChild,
-        WdfRetrieveAddedChildren)) != NULL)
+                         Device,
+                         hChild,
+                         WdfRetrieveAddedChildren)) != NULL)
     {
         NTSTATUS Status = WdfPdoMarkMissing(hChild);
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p WdfPdoMarkMissing %p error %x\n",
-                Device,
-                hChild,
-                Status);
+                        __FUNCTION__": Device %p WdfPdoMarkMissing %p error %x\n",
+                        Device,
+                        hChild,
+                        Status);
             XXX_TODO("What to do with a pdo we can't mark missing?\n");
         }
         else
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": Device %p WdfPdoMarkMissing %p\n",
-                Device,
-                hChild);
+                        __FUNCTION__": Device %p WdfPdoMarkMissing %p\n",
+                        Device,
+                        hChild);
 
             WDF_DEVICE_STATE    deviceState;
             WDF_DEVICE_STATE_INIT (&deviceState);
             deviceState.Removed = WdfTrue;
 
             WdfDeviceSetDeviceState(hChild,
-                &deviceState);
+                                    &deviceState);
         }
     }
 
@@ -779,8 +789,8 @@ FdoUnplugDevice(
     if (!fdoContext->DeviceUnplugged)
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s\n",
+                    fdoContext->FrontEndPath);
         fdoContext->DeviceUnplugged = TRUE;
         if (fdoContext->ConfigBusy)
         {
@@ -835,9 +845,9 @@ CleanupDisconnectedDevice(
             // should never happen if fdoContext->IdleRequest is not NULL.
 
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p Request %p marked completed\n",
-                fdoContext->WdfDevice,
-                fdoContext->IdleRequest);
+                        __FUNCTION__": Device %p Request %p marked completed\n",
+                        fdoContext->WdfDevice,
+                        fdoContext->IdleRequest);
             completeRequest = FALSE;
         }
         else if (RequestGetRequestContext(fdoContext->IdleRequest)->CancelSet)
@@ -853,9 +863,9 @@ CleanupDisconnectedDevice(
                     XXX_TODO("Trace level probably too high");
 
                     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                        __FUNCTION__": Device %p Request %p Cancelled\n",
-                        fdoContext->WdfDevice,
-                        fdoContext->IdleRequest);
+                                __FUNCTION__": Device %p Request %p Cancelled\n",
+                                fdoContext->WdfDevice,
+                                fdoContext->IdleRequest);
                     completeRequest = FALSE;
                 }
                 else
@@ -864,10 +874,10 @@ CleanupDisconnectedDevice(
                     // note but ignore.
                     //
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                        __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
-                        fdoContext->WdfDevice,
-                        fdoContext->IdleRequest,
-                        Status);
+                                __FUNCTION__": Device %p Request %p WdfRequestUnmarkCancelable error %x\n",
+                                fdoContext->WdfDevice,
+                                fdoContext->IdleRequest,
+                                Status);
                 }
             }
         }
@@ -905,42 +915,41 @@ FdoEvtDeviceD0Exit(
     IN  WDF_POWER_DEVICE_STATE)
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s Device %p\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice);
+
+    Trace("====>\n");
+    Trace("%s Device %p\n", fdoContext->FrontEndPath, fdoContext->WdfDevice);
 
     WdfTimerStop(fdoContext->WatchdogTimer, TRUE);
     XenDeconfigure(fdoContext);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n"
-        "    Direct Transfers: %I64d errors: %I64d largest: %d\n"
-        "    Indirect Transfers: %I64d errors: %I64d largest: %d\n",
-        fdoContext->FrontEndPath,
-        fdoContext->totalDirectTransfers,
-        fdoContext->totalDirectErrors,
-        fdoContext->largestDirectTransfer,
-        fdoContext->totalIndirectTransfers,
-        fdoContext->totalIndirectErrors,
-        fdoContext->largestIndirectTransfer);
+                __FUNCTION__": %s\n"
+                "    Direct Transfers: %I64d errors: %I64d largest: %d\n"
+                "    Indirect Transfers: %I64d errors: %I64d largest: %d\n",
+                fdoContext->FrontEndPath,
+                fdoContext->totalDirectTransfers,
+                fdoContext->totalDirectErrors,
+                fdoContext->largestDirectTransfer,
+                fdoContext->totalIndirectTransfers,
+                fdoContext->totalIndirectErrors,
+                fdoContext->largestIndirectTransfer);
 
 
     //
     // --XT-- Removed tracing of 2 interrupt related values.
     //
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n"
-        "    DPC overlap %I64d DPC requeue %I64d\n"
-        "    DPC max passes %d DPC max processed %d DPC drain queue requests %d\n",
-        fdoContext->FrontEndPath,
-        fdoContext->totalDpcOverLapCount,
-        fdoContext->totalDpcReQueueCount,
-        fdoContext->maxDpcPasses,
-        fdoContext->maxRequestsProcessed,
-        fdoContext->maxRequeuedRequestsProcessed);
+                __FUNCTION__": %s\n"
+                "    DPC overlap %I64d DPC requeue %I64d\n"
+                "    DPC max passes %d DPC max processed %d DPC drain queue requests %d\n",
+                fdoContext->FrontEndPath,
+                fdoContext->totalDpcOverLapCount,
+                fdoContext->totalDpcReQueueCount,
+                fdoContext->maxDpcPasses,
+                fdoContext->maxRequestsProcessed,
+                fdoContext->maxRequeuedRequestsProcessed);
 
-    // @todo anything else that needs undoing?
+    Trace("<====\n");
     return STATUS_SUCCESS;
 }
 
@@ -952,14 +961,14 @@ FdoEvtDeviceD0Exit(
  *
  */
 VOID FdoEvtDeviceSurpriseRemoval(
-  IN  WDFDEVICE Device)
+    IN  WDFDEVICE Device)
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s Device %p\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice);
+                __FUNCTION__": %s Device %p\n",
+                fdoContext->FrontEndPath,
+                fdoContext->WdfDevice);
 
     CleanupDisconnectedDevice(fdoContext);
 }
@@ -976,13 +985,13 @@ NTSTATUS FdoEvtChildListCreateDevice(
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(WdfChildListGetDevice(ChildList));
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 
     return CreateRootHubPdoWithDeviceInit(
-        fdoContext,
-        IdentificationDescription,
-        ChildInit);
+               fdoContext,
+               IdentificationDescription,
+               ChildInit);
 }
 
 //
@@ -1008,13 +1017,20 @@ NTSTATUS FdoEvtChildListCreateDevice(
  * @param[in] Dpc The WDFDPC handle.
  *
  */
-BOOLEAN
+KDEFERRED_ROUTINE FdoEvtDeviceDpcFunc;
+VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
 FdoEvtDeviceDpcFunc(
-    _In_ struct _KINTERRUPT *Interrupt,
-    _In_opt_ PVOID Context)
+    IN PKDPC Dpc,
+    IN PVOID Context,
+    IN PVOID Argument1,
+    IN PVOID Argument2
+)
 {
-    // --XT-- FDO context passed directly now.
     PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT)Context;
+
+    ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
     //
     // this stuff needs to be done at DPC level in order to complete irps.
     //
@@ -1025,7 +1041,7 @@ FdoEvtDeviceDpcFunc(
     {
         fdoContext->DpcOverLapCount++;
         ReleaseFdoLock(fdoContext);
-        return FALSE;
+        return;
     }
     fdoContext->InDpc = TRUE;
 
@@ -1051,8 +1067,8 @@ FdoEvtDeviceDpcFunc(
             //
             XenScheduleDPC(fdoContext->Xen);
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": enqueue dpc at %d passes\n",
-                passes);
+                        __FUNCTION__": enqueue dpc at %d passes\n",
+                        passes);
             fdoContext->totalDpcReQueueCount++;
             break;
         }
@@ -1078,15 +1094,15 @@ FdoEvtDeviceDpcFunc(
         WdfCollectionRemoveItem(fdoContext->RequestCollection, 0);
 
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-            __FUNCTION__": complete Request %p Status %x\n",
-            Request,
-            WdfRequestWdmGetIrp(Request)->IoStatus.Status);
+                    __FUNCTION__": complete Request %p Status %x\n",
+                    Request,
+                    WdfRequestWdmGetIrp(Request)->IoStatus.Status);
 
         ReleaseFdoLock(fdoContext);
 
         WdfRequestCompleteWithPriorityBoost(Request,
-            WdfRequestWdmGetIrp(Request)->IoStatus.Status,
-            IO_SOUND_INCREMENT);
+                                            WdfRequestWdmGetIrp(Request)->IoStatus.Status,
+                                            IO_SOUND_INCREMENT);
 
         AcquireFdoLock(fdoContext);
 
@@ -1106,11 +1122,9 @@ FdoEvtDeviceDpcFunc(
 
     // --XT-- this trace was way too noisy, made it verbose.
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-        __FUNCTION__": exit responses processed %d passes %d\n",
-        responseCount,
-        passes);
-
-    return TRUE;
+                __FUNCTION__": exit responses processed %d passes %d\n",
+                responseCount,
+                passes);
 }
 
 //
@@ -1127,12 +1141,18 @@ FdoEvtDeviceDpcFunc(
  *
  */
 VOID
+__drv_requiresIRQL(DISPATCH_LEVEL)
 FdoEvtTimerFunc(
     IN WDFTIMER Timer)
 {
+    ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(WdfTimerGetParentObject(Timer));
 
-    // XenCheckOperationalState waits on an event. Must be called at < DISPATCH_LEVEL.
+    // restart the timer.
+    WdfTimerStart(Timer, WDF_REL_TIMEOUT_IN_SEC(1));
+
+#if 0
     BOOLEAN operational = XenCheckOperationalState(fdoContext->Xen);
 
     AcquireFdoLock(fdoContext);
@@ -1146,9 +1166,9 @@ FdoEvtTimerFunc(
         else
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s Device %p unplug detected by watchdog\n",
-                fdoContext->FrontEndPath,
-                fdoContext->WdfDevice);
+                        __FUNCTION__": %s Device %p unplug detected by watchdog\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->WdfDevice);
 
             FdoUnplugDevice(fdoContext);
             ReleaseFdoLock(fdoContext);
@@ -1161,11 +1181,9 @@ FdoEvtTimerFunc(
     //
     if (!fdoContext->DeviceUnplugged)
     {
-        //
-        // --XT-- Now passing the FDO context directly.
-        //
-        FdoEvtDeviceDpcFunc(NULL, fdoContext);
+        FdoEvtDeviceDpcFunc(NULL, fdoContext, NULL, NULL);
     }
+#endif
 }
 
 /**
@@ -1187,9 +1205,9 @@ FdoEvtDeviceFileCreate (
     UNREFERENCED_PARAMETER(FileObject);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s Device %p\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice);
+                __FUNCTION__": %s Device %p\n",
+                fdoContext->FrontEndPath,
+                fdoContext->WdfDevice);
 
     WdfRequestComplete(Request, STATUS_SUCCESS);
 }
@@ -1207,9 +1225,9 @@ FdoEvtFileClose (
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(WdfFileObjectGetDevice(FileObject));
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s Device %p\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice);
+                __FUNCTION__": %s Device %p\n",
+                fdoContext->FrontEndPath,
+                fdoContext->WdfDevice);
 }
 
 
@@ -1243,10 +1261,10 @@ EvtFdoDeviceGenericWorkItem (
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s Device %p WorkItem %p NULL callback\n",
-            context->FdoContext->FrontEndPath,
-            context->FdoContext->WdfDevice,
-            WorkItem);
+                    __FUNCTION__": %s Device %p WorkItem %p NULL callback\n",
+                    context->FdoContext->FrontEndPath,
+                    context->FdoContext->WdfDevice,
+                    WorkItem);
     }
     context->CallBack = NULL;
     //
@@ -1259,11 +1277,11 @@ EvtFdoDeviceGenericWorkItem (
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s Device %p WdfCollectionAdd error %x deleting workitem %p\n",
-            context->FdoContext->FrontEndPath,
-            context->FdoContext->WdfDevice,
-            Status,
-            WorkItem);
+                    __FUNCTION__": %s Device %p WdfCollectionAdd error %x deleting workitem %p\n",
+                    context->FdoContext->FrontEndPath,
+                    context->FdoContext->WdfDevice,
+                    Status,
+                    WorkItem);
         // oh well delete it
         WdfObjectDelete(WorkItem);
     }
@@ -1303,9 +1321,9 @@ NewWorkItem(
         // ok - allocate a new one.
         //
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__": Device %p FreeWorkItems is empty, init count %d\n",
-            fdoContext->WdfDevice,
-            INIT_WORK_ITEM_COUNT);
+                    __FUNCTION__": Device %p FreeWorkItems is empty, init count %d\n",
+                    fdoContext->WdfDevice,
+                    INIT_WORK_ITEM_COUNT);
 
         NTSTATUS  status = STATUS_SUCCESS;
         WDF_OBJECT_ATTRIBUTES  attributes;
@@ -1323,15 +1341,15 @@ NewWorkItem(
             EvtFdoDeviceGenericWorkItem);
 
         status = WdfWorkItemCreate(
-            &workitemConfig,
-            &attributes,
-            &WorkItem);
+                     &workitemConfig,
+                     &attributes,
+                     &WorkItem);
 
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": WdfWorkItemCreate error %x\n",
-                status);
+                        __FUNCTION__": WdfWorkItemCreate error %x\n",
+                        status);
             return NULL;
         }
     }
@@ -1369,14 +1387,14 @@ FreeWorkItem(
 {
     PUSB_FDO_WORK_ITEM_CONTEXT  context = WorkItemGetContext(WorkItem);
     NTSTATUS Status = WdfCollectionAdd(context->FdoContext->FreeWorkItems,
-        WorkItem);
+                                       WorkItem);
 
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": Device %p WdfCollectionAdd error %x, deleting instead.\n",
-            context->FdoContext->WdfDevice,
-            Status);
+                    __FUNCTION__": Device %p WdfCollectionAdd error %x, deleting instead.\n",
+                    context->FdoContext->WdfDevice,
+                    Status);
         WdfObjectDelete(WorkItem);
     }
 }
@@ -1395,25 +1413,25 @@ InitScratchpad(
     fdoContext->ScratchPad.Buffer = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, XVU1);
     if (!fdoContext->ScratchPad.Buffer)
     {
-            status =  STATUS_NO_MEMORY;
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": Device %p ExAllocatePoolWithTag failed\n",
-                fdoContext->WdfDevice);
-            return status;
+        status =  STATUS_NO_MEMORY;
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__": Device %p ExAllocatePoolWithTag failed\n",
+                    fdoContext->WdfDevice);
+        return status;
     }
     RtlZeroMemory(fdoContext->ScratchPad.Buffer, PAGE_SIZE);
 
     fdoContext->ScratchPad.Mdl = IoAllocateMdl(fdoContext->ScratchPad.Buffer,
-        PAGE_SIZE,
-        FALSE,
-        FALSE,
-        NULL);
+                                 PAGE_SIZE,
+                                 FALSE,
+                                 FALSE,
+                                 NULL);
     if (!fdoContext->ScratchPad.Mdl)
     {
         status =  STATUS_NO_MEMORY;
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": device %p IoAllocateMdl failed\n",
-            fdoContext->WdfDevice);
+                    __FUNCTION__": device %p IoAllocateMdl failed\n",
+                    fdoContext->WdfDevice);
         return status;
     }
     MmBuildMdlForNonPagedPool(fdoContext->ScratchPad.Mdl);

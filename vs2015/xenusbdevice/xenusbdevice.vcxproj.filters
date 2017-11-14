@@ -46,9 +46,6 @@
     <ClCompile Include="..\..\src\xenusbdevice\xenif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\xenusbdevice\xenlower.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\xenusbdevice\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -139,9 +136,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\xenusbdevice\version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\xenusbdevice\xenlower.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\xen\public\errno.h">

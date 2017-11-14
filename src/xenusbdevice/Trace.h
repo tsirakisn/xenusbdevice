@@ -47,7 +47,7 @@ typedef enum {
 } XEN_TRACE_LEVEL;
 
 #define TraceEvents(_lvl_, _flg_, format, ...) \
-	__Trace(__MODULE__ ":" __FUNCTION__, format, __VA_ARGS__)
+	__Trace(__MODULE__ ":", format, __VA_ARGS__)
 
 #define TraceError(format, ...) \
 	TraceEvents(XenTraceLevelError, TRACE_DRIVER, format, __VA_ARGS__)

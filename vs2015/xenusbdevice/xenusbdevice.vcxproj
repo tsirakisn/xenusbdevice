@@ -279,7 +279,6 @@
     <ClCompile Include="..\..\src\xenusbdevice\UsbRequest.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\UsbResponse.cpp" />
     <ClCompile Include="..\..\src\xenusbdevice\xenif.cpp" />
-    <ClCompile Include="..\..\src\xenusbdevice\xenlower.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\xenusbdevice\xenusbdevice.rc" />
@@ -324,7 +323,6 @@
     <ClInclude Include="..\..\src\xenusbdevice\usbxenif.h" />
     <ClInclude Include="..\..\src\xenusbdevice\version.h" />
     <ClInclude Include="..\..\src\xenusbdevice\xenif.h" />
-    <ClInclude Include="..\..\src\xenusbdevice\xenlower.h" />
     <ClInclude Include="..\..\src\xenusbdevice\xenusb.h" />
   </ItemGroup>
   <ItemGroup>
