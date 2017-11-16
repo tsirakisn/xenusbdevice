@@ -1744,7 +1744,7 @@ AllocateIndirectGrefs(
                                Xen->GnttabCache,
                                TRUE,
                                Xen->BackendDomid,
-                               PacketPfnArray[0],
+                               pfnArray[pfnIndex],
                                FALSE,
                                &entry);
 
