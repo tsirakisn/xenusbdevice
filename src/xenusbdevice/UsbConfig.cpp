@@ -29,8 +29,6 @@
 #include "UsbConfig.h"
 #pragma warning(pop)
 
-#pragma warning(disable:4820) // padding added after data member
-
 //
 // local function declarations
 //

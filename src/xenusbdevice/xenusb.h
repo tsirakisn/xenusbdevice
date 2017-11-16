@@ -32,8 +32,6 @@
 #include "usbbusif.h"
 #pragma warning(pop)
 
-#pragma warning(disable:4820) // padding added after data member
-
 // Cannot include this
 // #include <USBProtocolDefs.h>
 // so the following are cutnpasted

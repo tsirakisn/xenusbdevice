@@ -648,6 +648,12 @@ ProcessUsbPowerStateMap(
         case WdmUsbPowerSystemSleeping3:
         case WdmUsbPowerSystemHibernate:
         case WdmUsbPowerSystemShutdown:
+        case WdmUsbPowerNotMapped:
+        case WdmUsbPowerSystemUnspecified:
+        case WdmUsbPowerDeviceD0:
+        case WdmUsbPowerDeviceD1:
+        case WdmUsbPowerDeviceD2:
+        case WdmUsbPowerDeviceD3:
         default:
             usbPower->PowerInformation.HcDevicePowerState = WdmUsbPowerDeviceD3;
             usbPower->PowerInformation.RhDevicePowerState = WdmUsbPowerDeviceD3;

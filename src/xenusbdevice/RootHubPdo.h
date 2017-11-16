@@ -23,8 +23,6 @@
 // THE SOFTWARE.
 //
 
-#pragma warning(disable:4820) // padding added after data member
-
 struct PORT_DEVICE_INFORMATION
 {
     LONG                      DeviceHandleRefCount;

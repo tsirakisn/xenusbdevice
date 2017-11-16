@@ -46,8 +46,6 @@
 #include "UsbRequest.h"
 #include "xenif.h"
 #pragma warning(pop)
-#pragma warning(disable : 4127) //conditional expression is constant
-#pragma warning(disable:4820) // padding added after data member
 
 #define XEN_BUS L"Xen"
 #define RB_VERSION_REQUIRED "3"
@@ -1248,9 +1246,7 @@ VOID
 XenDeviceDisconnectBackend(
     IN PXEN_INTERFACE Xen)
 {
-    BOOLEAN errror;
     NTSTATUS status;
-    XenbusState festate;
     XenbusState bestate;
     KEVENT                          Event;
     PXENBUS_STORE_WATCH             Watch;
@@ -2080,7 +2076,7 @@ PutResetOrCycleUrbOnRing(
         WdfObjectReference(Request);
         fdoContext->ResetInProgress = TRUE;
 
-        uint8_t ResetOrCycle = IsReset ? RESET_TARGET_DEVICE : CYCLE_PORT;
+        uint8_t ResetOrCycle = (uint8_t) (IsReset ? RESET_TARGET_DEVICE : CYCLE_PORT);
         shadow->Request = Request;
         shadow->req.endpoint = 0;
         shadow->req.type = 0;
@@ -2779,7 +2775,7 @@ PutIsoUrbOnRing(
             ASSERT(offset < 0x00010000);
             shadow->req.offset = (uint16_t) offset;
 
-            shadow->req.flags = INDIRECT_GREF | (ShortOK ? REQ_SHORT_PACKET_OK : 0) | (transferAsap ? ISO_FRAME_ASAP : 0);
+            shadow->req.flags = (uint8_t)(INDIRECT_GREF | (ShortOK ? REQ_SHORT_PACKET_OK : 0) | (transferAsap ? ISO_FRAME_ASAP : 0));
             shadow->req.nr_packets = (uint16_t) numberOfPackets;
             shadow->req.startframe = Urb->UrbIsochronousTransfer.StartFrame;
             shadow->isoPacketDescriptor = packetBuffer;
@@ -2858,7 +2854,7 @@ PutIsoUrbOnRing(
         ASSERT(offset < 0x00010000);
         shadow->req.offset = (uint16_t) offset; // offset for first data packet!
         ASSERT(pagesUsed < 0x100);
-        shadow->req.flags = (ShortOK ? REQ_SHORT_PACKET_OK : 0) | (transferAsap ? ISO_FRAME_ASAP : 0);
+        shadow->req.flags = (uint8_t)((ShortOK ? REQ_SHORT_PACKET_OK : 0) | (transferAsap ? ISO_FRAME_ASAP : 0));
         shadow->req.nr_packets = (uint16_t) numberOfPackets;
         shadow->req.startframe = Urb->UrbIsochronousTransfer.StartFrame;
         shadow->isoPacketDescriptor = packetBuffer;
@@ -3024,7 +3020,7 @@ XenDpc(
         }
 
         responsesProcessed++;
-        usbif_response_t *response =  GetResponse(fdoContext->Xen, index);
+        usbif_response_t *response =  GetResponse(fdoContext->Xen, (int)index);
 
         usbif_shadow_ex_t *shadow = &fdoContext->Xen->Shadows[response->id];
         ASSERT(shadow->Tag == SHADOW_TAG);
@@ -3630,6 +3626,12 @@ XenCheckOperationalState(
     case XenbusStateClosed:  //6
     case XenbusStateClosing: //5
         return FALSE;
+    case XenbusStateInitialising:
+    case XenbusStateInitWait:
+    case XenbusStateInitialised:
+    case XenbusStateConnected:
+    case XenbusStateReconfiguring:
+    case XenbusStateReconfigured:
     default:
         break;
     };

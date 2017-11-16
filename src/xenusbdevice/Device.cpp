@@ -491,11 +491,16 @@ FdoEvtDeviceContextCleanup (
  *
  */
 NTSTATUS
+_Use_decl_annotations_
 FdoEvtDevicePrepareHardware (
     _In_ WDFDEVICE Device,
-    WDFCMRESLIST,
-    _In_ WDFCMRESLIST)
+    _In_ WDFCMRESLIST ResourcesRaw,
+    _In_ WDFCMRESLIST ResourcesTranslated)
 {
+    UNREFERENCED_PARAMETER(Device);
+    UNREFERENCED_PARAMETER(ResourcesRaw);
+    UNREFERENCED_PARAMETER(ResourcesTranslated);
+
     Trace("<====>\n");
 
     return STATUS_SUCCESS;

@@ -124,7 +124,8 @@ DriverEntry(
     CHAR * buildType = "Release";
 #endif
 
-    Info("XENUSBDEVICE %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
+    Info("XENUSBDEVICE (%s) %d.%d.%d (%d) (%s - %s) (%02d.%02d.%04d)\n",
+         buildType,
          MAJOR_VERSION,
          MINOR_VERSION,
          MICRO_VERSION,
