@@ -187,6 +187,40 @@ PutShadowOnFreelist(
 // Implementation.
 //
 
+ULONG
+MaxIsoSegments(
+    IN PXEN_INTERFACE Xen)
+{
+    return Xen->MaxIsoSegments;
+}
+
+ULONG
+MaxSegments(
+    IN PXEN_INTERFACE Xen)
+{
+    return Xen->MaxSegments;
+}
+
+ULONG
+MaxIsoPackets(
+    IN PXEN_INTERFACE)
+{
+    return MAX_ISO_PACKETS;
+}
+
+ULONG
+AvailableRequests(
+    IN PXEN_INTERFACE Xen)
+{
+    return Xen->ShadowFree;
+}
+
+ULONG
+OnRingBuffer(
+    IN PXEN_INTERFACE Xen)
+{
+    return Xen->RequestsOnRingbuffer;
+}
 
 PXEN_INTERFACE
 AllocateXenInterface(
@@ -259,7 +293,9 @@ VOID
 DeallocateXenInterface(
     IN PXEN_INTERFACE Xen)
 {
+    Trace("====>\n");
     ExFreePool(Xen);
+    Trace("<====\n");
 }
 
 static VOID
@@ -932,8 +968,12 @@ FrontendWaitForBackendXenbusStateChange(
     PCHAR                       Buffer;
 
     ASSERT3U(KeGetCurrentIrql(), == , PASSIVE_LEVEL);
+    ASSERT3P(State, != , NULL);
+    ASSERT3P(WatchEvent, != , NULL);
+    ASSERT3P(Xen, != , NULL);
 
     Trace("%s: ====> %d\n", Xen->BackendPath, *State);
+    Trace("Xen: %p WatchEvent: %p State: %p\n", Xen, WatchEvent, State);
 
     status = KeWaitForSingleObject(WatchEvent,
                                    Executive,
@@ -3375,38 +3415,6 @@ XenPostProcessIsoResponse(
     return Status;
 }
 
-//
-// Information about the Xen interface.
-//
-
-ULONG
-MaxIsoSegments(
-    IN PXEN_INTERFACE Xen)
-{
-    return Xen->MaxIsoSegments;
-}
-
-ULONG
-MaxSegments(
-    IN PXEN_INTERFACE Xen)
-{
-    return Xen->MaxSegments;
-}
-
-ULONG
-MaxIsoPackets(
-    IN PXEN_INTERFACE)
-{
-    return MAX_ISO_PACKETS;
-}
-
-ULONG
-OnRingBuffer(
-    IN PXEN_INTERFACE Xen)
-{
-    return Xen->RequestsOnRingbuffer;
-}
-
 static VOID
 DecrementRingBufferRequests(
     IN PXEN_INTERFACE Xen)
@@ -3421,13 +3429,6 @@ DecrementRingBufferRequests(
                     __FUNCTION__": RequestsOnRingbuffer is zero!\n");
     }
 
-}
-
-ULONG
-AvailableRequests(
-    IN PXEN_INTERFACE Xen)
-{
-    return Xen->ShadowFree;
 }
 
 //

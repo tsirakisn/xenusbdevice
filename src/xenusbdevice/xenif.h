@@ -147,23 +147,11 @@ CompleteRequestsFromShadow(
 //
 
 ULONG
-MaxIsoSegments(
-    IN PXEN_INTERFACE Xen);
-
-ULONG
 MaxIsoPackets(
     IN PXEN_INTERFACE);
 
 ULONG
-MaxSegments(
-    IN PXEN_INTERFACE Xen);
-
-ULONG
 OnRingBuffer(
-    IN PXEN_INTERFACE Xen);
-
-ULONG
-AvailableRequests(
     IN PXEN_INTERFACE Xen);
 
 NTSTATUS

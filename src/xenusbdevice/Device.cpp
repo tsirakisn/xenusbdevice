@@ -87,7 +87,7 @@ SetPdoDescriptors(
     PUSB_INTERFACE_DESCRIPTOR interfaceDescriptor,
     POS_COMPAT_ID compatIds);
 
-#if 0
+#ifndef DEBUG_FDO_LOCK
 /**
  * @brief Wraps WDFDEVICE lock acquire operations.
  * Records the lock owner for debugging. Sanity tests are DBG only.
@@ -448,6 +448,8 @@ FdoEvtDeviceContextCleanup (
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
+    Trace("====>\n");
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
                 __FUNCTION__"\n");
 
@@ -469,6 +471,8 @@ FdoEvtDeviceContextCleanup (
         ExFreePool(fdoContext->CompatIds);
         fdoContext->CompatIds = NULL;
     }
+
+    Trace("<====\n");
 }
 
 
@@ -521,10 +525,14 @@ FdoEvtDeviceReleaseHardware(
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
+    Trace("====>\n");
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
                 __FUNCTION__"\n");
 
     FreeUsbConfigData(fdoContext);
+
+    Trace("<====\n");
 
     return STATUS_SUCCESS;
 }
@@ -547,11 +555,14 @@ FdoEvtDeviceD0Entry(
     // PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
     NTSTATUS status = STATUS_SUCCESS;
 
+    Trace("====>\n");
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
                 __FUNCTION__": PreviousState %s\n",
                 DbgDevicePowerString(PreviousState));
 
-    XXX_TODO("STUB");
+    Trace("<====\n");
+
     return status;
 }
 
@@ -559,6 +570,8 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
     NTSTATUS status = STATUS_SUCCESS;
+
+    Trace("====>\n");
     //
     // set up the XEN connection.
     //
@@ -614,6 +627,7 @@ NTSTATUS LateSetup(IN WDFDEVICE Device)
                 fdoContext->WdfDevice,
                 status);
 
+    Trace("<====\n");
     return status;
 }
 
@@ -641,6 +655,8 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
     NTSTATUS status = STATUS_SUCCESS;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(device);
 
+    Trace("====>\n");
+
     BOOLEAN online = XenCheckOnline(fdoContext->Xen);
 
     if (!online)
@@ -660,6 +676,7 @@ FdoEvtDeviceD0EntryPostInterruptsEnabled(
         WdfTimerStart(fdoContext->WatchdogTimer, WDF_REL_TIMEOUT_IN_SEC(2));
     }
 
+    Trace("<====\n");
     return status;
 }
 
@@ -669,6 +686,8 @@ XenConfigure(
     IN PUSB_FDO_CONTEXT fdoContext)
 {
     NTSTATUS status;
+
+    Trace("====>\n");
 
     ASSERT3U(KeGetCurrentIrql(), == , PASSIVE_LEVEL);
 
@@ -709,12 +728,16 @@ XenConfigure(
     }
 
     fdoContext->XenConfigured = TRUE;
+
+    Trace("<====\n");
     return STATUS_SUCCESS;
 }
 
 NTSTATUS
 XenDeconfigure(IN PUSB_FDO_CONTEXT fdoContext)
 {
+    Trace("====>\n");
+
     AcquireFdoLock(fdoContext);
     if (!fdoContext->XenConfigured)
     {
@@ -724,6 +747,8 @@ XenDeconfigure(IN PUSB_FDO_CONTEXT fdoContext)
     ReleaseFdoLock(fdoContext);
     XenDisconnectDPC(fdoContext->Xen);
     XenDeviceDisconnectBackend(fdoContext->Xen);
+
+    Trace("<====\n");
     return STATUS_SUCCESS;
 }
 
@@ -736,6 +761,8 @@ XenDeconfigure(IN PUSB_FDO_CONTEXT fdoContext)
 VOID RemoveAllChildDevices(
     IN WDFDEVICE Device)
 {
+    Trace("====>\n");
+
     WdfFdoLockStaticChildListForIteration(Device);
 
     WDFDEVICE  hChild = NULL;
@@ -772,6 +799,8 @@ VOID RemoveAllChildDevices(
     }
 
     WdfFdoUnlockStaticChildListFromIteration(Device);
+
+    Trace("<====\n");
 }
 
 /**
@@ -786,6 +815,8 @@ VOID
 FdoUnplugDevice(
     IN PUSB_FDO_CONTEXT fdoContext)
 {
+    Trace("====>\n");
+
     if (!fdoContext->DeviceUnplugged)
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
@@ -810,12 +841,16 @@ FdoUnplugDevice(
         }
     }
     DrainRequestQueue(fdoContext, TRUE);
+
+    Trace("====>\n");
 }
 
 VOID
 CleanupDisconnectedDevice(
     PUSB_FDO_CONTEXT fdoContext)
 {
+    Trace("====>\n");
+
     AcquireFdoLock(fdoContext);
     if (fdoContext->CtlrDisconnected)
     {
@@ -896,6 +931,8 @@ CleanupDisconnectedDevice(
     {
         CompleteRequestsFromShadow(fdoContext);
     }
+
+    Trace("====>\n");
 }
 /**
  * @brief Transition out of fully powered state.
@@ -965,12 +1002,16 @@ VOID FdoEvtDeviceSurpriseRemoval(
 {
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
 
+    Trace("====>\n");
+
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
                 __FUNCTION__": %s Device %p\n",
                 fdoContext->FrontEndPath,
                 fdoContext->WdfDevice);
 
     CleanupDisconnectedDevice(fdoContext);
+
+    Trace("<====\n");
 }
 
 //

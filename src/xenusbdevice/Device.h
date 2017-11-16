@@ -311,7 +311,7 @@ VOID
 FdoUnplugDevice(
     IN PUSB_FDO_CONTEXT fdoContext);
 
-#if 0
+#ifndef DEBUG_FDO_LOCK
 _Acquires_lock_(fdoContext->WdfDevice)
 VOID
 AcquireFdoLock(
@@ -344,6 +344,8 @@ AllocAndQueryPropertyString(
     IN DEVICE_REGISTRY_PROPERTY  DeviceProperty,
     OUT PULONG ResultLength);
 
+#ifdef DEBUG_FDO_LOCK
+// debug macros with tracing for callers
 #define AcquireFdoLock(fdoContext) \
     do { \
         PETHREAD caller = PsGetCurrentThread(); \
@@ -381,3 +383,4 @@ AllocAndQueryPropertyString(
         WdfObjectReleaseLock(fdoContext->WdfDevice); \
         Trace("RELEASED FDO LOCK: fdoContext = %p -- caller = %p -- lockOwner = %p\n", fdoContext, caller, fdoContext->lockOwner); \
    } while (0)
+#endif
