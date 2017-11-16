@@ -23,6 +23,8 @@
 // THE SOFTWARE.
 //
 
+#pragma warning(disable:4820) // padding added after data member
+
 struct PORT_DEVICE_INFORMATION
 {
     LONG                      DeviceHandleRefCount;
@@ -121,7 +123,6 @@ struct HUB_STATUS_CHANGE_CONTEXT
 };
 typedef HUB_STATUS_CHANGE_CONTEXT *PHUB_STATUS_CHANGE_CONTEXT;
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(HUB_STATUS_CHANGE_CONTEXT, RequestGetStatusChangeContext)
-
 
 typedef enum _USB_PORT_FEATURE_SELECTOR {
     PORT_CONNECTION         = 0,

@@ -50,30 +50,30 @@ VOID
 FdoInterfaceReference(
     PVOID Context)
 {
-  PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
+    PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
-  InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
+    InterlockedIncrement(&fdoContext->busInterfaceReferenceCount);
 }
 
 VOID
 FdoInterfaceDereference(
     PVOID Context)
 {
-  PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
+    PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
-  //
-  // could validate that fdo->Isa() == XUFD;
-  //
-  if (fdoContext->busInterfaceReferenceCount > 0)
-  {
-      InterlockedDecrement(&fdoContext->busInterfaceReferenceCount);
-  }
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
+    //
+    // could validate that fdo->Isa() == XUFD;
+    //
+    if (fdoContext->busInterfaceReferenceCount > 0)
+    {
+        InterlockedDecrement(&fdoContext->busInterfaceReferenceCount);
+    }
 }
 
 /*
@@ -107,15 +107,15 @@ FdoGetUSBDIVersion(
     IN OUT PULONG HcdCapabilities)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
-  VersionInformation->USBDI_Version = USBDI_VERSION; // was  0x00000102;
-  //
-  // This is actually port dependent. Some ports are 2.0 some are 1.1
-  //
-  VersionInformation->Supported_USB_Version = 0x00020000; // v 2.0 was 0x00010001;  // v1.1??
-  *HcdCapabilities = 0;
+    VersionInformation->USBDI_Version = USBDI_VERSION; // was  0x00000102;
+    //
+    // This is actually port dependent. Some ports are 2.0 some are 1.1
+    //
+    VersionInformation->Supported_USB_Version = 0x00020000; // v 2.0 was 0x00010001;  // v1.1??
+    *HcdCapabilities = 0;
 }
 
 /*
@@ -138,22 +138,22 @@ FdoQueryBusTime(
     IN OUT PULONG CurrentUsbFrame)
 {
 
-  PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
+    PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
-  NTSTATUS Status = STATUS_SUCCESS;
+    NTSTATUS Status = STATUS_SUCCESS;
 
-  fdoContext->ScratchPad.FrameNumber++;
-  *CurrentUsbFrame = fdoContext->ScratchPad.FrameNumber;
+    fdoContext->ScratchPad.FrameNumber++;
+    *CurrentUsbFrame = fdoContext->ScratchPad.FrameNumber;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Context %p, CurrentUsbFrame %x\n",
-    Context, *CurrentUsbFrame);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p, CurrentUsbFrame %x\n",
+                Context, *CurrentUsbFrame);
 
-  return Status;
+    return Status;
 }
 
 /*
@@ -182,8 +182,8 @@ FdoSubmitIsoOutUrb(
     IN PURB )
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
     return STATUS_UNSUCCESSFUL;
 }
@@ -210,8 +210,8 @@ FdoQueryBusInformation(
     PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT) Context;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
     NTSTATUS Status = STATUS_SUCCESS;
     do
@@ -230,64 +230,64 @@ FdoQueryBusInformation(
         switch (Level)
         {
         case 0:
+        {
+            PUSB_BUS_INFORMATION_LEVEL_0 busInfo =
+                (PUSB_BUS_INFORMATION_LEVEL_0) BusInformationBuffer;
+            if ((*BusInformationBufferLength) < sizeof (USB_BUS_INFORMATION_LEVEL_0))
             {
-                PUSB_BUS_INFORMATION_LEVEL_0 busInfo =
-                    (PUSB_BUS_INFORMATION_LEVEL_0) BusInformationBuffer;
-                if ((*BusInformationBufferLength) < sizeof (USB_BUS_INFORMATION_LEVEL_0))
-                {
-                    Status = STATUS_BUFFER_TOO_SMALL;
-                    break;
-                }
-                busInfo->TotalBandwidth = FdoTotalBandWidth();
-                busInfo->ConsumedBandwidth = FdoConsumedBandwidth();
-                if (BusInformationActualLength)
-                {
-                    *BusInformationActualLength = sizeof(USB_BUS_INFORMATION_LEVEL_0);
-                }
-                *BusInformationBufferLength = sizeof (USB_BUS_INFORMATION_LEVEL_0);
+                Status = STATUS_BUFFER_TOO_SMALL;
+                break;
             }
-            break;
+            busInfo->TotalBandwidth = FdoTotalBandWidth();
+            busInfo->ConsumedBandwidth = FdoConsumedBandwidth();
+            if (BusInformationActualLength)
+            {
+                *BusInformationActualLength = sizeof(USB_BUS_INFORMATION_LEVEL_0);
+            }
+            *BusInformationBufferLength = sizeof (USB_BUS_INFORMATION_LEVEL_0);
+        }
+        break;
         case 1:
-            {
-                PUSB_BUS_INFORMATION_LEVEL_1 busInfo =
-                    (PUSB_BUS_INFORMATION_LEVEL_1) BusInformationBuffer;
+        {
+            PUSB_BUS_INFORMATION_LEVEL_1 busInfo =
+                (PUSB_BUS_INFORMATION_LEVEL_1) BusInformationBuffer;
 
-                if ((*BusInformationBufferLength) < sizeof (USB_BUS_INFORMATION_LEVEL_1))
-                {
-                    Status = STATUS_BUFFER_TOO_SMALL;
-                    break;
-                }
-                //
-                // see if the name will fit
-                //
-                UNICODE_STRING name;
-                WdfStringGetUnicodeString(fdoContext->hcdsymlink, &name);
-                ULONG bytesNeeded = sizeof(USB_BUS_INFORMATION_LEVEL_1) +
-                    name.Length;
-                if (BusInformationActualLength)
-                {
-                    *BusInformationActualLength = bytesNeeded;
-                }
-                if ((*BusInformationBufferLength) < bytesNeeded)
-                {
-                    Status = STATUS_BUFFER_TOO_SMALL;
-                    break;
-                }
-                *BusInformationBufferLength = bytesNeeded;
-                //
-                // copy the fixed length data
-                //
-                busInfo->TotalBandwidth = FdoTotalBandWidth();
-                busInfo->ConsumedBandwidth = FdoConsumedBandwidth();
-                busInfo->ControllerNameLength = name.Length;
-                if (name.Length)
-                {
-                    RtlCopyMemory(busInfo->ControllerNameUnicodeString,
-                        name.Buffer,
-                        name.Length);
-                }
+            if ((*BusInformationBufferLength) < sizeof (USB_BUS_INFORMATION_LEVEL_1))
+            {
+                Status = STATUS_BUFFER_TOO_SMALL;
+                break;
             }
-            break;
+            //
+            // see if the name will fit
+            //
+            UNICODE_STRING name;
+            WdfStringGetUnicodeString(fdoContext->hcdsymlink, &name);
+            ULONG bytesNeeded = sizeof(USB_BUS_INFORMATION_LEVEL_1) +
+                                name.Length;
+            if (BusInformationActualLength)
+            {
+                *BusInformationActualLength = bytesNeeded;
+            }
+            if ((*BusInformationBufferLength) < bytesNeeded)
+            {
+                Status = STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+            *BusInformationBufferLength = bytesNeeded;
+            //
+            // copy the fixed length data
+            //
+            busInfo->TotalBandwidth = FdoTotalBandWidth();
+            busInfo->ConsumedBandwidth = FdoConsumedBandwidth();
+            busInfo->ControllerNameLength = name.Length;
+            if (name.Length)
+            {
+                RtlCopyMemory(busInfo->ControllerNameUnicodeString,
+                              name.Buffer,
+                              name.Length);
+            }
+        }
+        break;
 
         default:
             if (BusInformationActualLength)
@@ -301,10 +301,10 @@ FdoQueryBusInformation(
 
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Context %p; Level %d Status %x\n",
-        Context,
-        Level,
-        Status);
+                __FUNCTION__": Context %p; Level %d Status %x\n",
+                Context,
+                Level,
+                Status);
 
     return Status;
 }
@@ -318,8 +318,8 @@ FdoEnumLogEntry(
     ULONG)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
     return STATUS_UNSUCCESSFUL;
 }
@@ -334,8 +334,8 @@ FdoIsDeviceHighSpeed(
     // XXX lie
     //
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
     return TRUE;
 }
@@ -349,8 +349,8 @@ FdoQueryBusTimeEx(
     OUT PULONG)
 {
     TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
     return STATUS_UNSUCCESSFUL;
 }
@@ -389,8 +389,8 @@ FdoQueryControllerType(
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Context %p\n",
-        Context);
+                __FUNCTION__": Context %p\n",
+                Context);
 
     return STATUS_SUCCESS;
 }
@@ -420,17 +420,17 @@ FdoPreProcessQueryInterface(
     Trace("===> processing irp\n");
 
     if (InlineIsEqualGUID( USB_BUS_INTERFACE_USBDI_GUID,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                           *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         BOOLEAN provideInterface=FALSE;
         switch (IoStack->Parameters.QueryInterface.Version)
         {
         case USB_BUSIF_USBDI_VERSION_0:
             if (IoStack->Parameters.QueryInterface.Size >=
-                sizeof(USB_BUS_INTERFACE_USBDI_V0))
+                    sizeof(USB_BUS_INTERFACE_USBDI_V0))
             {
                 PUSB_BUS_INTERFACE_USBDI_V0 UsbdiInt =
-                  (PUSB_BUS_INTERFACE_USBDI_V0) IoStack->Parameters.QueryInterface.Interface;
+                    (PUSB_BUS_INTERFACE_USBDI_V0) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V0);
                 UsbdiInt->Version = USB_BUSIF_USBDI_VERSION_0;
@@ -450,10 +450,10 @@ FdoPreProcessQueryInterface(
             break;
         case USB_BUSIF_USBDI_VERSION_1:
             if (IoStack->Parameters.QueryInterface.Size >=
-                sizeof(USB_BUS_INTERFACE_USBDI_V1))
+                    sizeof(USB_BUS_INTERFACE_USBDI_V1))
             {
                 PUSB_BUS_INTERFACE_USBDI_V1 UsbdiInt =
-                  (PUSB_BUS_INTERFACE_USBDI_V1) IoStack->Parameters.QueryInterface.Interface;
+                    (PUSB_BUS_INTERFACE_USBDI_V1) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V1);
                 UsbdiInt->Version = USB_BUSIF_USBDI_VERSION_1;
@@ -474,10 +474,10 @@ FdoPreProcessQueryInterface(
             break;
         case USB_BUSIF_USBDI_VERSION_2:
             if (IoStack->Parameters.QueryInterface.Size >=
-                sizeof(USB_BUS_INTERFACE_USBDI_V2))
+                    sizeof(USB_BUS_INTERFACE_USBDI_V2))
             {
                 PUSB_BUS_INTERFACE_USBDI_V2 UsbdiInt =
-                  (PUSB_BUS_INTERFACE_USBDI_V2) IoStack->Parameters.QueryInterface.Interface;
+                    (PUSB_BUS_INTERFACE_USBDI_V2) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V2);
                 UsbdiInt->Version = USB_BUSIF_USBDI_VERSION_2;
@@ -498,12 +498,12 @@ FdoPreProcessQueryInterface(
             }
             break;
 
-            case USB_BUSIF_USBDI_VERSION_3:
+        case USB_BUSIF_USBDI_VERSION_3:
             if (IoStack->Parameters.QueryInterface.Size >=
-                sizeof(USB_BUS_INTERFACE_USBDI_V3))
+                    sizeof(USB_BUS_INTERFACE_USBDI_V3))
             {
                 PUSB_BUS_INTERFACE_USBDI_V3 UsbdiInt =
-                  (PUSB_BUS_INTERFACE_USBDI_V3) IoStack->Parameters.QueryInterface.Interface;
+                    (PUSB_BUS_INTERFACE_USBDI_V3) IoStack->Parameters.QueryInterface.Interface;
 
                 UsbdiInt->Size = sizeof(USB_BUS_INTERFACE_USBDI_V3);
                 UsbdiInt->Version = USB_BUSIF_USBDI_VERSION_3;
@@ -532,16 +532,16 @@ FdoPreProcessQueryInterface(
         if (provideInterface)
         {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": %s USB_BUS_INTERFACE_USBDI version %d\n",
-                fdoContext->FrontEndPath,
-                IoStack->Parameters.QueryInterface.Version);
+                        __FUNCTION__": %s USB_BUS_INTERFACE_USBDI version %d\n",
+                        fdoContext->FrontEndPath,
+                        IoStack->Parameters.QueryInterface.Version);
         }
         else
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s USB_BUS_INTERFACE_USBDI version %d XXX NOT IMPLEMENTED\n",
-                fdoContext->FrontEndPath,
-                IoStack->Parameters.QueryInterface.Version);
+                        __FUNCTION__": %s USB_BUS_INTERFACE_USBDI version %d XXX NOT IMPLEMENTED\n",
+                        fdoContext->FrontEndPath,
+                        IoStack->Parameters.QueryInterface.Version);
         }
 
         Irp->IoStatus.Status = Status;
@@ -565,30 +565,30 @@ VOID
 RootHubIfInterfaceReference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
-  InterlockedIncrement(&hubContext->BusInterfaceReferenceCount);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
+    InterlockedIncrement(&hubContext->BusInterfaceReferenceCount);
 }
 
 VOID
 RootHubIfInterfaceDereference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
-  //
-  // could validate that fdo->Isa() == XUFD;
-  //
-  if (hubContext->BusInterfaceReferenceCount > 0)
-  {
-      InterlockedDecrement(&hubContext->BusInterfaceReferenceCount);
-  }
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
+    //
+    // could validate that fdo->Isa() == XUFD;
+    //
+    if (hubContext->BusInterfaceReferenceCount > 0)
+    {
+        InterlockedDecrement(&hubContext->BusInterfaceReferenceCount);
+    }
 }
 
 /**
@@ -633,11 +633,11 @@ RootHubIfCreateUsbDevice(
     hubContext->PortDevice.HubPortStatus = PortStatus;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Context %p Port %x Status %x DeviceHandleRefCount %d\n",
-        BusContext,
-        PortNumber,
-        PortStatus,
-        hubContext->PortDevice.DeviceHandleRefCount);
+                __FUNCTION__": Context %p Port %x Status %x DeviceHandleRefCount %d\n",
+                BusContext,
+                PortNumber,
+                PortStatus,
+                hubContext->PortDevice.DeviceHandleRefCount);
 
     // Give the port device a container Id.
     UUID randomUUID;
@@ -650,7 +650,7 @@ RootHubIfCreateUsbDevice(
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": Could not create container Id for device.\n");
+                    __FUNCTION__": Could not create container Id for device.\n");
     }
 
     return STATUS_SUCCESS;
@@ -690,7 +690,7 @@ RootHubIfInitializeUsbDevice(
     _Inout_ PUSB_DEVICE_HANDLE DeviceHandle)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
     UNREFERENCED_PARAMETER(BusContext);
     UNREFERENCED_PARAMETER(DeviceHandle);
 
@@ -741,7 +741,7 @@ RootHubIfCreateUsbDeviceEx(
     _In_ USHORT TtPortNumber)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
 
@@ -752,11 +752,11 @@ RootHubIfCreateUsbDeviceEx(
     }
 
     NTSTATUS Status = RootHubIfCreateUsbDevice(
-        BusContext,
-        NewDeviceHandle,
-        HubDeviceHandle,
-        PortStatus,
-        PortNumber);
+                          BusContext,
+                          NewDeviceHandle,
+                          HubDeviceHandle,
+                          PortStatus,
+                          PortNumber);
 
     if (NT_SUCCESS(Status))
     {
@@ -783,7 +783,7 @@ RootHubIfCreateUsbDeviceV7 (
     _In_ PUNICODE_STRING PhysicalDeviceObjectName)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(PdoDeviceObject);
     UNREFERENCED_PARAMETER(PhysicalDeviceObjectName);
@@ -791,12 +791,12 @@ RootHubIfCreateUsbDeviceV7 (
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     NTSTATUS Status = RootHubIfCreateUsbDeviceEx(BusContext,
-        NewDeviceHandle,
-        HsHubDeviceHandle,
-        PortStatus,
-        hubContext->Port,
-        CdErrorInfo,
-        TtPortNumber);
+                      NewDeviceHandle,
+                      HsHubDeviceHandle,
+                      PortStatus,
+                      hubContext->Port,
+                      CdErrorInfo,
+                      TtPortNumber);
     return Status;
 }
 
@@ -825,7 +825,7 @@ RootHubIfInitializeUsbDeviceEx (
     _Out_ PUSB_ID_ERROR_INFORMATION IdErrInfo)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     if (IdErrInfo)
     {
@@ -833,8 +833,8 @@ RootHubIfInitializeUsbDeviceEx (
     }
 
     NTSTATUS Status = RootHubIfInitializeUsbDevice(
-        BusContext,
-        DeviceHandle);
+                          BusContext,
+                          DeviceHandle);
 
     return Status;
 }
@@ -876,11 +876,11 @@ RootHubIfRemoveUsbDevice (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__" %s Device %p Flags %x DeviceHandleRefCount %d\n",
-        GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath,
-        hubContext->WdfDevice,
-        Flags,
-        hubContext->PortDevice.DeviceHandleRefCount);
+                __FUNCTION__" %s Device %p Flags %x DeviceHandleRefCount %d\n",
+                GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath,
+                hubContext->WdfDevice,
+                Flags,
+                hubContext->PortDevice.DeviceHandleRefCount);
 
     if (&hubContext->PortDevice != DeviceHandle)
     {
@@ -918,13 +918,13 @@ RootHubIfGetUsbDescriptors (
     _Inout_ PULONG ConfigDescriptorBufferLength)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": BusContext %p DeviceHandle %p DeviceDescriptorBuffer %p Length %d ConfigDescriptorBuffer %p Length %d\n",
-        BusContext,
-        DeviceHandle,
-        DeviceDescriptorBuffer,
-        *DeviceDescriptorBufferLength,
-        ConfigDescriptorBuffer,
-        *ConfigDescriptorBufferLength);
+                __FUNCTION__": BusContext %p DeviceHandle %p DeviceDescriptorBuffer %p Length %d ConfigDescriptorBuffer %p Length %d\n",
+                BusContext,
+                DeviceHandle,
+                DeviceDescriptorBuffer,
+                *DeviceDescriptorBufferLength,
+                ConfigDescriptorBuffer,
+                *ConfigDescriptorBufferLength);
 
     UNREFERENCED_PARAMETER(DeviceHandle);
 
@@ -938,10 +938,10 @@ RootHubIfGetUsbDescriptors (
         if (*DeviceDescriptorBufferLength < fdoContext->DeviceDescriptor.bLength)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s DeviceDescriptorBufferLength %d too small (%d)\n",
-                fdoContext->FrontEndPath,
-                *DeviceDescriptorBufferLength,
-                fdoContext->DeviceDescriptor.bLength);
+                        __FUNCTION__": %s DeviceDescriptorBufferLength %d too small (%d)\n",
+                        fdoContext->FrontEndPath,
+                        *DeviceDescriptorBufferLength,
+                        fdoContext->DeviceDescriptor.bLength);
 
             return STATUS_DEVICE_DATA_ERROR;
         }
@@ -956,8 +956,8 @@ RootHubIfGetUsbDescriptors (
         if (fdoContext->ConfigurationDescriptor == NULL)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s No config descriptor!\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s No config descriptor!\n",
+                        fdoContext->FrontEndPath);
 
             return STATUS_DEVICE_DATA_ERROR;
         }
@@ -966,10 +966,10 @@ RootHubIfGetUsbDescriptors (
         if (*ConfigDescriptorBufferLength < sizeof(USB_CONFIGURATION_DESCRIPTOR))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s ConfigDescriptorBufferLength %d too small (%d)\n",
-                fdoContext->FrontEndPath,
-                *ConfigDescriptorBufferLength,
-                sizeof(USB_CONFIGURATION_DESCRIPTOR));
+                        __FUNCTION__": %s ConfigDescriptorBufferLength %d too small (%d)\n",
+                        fdoContext->FrontEndPath,
+                        *ConfigDescriptorBufferLength,
+                        sizeof(USB_CONFIGURATION_DESCRIPTOR));
 
             return STATUS_DEVICE_DATA_ERROR;
         }
@@ -979,7 +979,7 @@ RootHubIfGetUsbDescriptors (
             copybytes = sizeof(USB_CONFIGURATION_DESCRIPTOR);
         }
         RtlCopyMemory(ConfigDescriptorBuffer, fdoContext->ConfigurationDescriptor,
-            copybytes);
+                      copybytes);
         *ConfigDescriptorBufferLength = copybytes;
     }
     return STATUS_SUCCESS;
@@ -998,8 +998,8 @@ RootHubIfRestoreUsbDevice (
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath);
+                __FUNCTION__": %s\n",
+                GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath);
     return STATUS_SUCCESS;
 }
 
@@ -1012,8 +1012,8 @@ RootHubIfGetPortHackFlags (
 {
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath);
+                __FUNCTION__": %s\n",
+                GetFdoContextFromHubDevice(hubContext->WdfDevice)->FrontEndPath);
     *Flags = 0;
     return STATUS_SUCCESS;
 }
@@ -1051,9 +1051,9 @@ RootHubIfQueryDeviceInformation (
     _Inout_ PULONG LengthOfDataCopied)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": BusContext %p DeviceHandle %p\n",
-        BusContext,
-        DeviceHandle);
+                __FUNCTION__": BusContext %p DeviceHandle %p\n",
+                BusContext,
+                DeviceHandle);
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
@@ -1062,18 +1062,18 @@ RootHubIfQueryDeviceInformation (
     if (DeviceInformationBufferLength < sizeof(USB_DEVICE_INFORMATION_0))
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s DeviceInformationBufferLength %d < %d\n",
-            fdoContext->FrontEndPath,
-            DeviceInformationBufferLength,
-            sizeof(USB_DEVICE_INFORMATION_0));
+                    __FUNCTION__": %s DeviceInformationBufferLength %d < %d\n",
+                    fdoContext->FrontEndPath,
+                    DeviceInformationBufferLength,
+                    sizeof(USB_DEVICE_INFORMATION_0));
 
         return STATUS_INVALID_DEVICE_REQUEST;
     }
     if (usbInfo == NULL)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s DeviceInformationBuffer is null\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s DeviceInformationBuffer is null\n",
+                    fdoContext->FrontEndPath);
 
         return STATUS_INVALID_DEVICE_REQUEST;
     }
@@ -1091,17 +1091,17 @@ RootHubIfQueryDeviceInformation (
     else if (DeviceHandle != &hubContext->PortDevice)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s Invalid Port device handle %p\n",
-            fdoContext->FrontEndPath,
-            DeviceHandle);
+                    __FUNCTION__": %s Invalid Port device handle %p\n",
+                    fdoContext->FrontEndPath,
+                    DeviceHandle);
 
         return STATUS_INVALID_DEVICE_REQUEST;
     }
     else if (!fdoContext->PortConnected)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s port not connected\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s port not connected\n",
+                    fdoContext->FrontEndPath);
         return STATUS_INVALID_DEVICE_REQUEST;
     }
     else
@@ -1116,7 +1116,7 @@ RootHubIfQueryDeviceInformation (
     ULONG endpoints = configInfo->m_numEndpoints;
     ULONG additionalPipeEntries = endpoints ? endpoints -1 : 0;
     size_t sizeNeeded = sizeof(USB_DEVICE_INFORMATION_0) +
-        additionalPipeEntries * sizeof(USB_PIPE_INFORMATION_0);
+                        additionalPipeEntries * sizeof(USB_PIPE_INFORMATION_0);
 
     usbInfo->ActualLength = (ULONG) sizeNeeded;
     usbInfo->DeviceAddress = 1;  // faked
@@ -1128,10 +1128,10 @@ RootHubIfQueryDeviceInformation (
     if ((ULONG) sizeNeeded > DeviceInformationBufferLength)
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s sizeNeeded %d > DeviceInformationBufferLength %d\n",
-            fdoContext->FrontEndPath,
-            sizeNeeded,
-            DeviceInformationBufferLength);
+                    __FUNCTION__": %s sizeNeeded %d > DeviceInformationBufferLength %d\n",
+                    fdoContext->FrontEndPath,
+                    sizeNeeded,
+                    DeviceInformationBufferLength);
 
         return STATUS_BUFFER_TOO_SMALL;
     }
@@ -1156,7 +1156,7 @@ RootHubIfInitialize20Hub (
     _In_ ULONG TtCount)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(HubDeviceHandle);
     UNREFERENCED_PARAMETER(TtCount);
@@ -1176,7 +1176,7 @@ RootHubIfGetDeviceBusContext (
 {
     UNREFERENCED_PARAMETER(DeviceHandle);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     UNREFERENCED_PARAMETER(hubContext);
@@ -1199,7 +1199,7 @@ RoottHubIfGetRootHubSymbolicName (
     _Out_ PULONG HubSymNameActualLength)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
@@ -1236,7 +1236,7 @@ RoottHubIfGetRootHubSymbolicName (
     *HubSymNameActualLength = lengthNeeded * sizeof(WCHAR);
     lengthNeeded--;
     RtlCopyMemory(buffer, &hub.Buffer[index+1],
-        lengthNeeded * sizeof(WCHAR));
+                  lengthNeeded * sizeof(WCHAR));
     buffer[lengthNeeded] = 0;
 
     return STATUS_SUCCESS;
@@ -1278,13 +1278,13 @@ RootHubIfGetExtendedHubInformation (
     _Out_ PULONG LengthOfDataCopied)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__":\n");
+                __FUNCTION__":\n");
 
     UNREFERENCED_PARAMETER(HubPhysicalDeviceObject);
     UNREFERENCED_PARAMETER(BusContext);
 
     PUSB_EXTHUB_INFORMATION_0 hubInfo = (PUSB_EXTHUB_INFORMATION_0)
-        HubInformationBuffer;
+                                        HubInformationBuffer;
 
     if (HubInformationBufferLength < sizeof(USB_EXTHUB_INFORMATION_0))
     {
@@ -1334,9 +1334,9 @@ RootHubIfControllerSelectiveSuspend (
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s %s\n",
-        fdoContext->FrontEndPath,
-        Enable ? "Enable" : "Disable"); // @todo too high.
+                __FUNCTION__": %s %s\n",
+                fdoContext->FrontEndPath,
+                Enable ? "Enable" : "Disable"); // @todo too high.
 
     UNREFERENCED_PARAMETER(BusContext);
 
@@ -1386,25 +1386,25 @@ RootHubIfGetControllerInformation (
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 
     PUSB_CONTROLLER_INFORMATION_0 pControllerInfo =
         (PUSB_CONTROLLER_INFORMATION_0) ControllerInformationBuffer;
     if (ControllerInformationBufferLength < sizeof(USB_CONTROLLER_INFORMATION_0))
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s ControllerInformationBufferLength %d too small\n",
-            fdoContext->FrontEndPath,
-            ControllerInformationBufferLength);
+                    __FUNCTION__": %s ControllerInformationBufferLength %d too small\n",
+                    fdoContext->FrontEndPath,
+                    ControllerInformationBufferLength);
         return STATUS_BUFFER_TOO_SMALL;
     }
     if (pControllerInfo->InformationLevel != 0)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s pControllerInfo->InformationLevel %d not supported\n",
-            fdoContext->FrontEndPath,
-            pControllerInfo->InformationLevel);
+                    __FUNCTION__": %s pControllerInfo->InformationLevel %d not supported\n",
+                    fdoContext->FrontEndPath,
+                    pControllerInfo->InformationLevel);
         return STATUS_NOT_SUPPORTED;
     }
     pControllerInfo->ActualLength = sizeof(USB_CONTROLLER_INFORMATION_0);
@@ -1426,8 +1426,8 @@ RootHubIfRootHubInitNotification (
     _In_ PRH_INIT_CALLBACK CallbackRoutine)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": CallbackRoutine %p\n",
-        CallbackRoutine);
+                __FUNCTION__": CallbackRoutine %p\n",
+                CallbackRoutine);
 
     NTSTATUS Status = STATUS_SUCCESS;
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
@@ -1475,8 +1475,8 @@ RootHubIfFlushTransfers (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 }
 
 //
@@ -1496,8 +1496,8 @@ RootHubIfSetDeviceHandleData (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 }
 
 //
@@ -1516,8 +1516,8 @@ RootHubIfSetDeviceHandleIdleReadyState (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 
     return NewIdleReadyState;
 }
@@ -1532,9 +1532,9 @@ RootHubIfDerefDeviceHandle (
     _In_ ULONG Tag)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": BusContext %p DeviceHandle %p\n",
-        BusContext,
-        DeviceHandle);
+                __FUNCTION__": BusContext %p DeviceHandle %p\n",
+                BusContext,
+                DeviceHandle);
 
     UNREFERENCED_PARAMETER(Object);
     UNREFERENCED_PARAMETER(Tag);
@@ -1560,7 +1560,7 @@ RootHubIfRefDeviceHandle (
     _In_ ULONG Tag)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(DeviceHandle);
     UNREFERENCED_PARAMETER(Object);
@@ -1588,8 +1588,8 @@ RootHubIfGetDeviceAddress (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
     *DeviceAddress = 1;
 
     return STATUS_SUCCESS;
@@ -1604,8 +1604,8 @@ RootHubIfWaitAsyncPowerUp (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
     return STATUS_SUCCESS;
 }
 
@@ -1627,7 +1627,7 @@ RootHubIfGetDevicePerformanceInfo (
     UNREFERENCED_PARAMETER(DeviceHandle);
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
     PUSB_DEVICE_PERFORMANCE_INFO_0 perf = (PUSB_DEVICE_PERFORMANCE_INFO_0) DeviceInformationBuffer;
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = GetFdoContextFromHubDevice(hubContext->WdfDevice);
@@ -1656,7 +1656,7 @@ RootHubIfHubTestPoint (
     _In_ PVOID TestData)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(DeviceHandle);
     UNREFERENCED_PARAMETER(Opcode);
@@ -1681,8 +1681,8 @@ RootHubIfSetDeviceFlag (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 }
 
 _Function_class_(USB_BUSIFFN_SET_BUS_WAKE_MODE)
@@ -1697,8 +1697,8 @@ RootHubIfSetBusSystemWakeMode (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 }
 
 _Function_class_(USB_BUSIFFN_CALC_PIPE_BANDWIDTH)
@@ -1715,8 +1715,8 @@ RootHubIfCaculatePipeBandwidth (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
     return 0;
 }
 
@@ -1727,7 +1727,7 @@ RootHubIfReleaseBusSemaphore (
     _In_ PVOID BusContext)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(BusContext);
 }
@@ -1739,7 +1739,7 @@ RootHubIfAcquireBusSemaphore (
     _In_ PVOID BusContext)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(BusContext);
 }
@@ -1755,9 +1755,9 @@ RootHubIfHubIsRoot (
     PDEVICE_OBJECT pdoDevice = WdfDeviceWdmGetDeviceObject(hubContext->WdfDevice);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": pdoDevice %p DeviceObject %p\n",
-        pdoDevice,
-        DeviceObject);
+                __FUNCTION__": pdoDevice %p DeviceObject %p\n",
+                pdoDevice,
+                DeviceObject);
 
     if (pdoDevice == DeviceObject)
     {
@@ -1779,7 +1779,7 @@ RootHubIfGetContainerIdForPort (
     _Out_ LPGUID ContainerId)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(PortNumber);
 
@@ -1797,7 +1797,7 @@ RootHubIfSetContainerIdForPort (
     _In_ LPGUID ContainerId)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__"\n");
+                __FUNCTION__"\n");
 
     UNREFERENCED_PARAMETER(PortNumber);
 
@@ -1817,8 +1817,8 @@ RootHubIfAbortAllDevicePipes (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
     return STATUS_SUCCESS;
 }
 
@@ -1836,8 +1836,8 @@ RootHubIfSetDeviceErrataFlag (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 }
 
 //
@@ -1852,8 +1852,8 @@ RootHubIfGetDebugPortNumber (
     PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) BusContext;
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": %s\n",
-        fdoContext->FrontEndPath);
+                __FUNCTION__": %s\n",
+                fdoContext->FrontEndPath);
 
     return 0;
 }
@@ -1866,28 +1866,28 @@ VOID
 RootHubIfMinidumpReference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
-  InterlockedIncrement(&hubContext->MinidumpInterfaceReferenceCount);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
+    InterlockedIncrement(&hubContext->MinidumpInterfaceReferenceCount);
 }
 
 VOID
 RootHubIfMinidumpDereference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
 
-  if (hubContext->MinidumpInterfaceReferenceCount > 0)
-  {
-      InterlockedDecrement(&hubContext->MinidumpInterfaceReferenceCount);
-  }
+    if (hubContext->MinidumpInterfaceReferenceCount > 0)
+    {
+        InterlockedDecrement(&hubContext->MinidumpInterfaceReferenceCount);
+    }
 }
 
 VOID
@@ -1895,9 +1895,9 @@ USB_BUSIFFN
 RootHubIfSetUsbPortMiniDumpFlags(
     IN PVOID flags)
 {
-  TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-      __FUNCTION__": Flags %p\n",
-      flags);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                __FUNCTION__": Flags %p\n",
+                flags);
 }
 
 //
@@ -1908,28 +1908,28 @@ VOID
 RootHubIfSSReference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
-  InterlockedIncrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
+    InterlockedIncrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
 }
 
 VOID
 RootHubIfSSDereference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-      __FUNCTION__": Context %p\n",
-      Context);
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
+                __FUNCTION__": Context %p\n",
+                Context);
 
-  if (hubContext->SelectiveSuspendInterfaceReferenceCount > 0)
-  {
-      InterlockedDecrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
-  }
+    if (hubContext->SelectiveSuspendInterfaceReferenceCount > 0)
+    {
+        InterlockedDecrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
+    }
 }
 
 NTSTATUS
@@ -1937,9 +1937,9 @@ USB_BUSIFFN
 RootHubIfSSResumeHub(
     IN PDEVICE_OBJECT PDO)
 {
-  TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-      __FUNCTION__": PDO %p\n",
-      PDO);
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
+                __FUNCTION__": PDO %p\n",
+                PDO);
     return STATUS_SUCCESS;
 }
 
@@ -1948,9 +1948,9 @@ USB_BUSIFFN
 RootHubIfSSSuspendHub(
     IN PDEVICE_OBJECT PDO)
 {
-  TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-      __FUNCTION__": PDO %p\n",
-      PDO);
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
+                __FUNCTION__": PDO %p\n",
+                PDO);
     return STATUS_UNSUCCESSFUL;
 }
 
@@ -1963,21 +1963,21 @@ VOID
 RootHubIfFpReference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  InterlockedIncrement(&hubContext->FowardProgressInterfaceReferenceCount);
+    InterlockedIncrement(&hubContext->FowardProgressInterfaceReferenceCount);
 }
 
 VOID
 RootHubIfFpDereference(
     PVOID Context)
 {
-  PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
+    PUSB_HUB_PDO_CONTEXT hubContext =(PUSB_HUB_PDO_CONTEXT) Context;
 
-  if (hubContext->FowardProgressInterfaceReferenceCount > 0)
-  {
-      InterlockedDecrement(&hubContext->FowardProgressInterfaceReferenceCount);
-  }
+    if (hubContext->FowardProgressInterfaceReferenceCount > 0)
+    {
+        InterlockedDecrement(&hubContext->FowardProgressInterfaceReferenceCount);
+    }
 }
 
 PIO_WORKITEM
@@ -1987,13 +1987,13 @@ RootHubIfFpAllocateWorkItem(
 {
     ULONG workItemSize = IoSizeofWorkItem();
     PIO_WORKITEM workitem = (PIO_WORKITEM) ExAllocatePoolWithTag(
-        NonPagedPoolNx,
-        workItemSize,
-        XVUG);
+                                NonPagedPoolNx,
+                                workItemSize,
+                                XVUG);
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Pdo %p\n",
-        Pdo);
+                __FUNCTION__": Pdo %p\n",
+                Pdo);
 
     if (workitem)
     {
@@ -2017,13 +2017,13 @@ RootHubIfFpQueueWorkItem(
     IN BOOLEAN flag)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": Device %p IoWorkItem %p WorkerRoutine %p QueueType %d Context %p flag %d\n",
-        Device,
-        IoWorkItem,
-        WorkerRoutine,
-        QueueType,
-        Context,
-        flag);
+                __FUNCTION__": Device %p IoWorkItem %p WorkerRoutine %p QueueType %d Context %p flag %d\n",
+                Device,
+                IoWorkItem,
+                WorkerRoutine,
+                QueueType,
+                Context,
+                flag);
     //
     // This is incomplete. Flag is important. The meaning is in DeferIrpProcessing
     // which calls FilterQueueWorkItem setting "flag" TRUE.
@@ -2046,8 +2046,8 @@ RootHubIfFpFreeWorkItem(
     IN PIO_WORKITEM IoWorkItem)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": IoWorkItem %p\n",
-        IoWorkItem);
+                __FUNCTION__": IoWorkItem %p\n",
+                IoWorkItem);
 
     IoUninitializeWorkItem(IoWorkItem);
     ExFreePool(IoWorkItem);
@@ -2074,9 +2074,9 @@ ProcessIrpWorkItem(
     PIRP_WORK_ITEM item = (PIRP_WORK_ITEM) context;
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-        __FUNCTION__": device %p context %p\n",
-        device,
-        context);
+                __FUNCTION__": device %p context %p\n",
+                device,
+                context);
 
     // usbport derefs the dev.
     item->Func(device, item->Irp);
@@ -2092,7 +2092,7 @@ PIRP_WORK_ITEM
 AllocateIrpWorkItem()
 {
     PIRP_WORK_ITEM irpItem =  (PIRP_WORK_ITEM) ExAllocatePoolWithTag(NonPagedPool,
-        sizeof(IRP_WORK_ITEM), XVUH);
+                              sizeof(IRP_WORK_ITEM), XVUH);
     if (irpItem)
     {
         RtlZeroMemory(irpItem, sizeof(IRP_WORK_ITEM));
@@ -2118,16 +2118,16 @@ RootHubIfFpDeferIrpProcessing(
     PIRP Irp)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": Device %p Func %p Irp %p\n",
-        Device,
-        Func,
-        Irp);
+                __FUNCTION__": Device %p Func %p Irp %p\n",
+                Device,
+                Func,
+                Irp);
 
     PIRP_WORK_ITEM workitem = AllocateIrpWorkItem();
     if (!workitem)
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": can't allocate irp work item, GFP not implemented\n");
+                    __FUNCTION__": can't allocate irp work item, GFP not implemented\n");
         // die for now! need to go into EmergencyWorkItem mode. TBD
         // note that for a complete implementation IoMarkIrpPending
         // and ObReferenceObject need to be done for this path too.
@@ -2145,11 +2145,11 @@ RootHubIfFpDeferIrpProcessing(
         workitem->Irp = Irp;
 
         RootHubIfFpQueueWorkItem(Device,
-            workitem->IoWorkItem,
-            ProcessIrpWorkItem,
-            DelayedWorkQueue,
-            workitem,
-            TRUE);
+                                 workitem->IoWorkItem,
+                                 ProcessIrpWorkItem,
+                                 DelayedWorkQueue,
+                                 workitem,
+                                 TRUE);
     }
 }
 
@@ -2168,10 +2168,10 @@ RootHubPreProcessQueryInterface(
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(hubContext->Parent);
     BOOLEAN provideInterface=FALSE;
     PUSB_BUS_INTERFACE_HUB_V8 hubif = (PUSB_BUS_INTERFACE_HUB_V8)
-        IoStack->Parameters.QueryInterface.Interface;
+                                      IoStack->Parameters.QueryInterface.Interface;
 
     if (InlineIsEqualGUID( USB_BUS_INTERFACE_HUB_GUID,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                           *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         hubif->Version = IoStack->Parameters.QueryInterface.Version;
         //
@@ -2218,9 +2218,9 @@ RootHubPreProcessQueryInterface(
                 // v8 hub drver functions:
                 //
                 hubif->GetDebugPortNumber = RootHubIfGetDebugPortNumber;
-                //
-                // fall through.
-                //
+            //
+            // fall through.
+            //
             case USB_BUSIF_HUB_VERSION_7:
                 //
                 // v7 hub driver functions:
@@ -2230,9 +2230,9 @@ RootHubPreProcessQueryInterface(
                 hubif->SetContainerIdForPort = RootHubIfSetContainerIdForPort;
                 hubif->AbortAllDevicePipes = RootHubIfAbortAllDevicePipes;
                 hubif->SetDeviceErrataFlag = RootHubIfSetDeviceErrataFlag;
-                //
-                // fall through
-                //
+            //
+            // fall through
+            //
             case USB_BUSIF_HUB_VERSION_6:
                 //
                 // v6 hub driver functions:
@@ -2300,22 +2300,22 @@ RootHubPreProcessQueryInterface(
         // log all hub interfaces for now.
         //
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__": %s USB_BUS_INTERFACE_HUB version %d %s\n",
-            fdoContext->FrontEndPath,
-            IoStack->Parameters.QueryInterface.Version,
-            provideInterface? "Implemented" : "Not Implemented");
+                    __FUNCTION__": %s USB_BUS_INTERFACE_HUB version %d %s\n",
+                    fdoContext->FrontEndPath,
+                    IoStack->Parameters.QueryInterface.Version,
+                    provideInterface? "Implemented" : "Not Implemented");
     }
     else  if (InlineIsEqualGUID( USB_BUS_INTERFACE_HUB_MINIDUMP_GUID,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                                 *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         // USB_BUS_INTERFACE_HUB_MINIDUMP has one function:
         // SetUsbPortMiniDumpFlags
 
         if ((IoStack->Parameters.QueryInterface.Size == sizeof(USB_BUS_INTERFACE_HUB_MINIDUMP)) &&
-            (IoStack->Parameters.QueryInterface.Version == USB_BUSIF_HUB_MIDUMP_VERSION_0))
+                (IoStack->Parameters.QueryInterface.Version == USB_BUSIF_HUB_MIDUMP_VERSION_0))
         {
             PUSB_BUS_INTERFACE_HUB_MINIDUMP minidump = (PUSB_BUS_INTERFACE_HUB_MINIDUMP)
-                IoStack->Parameters.QueryInterface.Interface;
+                    IoStack->Parameters.QueryInterface.Interface;
 
             minidump->Size = sizeof(USB_BUS_INTERFACE_HUB_MINIDUMP);
             minidump->Version = USB_BUSIF_HUB_MIDUMP_VERSION_0;
@@ -2325,8 +2325,8 @@ RootHubPreProcessQueryInterface(
             minidump->SetUsbPortMiniDumpFlags = RootHubIfSetUsbPortMiniDumpFlags;
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": USB_BUS_INTERFACE_HUB_MINIDUMP_GUID supported size %d functions %d\n",
-                minidump->Size, 3);
+                        __FUNCTION__": USB_BUS_INTERFACE_HUB_MINIDUMP_GUID supported size %d functions %d\n",
+                        minidump->Size, 3);
 
             InterlockedIncrement(&hubContext->MinidumpInterfaceReferenceCount);
             provideInterface = TRUE;
@@ -2334,22 +2334,22 @@ RootHubPreProcessQueryInterface(
         else
         {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": %s USB_BUS_INTERFACE_HUB_MINIDUMP_GUID unsupported\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s USB_BUS_INTERFACE_HUB_MINIDUMP_GUID unsupported\n",
+                        fdoContext->FrontEndPath);
         }
     }
     else  if (InlineIsEqualGUID( USB_BUS_INTERFACE_HUB_SS_GUID,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                                 *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         //
         // USB_BUS_INTERFACE_HUB_SELECTIVE_SUSPEND has two functions:
         // SuspendHub and ResumeHub.
         //
         if ((IoStack->Parameters.QueryInterface.Size == sizeof(USB_BUS_INTERFACE_HUB_SELECTIVE_SUSPEND)) &&
-            (IoStack->Parameters.QueryInterface.Version == USB_BUSIF_HUB_SS_VERSION_0))
+                (IoStack->Parameters.QueryInterface.Version == USB_BUSIF_HUB_SS_VERSION_0))
         {
             PUSB_BUS_INTERFACE_HUB_SELECTIVE_SUSPEND hubSuspend = (PUSB_BUS_INTERFACE_HUB_SELECTIVE_SUSPEND)
-                IoStack->Parameters.QueryInterface.Interface;
+                    IoStack->Parameters.QueryInterface.Interface;
 
             hubSuspend->Size = sizeof(USB_BUS_INTERFACE_HUB_SELECTIVE_SUSPEND);
             hubSuspend->Version = USB_BUSIF_HUB_SS_VERSION_0;
@@ -2360,8 +2360,8 @@ RootHubPreProcessQueryInterface(
             hubSuspend->SuspendHub = RootHubIfSSSuspendHub;
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": USB_BUS_INTERFACE_HUB_SS_GUID supported size %d functions %d\n",
-                hubSuspend->Size, 4);
+                        __FUNCTION__": USB_BUS_INTERFACE_HUB_SS_GUID supported size %d functions %d\n",
+                        hubSuspend->Size, 4);
 
             InterlockedIncrement(&hubContext->SelectiveSuspendInterfaceReferenceCount);
             provideInterface = TRUE;
@@ -2369,33 +2369,33 @@ RootHubPreProcessQueryInterface(
         else
         {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": %s USB_BUS_INTERFACE_HUB_SS_GUID unsupported\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s USB_BUS_INTERFACE_HUB_SS_GUID unsupported\n",
+                        fdoContext->FrontEndPath);
         }
     }
     else  if (InlineIsEqualGUID( USB_BUS_INTERFACE_USBDI_GUID,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                                 *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         // this is the controller interface, ignored here, processed by the controller device.
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": USB_BUS_INTERFACE_USBDI_GUID passed down to controller\n");
+                    __FUNCTION__": USB_BUS_INTERFACE_USBDI_GUID passed down to controller\n");
     }
     else if ( InlineIsEqualGUID( GUID_PNP_LOCATION_INTERFACE,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                                 *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__": GUID_PNP_LOCATION_INTERFACE unsupported\n");
+                    __FUNCTION__": GUID_PNP_LOCATION_INTERFACE unsupported\n");
     }
     else if ( InlineIsEqualGUID( USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID,
-        *IoStack->Parameters.QueryInterface.InterfaceType))
+                                 *IoStack->Parameters.QueryInterface.InterfaceType))
     {
         // required by win8 but nulling out all the non-generic callbacks appears to be ok.
 
         if ((IoStack->Parameters.QueryInterface.Size == sizeof(USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS)) &&
-            (IoStack->Parameters.QueryInterface.Version == 0))
+                (IoStack->Parameters.QueryInterface.Version == 0))
         {
             PUSB_BUS_INTERFACE_HUB_FORWARD_PROGRESS fp = (PUSB_BUS_INTERFACE_HUB_FORWARD_PROGRESS)
-                IoStack->Parameters.QueryInterface.Interface;
+                    IoStack->Parameters.QueryInterface.Interface;
 
             RtlZeroMemory(fp, sizeof(USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS));
             fp->Size = sizeof(USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS);
@@ -2410,9 +2410,9 @@ RootHubPreProcessQueryInterface(
             fp->DeferIrpProcessing = RootHubIfFpDeferIrpProcessing;
 
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": %s USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID supported size %d functions %d\n",
-                fdoContext->FrontEndPath,
-                fp->Size, 6);
+                        __FUNCTION__": %s USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID supported size %d functions %d\n",
+                        fdoContext->FrontEndPath,
+                        fp->Size, 6);
 
             provideInterface = TRUE;
             InterlockedIncrement(&hubContext->FowardProgressInterfaceReferenceCount);
@@ -2420,36 +2420,36 @@ RootHubPreProcessQueryInterface(
         else
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID unsupported size %d (%d) Version %d (%d)\n",
-                fdoContext->FrontEndPath,
-                IoStack->Parameters.QueryInterface.Size,
-                sizeof(USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS),
-                IoStack->Parameters.QueryInterface.Version, 0);
+                        __FUNCTION__": %s USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS_GUID unsupported size %d (%d) Version %d (%d)\n",
+                        fdoContext->FrontEndPath,
+                        IoStack->Parameters.QueryInterface.Size,
+                        sizeof(USB_BUS_INTERFACE_HUB_FORWARD_PROGRESS),
+                        IoStack->Parameters.QueryInterface.Version, 0);
         }
     }
     else
     {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-            __FUNCTION__": %s GUID unsupported: \n"
-            " %08.8x %04.4x %04.4x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2\n",
-            fdoContext->FrontEndPath,
-            IoStack->Parameters.QueryInterface.InterfaceType->Data1,
-            IoStack->Parameters.QueryInterface.InterfaceType->Data2,
-            IoStack->Parameters.QueryInterface.InterfaceType->Data3,
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[0],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[1],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[2],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[3],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[4],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[5],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[6],
-            IoStack->Parameters.QueryInterface.InterfaceType->Data4[7]);
+                    __FUNCTION__": %s GUID unsupported: \n"
+                    " %08.8x %04.4x %04.4x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2\n",
+                    fdoContext->FrontEndPath,
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data1,
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data2,
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data3,
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[0],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[1],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[2],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[3],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[4],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[5],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[6],
+                    IoStack->Parameters.QueryInterface.InterfaceType->Data4[7]);
 
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s Interface Size %x Version %d\n",
-                fdoContext->FrontEndPath,
-                IoStack->Parameters.QueryInterface.Size,
-                IoStack->Parameters.QueryInterface.Version);
+                    __FUNCTION__": %s Interface Size %x Version %d\n",
+                    fdoContext->FrontEndPath,
+                    IoStack->Parameters.QueryInterface.Size,
+                    IoStack->Parameters.QueryInterface.Version);
     }
     //
     // test again and either complete or re-dispatch.

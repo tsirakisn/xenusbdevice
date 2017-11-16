@@ -85,7 +85,7 @@ FdoQueueInitialize(
     // a depth > 1.
     //
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(
-         &queueConfig,
+        &queueConfig,
         WdfIoQueueDispatchParallel); // this could probably be serial.
 
     queueConfig.EvtIoDeviceControl = FdoEvtIoDeviceControl;
@@ -101,9 +101,9 @@ FdoQueueInitialize(
     if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": %s Default queue WdfIoQueueCreate failed %x",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s Default queue WdfIoQueueCreate failed %x",
+                    fdoContext->FrontEndPath,
+                    status);
         return status;
     }
     //
@@ -117,16 +117,16 @@ FdoQueueInitialize(
     queueConfig.EvtIoStop = FdoEvtIoStop;
 
     status = WdfIoQueueCreate(Device,
-        &queueConfig,
-        WDF_NO_OBJECT_ATTRIBUTES,
-        &fdoContext->UrbQueue);
+                              &queueConfig,
+                              WDF_NO_OBJECT_ATTRIBUTES,
+                              &fdoContext->UrbQueue);
 
     if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__": %s URB queue WdfIoQueueCreate failed %x",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s URB queue WdfIoQueueCreate failed %x",
+                    fdoContext->FrontEndPath,
+                    status);
         return status;
     }
     //
@@ -137,16 +137,16 @@ FdoQueueInitialize(
         WdfIoQueueDispatchManual);
 
     status = WdfIoQueueCreate(Device,
-        &queueConfig,
-        WDF_NO_OBJECT_ATTRIBUTES,
-        &fdoContext->RequestQueue);
+                              &queueConfig,
+                              WDF_NO_OBJECT_ATTRIBUTES,
+                              &fdoContext->RequestQueue);
 
     if( !NT_SUCCESS(status) )
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
-            __FUNCTION__ ": %s Manual queue WdfIoQueueCreate failed %x",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__ ": %s Manual queue WdfIoQueueCreate failed %x",
+                    fdoContext->FrontEndPath,
+                    status);
     }
     return status;
 }
@@ -202,9 +202,9 @@ ProcessRootHubNameRequest(
             PUSB_ROOT_HUB_NAME name;
 
             Status = WdfRequestRetrieveOutputBuffer(Request,
-                sizeof(USB_ROOT_HUB_NAME),
-                (PVOID *)&name,
-                NULL);
+                                                    sizeof(USB_ROOT_HUB_NAME),
+                                                    (PVOID *)&name,
+                                                    NULL);
 
             if (!NT_SUCCESS(Status))
             {
@@ -216,9 +216,9 @@ ProcessRootHubNameRequest(
                 if (length >= lengthNeeded)
                 {
                     Status = RtlStringCbCopyW(
-                        name->RootHubName,
-                        lengthNeeded,
-                        &hub.Buffer[4]);
+                                 name->RootHubName,
+                                 lengthNeeded,
+                                 &hub.Buffer[4]);
                     Information = lengthNeeded;
                 }
                 else
@@ -233,11 +233,11 @@ ProcessRootHubNameRequest(
     WdfRequestCompleteWithInformation(Request, Status, Information);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-        __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
-        Status,
-        Information,
-        lengthNeeded,
-        length);
+                __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
+                Status,
+                Information,
+                lengthNeeded,
+                length);
 }
 
 /**
@@ -274,9 +274,9 @@ ProcessControllerNameRequest(
     // note that WdfRequestRetrieveOutputBuffer enforces the minimum size constraints.
     PUSB_HUB_NAME name;
     Status = WdfRequestRetrieveOutputBuffer(Request,
-        sizeof(USB_HUB_NAME),
-        (PVOID *) &name,
-        NULL);
+                                            sizeof(USB_HUB_NAME),
+                                            (PVOID *) &name,
+                                            NULL);
 
     if (NT_SUCCESS(Status))
     {
@@ -302,9 +302,9 @@ ProcessControllerNameRequest(
             // ProcessDriverKeyNameRequest(). Dept of grrr.....
             //
             Status = RtlStringCbCopyW(
-                name->HubName,
-                copylength,
-                hcd.Buffer);
+                         name->HubName,
+                         copylength,
+                         hcd.Buffer);
         }
         if (Status == STATUS_BUFFER_OVERFLOW)
         {
@@ -314,11 +314,11 @@ ProcessControllerNameRequest(
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-        __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
-        Status,
-        Information,
-        lengthNeeded,
-        length);
+                __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
+                Status,
+                Information,
+                lengthNeeded,
+                length);
 
     RequestGetRequestContext(Request)->RequestCompleted = 1;
     ReleaseFdoLock(fdoContext);
@@ -351,9 +351,9 @@ ProcessDriverKeyNameRequest(
 
     PUSB_HCD_DRIVERKEY_NAME name;
     Status = WdfRequestRetrieveOutputBuffer(Request,
-            sizeof(USB_HCD_DRIVERKEY_NAME),
-            (PVOID *) &name,
-            NULL);
+                                            sizeof(USB_HCD_DRIVERKEY_NAME),
+                                            (PVOID *) &name,
+                                            NULL);
 
     if (!NT_SUCCESS(Status))
     {
@@ -365,11 +365,11 @@ ProcessDriverKeyNameRequest(
         Information = sizeof(USB_HCD_DRIVERKEY_NAME);
 
         Status = WdfDeviceQueryProperty(
-            fdoContext->WdfDevice,
-            DevicePropertyDriverKeyName,
-            stringLength,
-            name->DriverKeyName,
-            &lengthNeeded);
+                     fdoContext->WdfDevice,
+                     DevicePropertyDriverKeyName,
+                     stringLength,
+                     name->DriverKeyName,
+                     &lengthNeeded);
 
         if (Status == STATUS_BUFFER_TOO_SMALL)
         {
@@ -388,13 +388,13 @@ ProcessDriverKeyNameRequest(
     }
     // C6102 Using lengthNeeded from failed function call at line ...
     // claims that lengthNeeded is uninitialized. It clearly is initialized.
-   #pragma warning(suppress: 6102)
+#pragma warning(suppress: 6102)
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-        __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
-        Status,
-        Information,
-        lengthNeeded,
-        length);
+                __FUNCTION__": request completed with status %x size %d size needed %d output buffer length %d\n",
+                Status,
+                Information,
+                lengthNeeded,
+                length);
 
     WdfRequestCompleteWithInformation(Request, Status, Information);
 }
@@ -407,9 +407,9 @@ ProcessCyclePort(
     IN size_t OutputBufferLength)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
-        __FUNCTION__": %s for Device %p\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice);
+                __FUNCTION__": %s for Device %p\n",
+                fdoContext->FrontEndPath,
+                fdoContext->WdfDevice);
 
     UNREFERENCED_PARAMETER(OutputBufferLength);
 
@@ -425,51 +425,51 @@ AllocAndQueryPropertyString(
     IN DEVICE_REGISTRY_PROPERTY  DeviceProperty,
     OUT PULONG ResultLength)
 {
-        PWCHAR buffer = NULL;
-        *ResultLength = 0;
-        NTSTATUS Status = WdfDeviceQueryProperty(
-            Device,
-            DeviceProperty,
-            0,
-            NULL,
-            ResultLength);
+    PWCHAR buffer = NULL;
+    *ResultLength = 0;
+    NTSTATUS Status = WdfDeviceQueryProperty(
+                          Device,
+                          DeviceProperty,
+                          0,
+                          NULL,
+                          ResultLength);
 
-        if (Status != STATUS_BUFFER_TOO_SMALL)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": device %p unexpected error %x from pre-alloc WdfDeviceQueryProperty\n",
-                Device,
-                Status);
-            return NULL;
-        }
-        // C6102		Using '*ResultLength' from failed function call.
+    if (Status != STATUS_BUFFER_TOO_SMALL)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__": device %p unexpected error %x from pre-alloc WdfDeviceQueryProperty\n",
+                    Device,
+                    Status);
+        return NULL;
+    }
+    // C6102		Using '*ResultLength' from failed function call.
 #pragma warning(suppress: 6102)
-        buffer = (PWCHAR) ExAllocatePoolWithTag(PagedPool, *ResultLength, '2UVX');
-        if (!buffer)
-        {
-            return NULL;
-        }
+    buffer = (PWCHAR) ExAllocatePoolWithTag(PagedPool, *ResultLength, '2UVX');
+    if (!buffer)
+    {
+        return NULL;
+    }
 
-        Status = WdfDeviceQueryProperty(
-            Device,
-            DeviceProperty,
-            *ResultLength,
-            buffer,
-            ResultLength);
+    Status = WdfDeviceQueryProperty(
+                 Device,
+                 DeviceProperty,
+                 *ResultLength,
+                 buffer,
+                 ResultLength);
 
-        if (!NT_SUCCESS(Status))
-        {
-            ExFreePool(buffer);
+    if (!NT_SUCCESS(Status))
+    {
+        ExFreePool(buffer);
 
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": device %p unexpected error %x from WdfDeviceQueryProperty\n",
-                Device,
-                Status);
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                    __FUNCTION__": device %p unexpected error %x from WdfDeviceQueryProperty\n",
+                    Device,
+                    Status);
 
-            return NULL;
-        }
+        return NULL;
+    }
 
-        return buffer;
+    return buffer;
 }
 
 
@@ -522,8 +522,8 @@ ProcessGetDeviceConfigInfo(
         {
             Status = STATUS_UNSUCCESSFUL;
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-                __FUNCTION__": %s hubConfig NULL\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s hubConfig NULL\n",
+            fdoContext->FrontEndPath);
             LEAVE;
         }
 
@@ -531,10 +531,10 @@ ProcessGetDeviceConfigInfo(
         {
             Status = STATUS_UNSUCCESSFUL;
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-                __FUNCTION__": %s hubConfig->Length %d < %d\n",
-                fdoContext->FrontEndPath,
-                hubConfig->Length,
-                (ULONG) sizeof(HUB_DEVICE_CONFIG_INFO));
+            __FUNCTION__": %s hubConfig->Length %d < %d\n",
+            fdoContext->FrontEndPath,
+            hubConfig->Length,
+            (ULONG) sizeof(HUB_DEVICE_CONFIG_INFO));
             LEAVE;
         }
         hubConfig->Version = 1;
@@ -554,8 +554,8 @@ ProcessGetDeviceConfigInfo(
         if (!hubConfig->HardwareIds.Buffer)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-                __FUNCTION__": %s HardwareIds.Buffer NULL\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s HardwareIds.Buffer NULL\n",
+            fdoContext->FrontEndPath);
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
         }
@@ -571,8 +571,8 @@ ProcessGetDeviceConfigInfo(
         if (!hubConfig->CompatibleIds.Buffer)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-                __FUNCTION__": %s CompatibleIds.Buffer NULL\n",
-                fdoContext->FrontEndPath);
+            __FUNCTION__": %s CompatibleIds.Buffer NULL\n",
+            fdoContext->FrontEndPath);
             ExFreePool(hubConfig->HardwareIds.Buffer);
             Status = STATUS_UNSUCCESSFUL;
             LEAVE;
@@ -586,9 +586,9 @@ ProcessGetDeviceConfigInfo(
     FINALLY
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-            __FUNCTION__": %s request completed with status %x\n",
-            fdoContext->FrontEndPath,
-            Status);
+        __FUNCTION__": %s request completed with status %x\n",
+        fdoContext->FrontEndPath,
+        Status);
         //
         // acquiring and releasing the lock here is pointless
         // but is being done for consistency.
@@ -623,9 +623,9 @@ ProcessUsbPowerStateMap(
     ULONG_PTR Information = 0;
 
     NTSTATUS Status = WdfRequestRetrieveOutputBuffer(Request,
-            sizeof(USBUSER_POWER_INFO_REQUEST),
-            (PVOID *) &usbPower,
-            NULL);
+                      sizeof(USBUSER_POWER_INFO_REQUEST),
+                      (PVOID *) &usbPower,
+                      NULL);
 
     if (NT_SUCCESS(Status))
     {
@@ -661,9 +661,9 @@ ProcessUsbPowerStateMap(
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-        __FUNCTION__": request completed with status %x size %d\n",
-        Status,
-        Information);
+                __FUNCTION__": request completed with status %x size %d\n",
+                Status,
+                Information);
 
     WdfRequestCompleteWithInformation(Request, Status, Information);
 
@@ -691,9 +691,9 @@ ProcessUsbControllerInfo0(
     ULONG_PTR Information = 0;
 
     NTSTATUS Status = WdfRequestRetrieveOutputBuffer(Request,
-            sizeof(USBUSER_CONTROLLER_INFO_0),
-            (PVOID *) &usbController,
-            NULL);
+                      sizeof(USBUSER_CONTROLLER_INFO_0),
+                      (PVOID *) &usbController,
+                      NULL);
 
     if (NT_SUCCESS(Status))
     {
@@ -709,9 +709,9 @@ ProcessUsbControllerInfo0(
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-        __FUNCTION__": request completed with status %x size %d\n",
-        Status,
-        Information);
+                __FUNCTION__": request completed with status %x size %d\n",
+                Status,
+                Information);
 
     WdfRequestCompleteWithInformation(Request, Status, Information);
 
@@ -745,9 +745,9 @@ ProcessUsbUserRequest(
     // note that WdfRequestRetrieveOutputBuffer enforces the minimum size constraints.
     PUSBUSER_REQUEST_HEADER userRequest;
     Status = WdfRequestRetrieveOutputBuffer(Request,
-        sizeof(USBUSER_REQUEST_HEADER),
-        (PVOID *) &userRequest,
-        NULL);
+                                            sizeof(USBUSER_REQUEST_HEADER),
+                                            (PVOID *) &userRequest,
+                                            NULL);
 
     PCHAR userRequestString = "Unknown IOCTL_USB_USER_REQUEST type";
     ULONG UsbUserRequest = USBUSER_INVALID_REQUEST;
@@ -836,12 +836,12 @@ ProcessUsbUserRequest(
     if (Request)
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-            __FUNCTION__": %s request %s (%x) completed with status %x size %d \n",
-            fdoContext->FrontEndPath,
-            userRequestString,
-            UsbUserRequest,
-            Status,
-            Information);
+                    __FUNCTION__": %s request %s (%x) completed with status %x size %d \n",
+                    fdoContext->FrontEndPath,
+                    userRequestString,
+                    UsbUserRequest,
+                    Status,
+                    Information);
 
         WdfRequestCompleteWithInformation(Request, Status, Information);
     }
@@ -871,12 +871,12 @@ FdoEvtIoDeviceControl(
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(WdfIoQueueGetDevice(Queue));
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-        __FUNCTION__": %s Queue %p, Request %p IoControlCode %d Function %d OUT\n",
-        fdoContext->FrontEndPath,
-        Queue,
-        Request,
-        IoControlCode,
-        IoGetFunctionCodeFromCtlCode(IoControlCode));
+                __FUNCTION__": %s Queue %p, Request %p IoControlCode %d Function %d OUT\n",
+                fdoContext->FrontEndPath,
+                Queue,
+                Request,
+                IoControlCode,
+                IoGetFunctionCodeFromCtlCode(IoControlCode));
 
     UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(InputBufferLength);
@@ -894,22 +894,22 @@ FdoEvtIoDeviceControl(
 
         case IOCTL_USB_GET_ROOT_HUB_NAME:
             ProcessRootHubNameRequest(fdoContext,
-                Request,
-                OutputBufferLength);
+                                      Request,
+                                      OutputBufferLength);
             Request = NULL; // handled
             break;
 
         case IOCTL_GET_HCD_DRIVERKEY_NAME:
             ProcessDriverKeyNameRequest(fdoContext,
-                Request,
-                OutputBufferLength);
+                                        Request,
+                                        OutputBufferLength);
             Request = NULL; // handled
             break;
 
         case IOCTL_USB_USER_REQUEST:
             ProcessUsbUserRequest(fdoContext,
-                Request,
-                OutputBufferLength);
+                                  Request,
+                                  OutputBufferLength);
             Request = NULL;
             break;
 
@@ -920,10 +920,10 @@ FdoEvtIoDeviceControl(
         default:
 
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE,
-                __FUNCTION__": HCD IOCTL %x Function %d %s unsupported\n",
-                IoControlCode,
-                IoGetFunctionCodeFromCtlCode(IoControlCode),
-                UsbIoctlToString(IoControlCode));
+                        __FUNCTION__": HCD IOCTL %x Function %d %s unsupported\n",
+                        IoControlCode,
+                        IoGetFunctionCodeFromCtlCode(IoControlCode),
+                        UsbIoctlToString(IoControlCode));
             break;
         };
     }
@@ -968,11 +968,11 @@ UrbEvtIoInternalDeviceControl(
     UNREFERENCED_PARAMETER(InputBufferLength);
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE,
-        __FUNCTION__": Queue %p, Request %p IoControlCode %d FunctionCode %d\n",
-        Queue,
-        Request,
-        IoControlCode,
-        IoGetFunctionCodeFromCtlCode(IoControlCode));
+                __FUNCTION__": Queue %p, Request %p IoControlCode %d FunctionCode %d\n",
+                Queue,
+                Request,
+                IoControlCode,
+                IoGetFunctionCodeFromCtlCode(IoControlCode));
 
     PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(WdfIoQueueGetDevice(Queue));
     PFDO_REQUEST_CONTEXT requestContext = RequestGetRequestContext(Request);
@@ -986,10 +986,10 @@ UrbEvtIoInternalDeviceControl(
     TRY
     {
         if ((!fdoContext->XenConfigured) ||
-            (fdoContext->DeviceUnplugged))
+        (fdoContext->DeviceUnplugged))
         {
             if ((gVistaOrLater) ||
-                (IoControlCode != IOCTL_INTERNAL_USB_SUBMIT_URB))
+            (IoControlCode != IOCTL_INTERNAL_USB_SUBMIT_URB))
             {
                 Status = STATUS_DEVICE_DOES_NOT_EXIST;
             }
@@ -1022,86 +1022,86 @@ UrbEvtIoInternalDeviceControl(
         switch (IoControlCode)
         {
         case IOCTL_INTERNAL_USB_SUBMIT_URB:
+        {
+            if (Queue != fdoContext->UrbQueue)
             {
-                if (Queue != fdoContext->UrbQueue)
-                {
-                    // URBs have to go through the hub device.
-                    Status = STATUS_INVALID_DEVICE_REQUEST;
-                    break;
-                }
-
-                PURB Urb = URB_FROM_REQUEST(Request);
-                if (Urb->UrbHeader.UsbdDeviceHandle == 0)
-                {
-                    //
-                    // this is targeted at the hub device.
-                    //
-                    Status = STATUS_INVALID_DEVICE_REQUEST;
-                    break;
-                }
-                if (fdoContext->ResetInProgress)
-                {
-                    RequeueRequest(fdoContext, Request);
-                    Request = NULL; // consumed!
-                    LEAVE;
-                }
-
-                if ((Urb->UrbHeader.Function == URB_FUNCTION_SELECT_INTERFACE) &&
-                    (dispatchIrql >= DISPATCH_LEVEL))
-                {
-                    XXX_TODO("SELECT_INTERFACE at >= DISPATCH_LEVEL");
-                    //
-                    // This queue has to be stopped. This request
-                    // has to be requeued to a passive level queue.
-                    // That queue has to submit the select interface request
-                    // and then the completion of that request has to
-                    // restart this queue.
-                    //
-                    LEAVE;
-                }
-                SubmitUrb(fdoContext, Request, Urb);
-                Request = NULL; // consumed!
+                // URBs have to go through the hub device.
+                Status = STATUS_INVALID_DEVICE_REQUEST;
+                break;
             }
-            break;
+
+            PURB Urb = URB_FROM_REQUEST(Request);
+            if (Urb->UrbHeader.UsbdDeviceHandle == 0)
+            {
+                //
+                // this is targeted at the hub device.
+                //
+                Status = STATUS_INVALID_DEVICE_REQUEST;
+                break;
+            }
+            if (fdoContext->ResetInProgress)
+            {
+                RequeueRequest(fdoContext, Request);
+                Request = NULL; // consumed!
+                LEAVE;
+            }
+
+            if ((Urb->UrbHeader.Function == URB_FUNCTION_SELECT_INTERFACE) &&
+                    (dispatchIrql >= DISPATCH_LEVEL))
+            {
+                XXX_TODO("SELECT_INTERFACE at >= DISPATCH_LEVEL");
+                //
+                // This queue has to be stopped. This request
+                // has to be requeued to a passive level queue.
+                // That queue has to submit the select interface request
+                // and then the completion of that request has to
+                // restart this queue.
+                //
+                LEAVE;
+            }
+            SubmitUrb(fdoContext, Request, Urb);
+            Request = NULL; // consumed!
+        }
+        break;
 
         case IOCTL_INTERNAL_USB_GET_PORT_STATUS:
             //
             // Need to support for error recovery.
             //
+        {
+            PULONG portStatus = (PULONG) Parameters.Parameters.Others.Arg1;
+            if (portStatus)
             {
-                PULONG portStatus = (PULONG) Parameters.Parameters.Others.Arg1;
-                if (portStatus)
+                if (fdoContext->DeviceUnplugged)
                 {
-                    if (fdoContext->DeviceUnplugged)
-                    {
-                        *portStatus = USBD_PORT_ENABLED; // enabled but not connected.
-                        TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                            __FUNCTION__": IOCTL_INTERNAL_USB_GET_PORT_STATUS returning enabled and not connected\n");
-                    }
-                    else
-                    {
-                        *portStatus = USBD_PORT_ENABLED|USBD_PORT_CONNECTED;
-
-                        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
-                            __FUNCTION__": IOCTL_INTERNAL_USB_GET_PORT_STATUS returning enabled and connected\n");
-                    }
-                    Status = STATUS_SUCCESS;
+                    *portStatus = USBD_PORT_ENABLED; // enabled but not connected.
+                    TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
+                                __FUNCTION__": IOCTL_INTERNAL_USB_GET_PORT_STATUS returning enabled and not connected\n");
                 }
                 else
                 {
+                    *portStatus = USBD_PORT_ENABLED|USBD_PORT_CONNECTED;
 
-                    TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                        __FUNCTION__": IOCTL_INTERNAL_USB_GET_PORT_STATUS invalid request\n");
-                    Status = STATUS_INVALID_PARAMETER;
+                    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
+                                __FUNCTION__": IOCTL_INTERNAL_USB_GET_PORT_STATUS returning enabled and connected\n");
                 }
+                Status = STATUS_SUCCESS;
             }
-            break;
+            else
+            {
+
+                TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
+                            __FUNCTION__": IOCTL_INTERNAL_USB_GET_PORT_STATUS invalid request\n");
+                Status = STATUS_INVALID_PARAMETER;
+            }
+        }
+        break;
 
         case IOCTL_INTERNAL_USB_RESET_PORT:
             if (fdoContext->ResetInProgress)
             {
                 TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                    __FUNCTION__": Reset already in progress, ignoring this request\n");
+                            __FUNCTION__": Reset already in progress, ignoring this request\n");
                 Status = STATUS_SUCCESS; // ??
             }
             else
@@ -1112,34 +1112,34 @@ UrbEvtIoInternalDeviceControl(
             break;
 
         case IOCTL_INTERNAL_USB_GET_BUS_INFO: // obsolete - support USB_BUSIFFN_QUERY_BUS_INFORMATION instead
-            {
-                PUSB_BUS_NOTIFICATION busNotification =
-                    (PUSB_BUS_NOTIFICATION) Parameters.Parameters.Others.Arg1;
+        {
+            PUSB_BUS_NOTIFICATION busNotification =
+                (PUSB_BUS_NOTIFICATION) Parameters.Parameters.Others.Arg1;
 
-                TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                    __FUNCTION__": IOCTL_INTERNAL_USB_GET_BUS_INFO for device %p\n",
-                    fdoContext->WdfDevice);
-                //
-                // there appears to be no way to actually validate
-                // this structure.
-                //
-                busNotification->NotificationType = AcquireBusInfo;
-                busNotification->TotalBandwidth = 12000; // ???
-                busNotification->ConsumedBandwidth = 0; // LIAR!
-                busNotification->ControllerNameLength = 0; // or support IOCTL_INTERNAL_USB_GET_CONTROLLER_NAME
-                Status = STATUS_SUCCESS;
-            }
-            break;
+            TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
+                        __FUNCTION__": IOCTL_INTERNAL_USB_GET_BUS_INFO for device %p\n",
+                        fdoContext->WdfDevice);
+            //
+            // there appears to be no way to actually validate
+            // this structure.
+            //
+            busNotification->NotificationType = AcquireBusInfo;
+            busNotification->TotalBandwidth = 12000; // ???
+            busNotification->ConsumedBandwidth = 0; // LIAR!
+            busNotification->ControllerNameLength = 0; // or support IOCTL_INTERNAL_USB_GET_CONTROLLER_NAME
+            Status = STATUS_SUCCESS;
+        }
+        break;
 
         case IOCTL_INTERNAL_USB_SUBMIT_IDLE_NOTIFICATION:
-            {
-                //
-                // mock up an idle callback
-                //
-                ProcessIdleNotificationRequest(fdoContext, Request);
-                Request = NULL; // consumed!
-            }
-            break;
+        {
+            //
+            // mock up an idle callback
+            //
+            ProcessIdleNotificationRequest(fdoContext, Request);
+            Request = NULL; // consumed!
+        }
+        break;
 
         case IOCTL_INTERNAL_USB_GET_PARENT_HUB_INFO:
             Status = STATUS_NOT_IMPLEMENTED;
@@ -1201,10 +1201,10 @@ UrbEvtIoInternalDeviceControl(
         if (Status == STATUS_NOT_IMPLEMENTED)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_URB,
-                __FUNCTION__": INTERNAL IOCTL %x %s (%d) unsupported\n",
-                IoControlCode,
-                UsbControlCodeToString(IoControlCode),
-                IoGetFunctionCodeFromCtlCode(IoControlCode));
+                        __FUNCTION__": INTERNAL IOCTL %x %s (%d) unsupported\n",
+                        IoControlCode,
+                        UsbControlCodeToString(IoControlCode),
+                        IoGetFunctionCodeFromCtlCode(IoControlCode));
         }
     }
 
@@ -1286,9 +1286,9 @@ RequeueRequest(
     IN WDFREQUEST Request)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
-            __FUNCTION__": Device %p Request %p\n",
-            fdoContext->WdfDevice,
-            Request);
+                __FUNCTION__": Device %p Request %p\n",
+                fdoContext->WdfDevice,
+                Request);
 
     // @TODO - this function should just not be called with the lock held.
     ReleaseFdoLock(fdoContext);
@@ -1320,10 +1320,10 @@ RequeueRequest(
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-            __FUNCTION__": %s Device %p Error %x returned from WdfRequestForwardToIoQueue\n",
-            fdoContext->FrontEndPath,
-            fdoContext->WdfDevice,
-            Status);
+                    __FUNCTION__": %s Device %p Error %x returned from WdfRequestForwardToIoQueue\n",
+                    fdoContext->FrontEndPath,
+                    fdoContext->WdfDevice,
+                    Status);
         ReleaseFdoLock(fdoContext);
         WdfRequestComplete(Request, Status);
         AcquireFdoLock(fdoContext);
@@ -1351,8 +1351,8 @@ PassiveDrain(
     PUSB_FDO_WORK_ITEM_CONTEXT  context = WorkItemGetContext(WorkItem);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__":Device %p\n",
-        context->FdoContext->WdfDevice);
+                __FUNCTION__":Device %p\n",
+                context->FdoContext->WdfDevice);
     //
     // run the queue
     //
@@ -1413,59 +1413,59 @@ DrainRequestQueue(
             switch (Parameters.Parameters.DeviceIoControl.IoControlCode)
             {
             case IOCTL_INTERNAL_USB_SUBMIT_URB:
+            {
+                if (fdoContext->ResetInProgress)
                 {
-                    if (fdoContext->ResetInProgress)
-                    {
-                        RequeueThisRequest = TRUE;
-                        break;
-                    }
+                    RequeueThisRequest = TRUE;
+                    break;
+                }
 
-                    PURB Urb = (PURB) URB_FROM_REQUEST(Request);
+                PURB Urb = (PURB) URB_FROM_REQUEST(Request);
 
-                    if (!FromPassiveLevel &&
+                if (!FromPassiveLevel &&
                         Urb->UrbHeader.Function == URB_FUNCTION_SELECT_INTERFACE)
-                    {
-                        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE,
-                            __FUNCTION__ ": Device %p Request %p URB_FUNCTION_SELECT_INTERFACE processing from DPC\n",
-                            fdoContext->WdfDevice,
-                            Request);
-
-                        WDFWORKITEM worker = NewWorkItem(fdoContext,
-                            PassiveDrain,
-                            0,0,0,0);
-                        if (worker)
-                        {
-                            RequeueThisRequest = TRUE;
-                            WdfWorkItemEnqueue(worker);
-                        }
-                        else
-                        {
-                            TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE,
-                                __FUNCTION__ ": Device %p Request %p URB_FUNCTION_SELECT_INTERFACE no workitem available\n",
+                {
+                    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_QUEUE,
+                                __FUNCTION__ ": Device %p Request %p URB_FUNCTION_SELECT_INTERFACE processing from DPC\n",
                                 fdoContext->WdfDevice,
                                 Request);
-                            Status = STATUS_INSUFFICIENT_RESOURCES;
-                        }
+
+                    WDFWORKITEM worker = NewWorkItem(fdoContext,
+                                                     PassiveDrain,
+                                                     0,0,0,0);
+                    if (worker)
+                    {
+                        RequeueThisRequest = TRUE;
+                        WdfWorkItemEnqueue(worker);
                     }
                     else
                     {
-                        fdoContext->RequeuedCount = 0; // test if we requeued a request while processing it.
-                        SubmitUrb(fdoContext, Request, Urb);
-                        Request = NULL; // Consumed.
-                        if (fdoContext->RequeuedCount)
-                        {
-                            moreToDo = FALSE;
-                        }
+                        TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE,
+                                    __FUNCTION__ ": Device %p Request %p URB_FUNCTION_SELECT_INTERFACE no workitem available\n",
+                                    fdoContext->WdfDevice,
+                                    Request);
+                        Status = STATUS_INSUFFICIENT_RESOURCES;
                     }
                 }
-                break;
+                else
+                {
+                    fdoContext->RequeuedCount = 0; // test if we requeued a request while processing it.
+                    SubmitUrb(fdoContext, Request, Urb);
+                    Request = NULL; // Consumed.
+                    if (fdoContext->RequeuedCount)
+                    {
+                        moreToDo = FALSE;
+                    }
+                }
+            }
+            break;
 
             case IOCTL_INTERNAL_USB_SUBMIT_IDLE_NOTIFICATION:
-                {
-                    ProcessIdleNotificationRequest(fdoContext, Request);
-                    Request = NULL; // Consumed.
-                }
-                break;
+            {
+                ProcessIdleNotificationRequest(fdoContext, Request);
+                Request = NULL; // Consumed.
+            }
+            break;
             default:
 
                 Status = STATUS_INVALID_DEVICE_REQUEST;

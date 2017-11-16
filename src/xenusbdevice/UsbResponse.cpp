@@ -47,7 +47,7 @@ PostProcessScratch(
     IN ULONG Data)
 {
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-        __FUNCTION__": Completing scratch pad request\n");
+                __FUNCTION__": Completing scratch pad request\n");
 
     fdoContext->ScratchPad.Status = usbdStatus;
     fdoContext->ScratchPad.BytesTransferred = BytesTransferred;
@@ -65,14 +65,14 @@ PostProcessScratch(
         // --XT-- The stalled status does not seem like an error, downgrading
         // to a warning.
         ULONG level = (fdoContext->ScratchPad.Status == USBD_STATUS_STALL_PID) ?
-            TRACE_LEVEL_WARNING : TRACE_LEVEL_ERROR;
+                      TRACE_LEVEL_WARNING : TRACE_LEVEL_ERROR;
 
         TraceEvents(level, TRACE_DPC,
-            __FUNCTION__": %s Scratch request error %x usbif %s usbd %s\n",
-            fdoContext->FrontEndPath,
-            usbdStatus,
-            usbifStatusString,
-            usbdStatusString);
+                    __FUNCTION__": %s Scratch request error %x usbif %s usbd %s\n",
+                    fdoContext->FrontEndPath,
+                    usbdStatus,
+                    usbifStatusString,
+                    usbdStatusString);
     }
     KeSetEvent(&fdoContext->ScratchPad.CompletionEvent, IO_NO_INCREMENT, FALSE);
 }
@@ -111,102 +111,102 @@ PostProcessUrb(
         TraceLevel = TRACE_LEVEL_VERBOSE;
 
     TraceEvents(TraceLevel, TRACE_URB,
-        __FUNCTION__": %s Device %p Status %x UsbdStatus %x Function %s bytesTransferred %d\n",
-        fdoContext->FrontEndPath,
-        fdoContext->WdfDevice,
-        Status,
-        *usbdStatus,
-        UrbFunctionToString(Urb->UrbHeader.Function),
-        bytesTransferred);
+                __FUNCTION__": %s Device %p Status %x UsbdStatus %x Function %s bytesTransferred %d\n",
+                fdoContext->FrontEndPath,
+                fdoContext->WdfDevice,
+                Status,
+                *usbdStatus,
+                UrbFunctionToString(Urb->UrbHeader.Function),
+                bytesTransferred);
 
     switch (Urb->UrbHeader.Function)
     {
-        //
-        // UsbBuildGetDescriptorRequest
-        //
+    //
+    // UsbBuildGetDescriptorRequest
+    //
     case URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE:
+    {
+        Urb->UrbControlDescriptorRequest.TransferBufferLength = bytesTransferred;
+        if (NT_SUCCESS(Status))
         {
-            Urb->UrbControlDescriptorRequest.TransferBufferLength = bytesTransferred;
-            if (NT_SUCCESS(Status))
+            //
+            // capture the descriptor data on return
+            //
+            PVOID buffer = Urb->UrbControlDescriptorRequest.TransferBuffer;
+            //
+            // just copy the descriptor, there can only be one.
+            //
+            if (!buffer)
             {
                 //
-                // capture the descriptor data on return
+                // ugh first get the systemva then do the copy.
                 //
-                PVOID buffer = Urb->UrbControlDescriptorRequest.TransferBuffer;
-                //
-                // just copy the descriptor, there can only be one.
-                //
+                buffer = MmGetSystemAddressForMdlSafe(
+                             Urb->UrbControlDescriptorRequest.TransferBufferMDL,
+                             NormalPagePriority);
                 if (!buffer)
                 {
                     //
-                    // ugh first get the systemva then do the copy.
-                    //
-                    buffer = MmGetSystemAddressForMdlSafe(
-                        Urb->UrbControlDescriptorRequest.TransferBufferMDL,
-                        NormalPagePriority);
-                    if (!buffer)
-                    {
-                        //
-                        // XXX STUB error handling here!
-                        // we preallocated the sysva for the mdl,
-                        // so this should never happen
-                        //
-                        break;
-                    }
-                }
-                switch (Urb->UrbControlDescriptorRequest.DescriptorType)
-                {
-                case USB_DEVICE_DESCRIPTOR_TYPE:
-                    memcpy(&fdoContext->DeviceDescriptor, buffer,
-                        sizeof(fdoContext->DeviceDescriptor));
-                    break;
-
-                case USB_CONFIGURATION_DESCRIPTOR_TYPE:
-                    if (bytesTransferred >= sizeof(USB_CONFIGURATION_DESCRIPTOR))
-                    {
-                        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                            __FUNCTION__": Config descriptor returned length %d\n",
-                            bytesTransferred);
-                    }
-                    break;
-
-                case USB_STRING_DESCRIPTOR_TYPE:
-                    if (bytesTransferred >= sizeof(USB_STRING_DESCRIPTOR))
-                    {
-                        PUSB_STRING_DESCRIPTOR stringDescriptor =
-                            (PUSB_STRING_DESCRIPTOR) buffer;
-                        //
-                        // stay away from wchar strings at raised IRQL.
-                        //
-                        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                            __FUNCTION__": usb string: length %d type %d\n",
-                            stringDescriptor->bLength,
-                            stringDescriptor->bDescriptorType);
-                    }
-                    else
-                    {
-                        //
-                        // hmmmm... this ought to be an error?
-                        //
-                        TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
-                            __FUNCTION__": usb string: bytesTransferred(%d) < USB_STRING_DESCRIPTOR(%d)\n",
-                            bytesTransferred,
-                            sizeof(USB_STRING_DESCRIPTOR));
-                    }
-                    break;
-                case USB_INTERFACE_DESCRIPTOR_TYPE:
-                case USB_ENDPOINT_DESCRIPTOR_TYPE:
-                default:
-                    //
-                    // XXX unimplemented
+                    // XXX STUB error handling here!
+                    // we preallocated the sysva for the mdl,
+                    // so this should never happen
                     //
                     break;
                 }
             }
-        }
-        break;
+            switch (Urb->UrbControlDescriptorRequest.DescriptorType)
+            {
+            case USB_DEVICE_DESCRIPTOR_TYPE:
+                memcpy(&fdoContext->DeviceDescriptor, buffer,
+                       sizeof(fdoContext->DeviceDescriptor));
+                break;
 
-        // UsbBuildSelectConfigurationRequest
+            case USB_CONFIGURATION_DESCRIPTOR_TYPE:
+                if (bytesTransferred >= sizeof(USB_CONFIGURATION_DESCRIPTOR))
+                {
+                    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
+                                __FUNCTION__": Config descriptor returned length %d\n",
+                                bytesTransferred);
+                }
+                break;
+
+            case USB_STRING_DESCRIPTOR_TYPE:
+                if (bytesTransferred >= sizeof(USB_STRING_DESCRIPTOR))
+                {
+                    PUSB_STRING_DESCRIPTOR stringDescriptor =
+                        (PUSB_STRING_DESCRIPTOR) buffer;
+                    //
+                    // stay away from wchar strings at raised IRQL.
+                    //
+                    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
+                                __FUNCTION__": usb string: length %d type %d\n",
+                                stringDescriptor->bLength,
+                                stringDescriptor->bDescriptorType);
+                }
+                else
+                {
+                    //
+                    // hmmmm... this ought to be an error?
+                    //
+                    TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
+                                __FUNCTION__": usb string: bytesTransferred(%d) < USB_STRING_DESCRIPTOR(%d)\n",
+                                bytesTransferred,
+                                sizeof(USB_STRING_DESCRIPTOR));
+                }
+                break;
+            case USB_INTERFACE_DESCRIPTOR_TYPE:
+            case USB_ENDPOINT_DESCRIPTOR_TYPE:
+            default:
+                //
+                // XXX unimplemented
+                //
+                break;
+            }
+        }
+    }
+    break;
+
+    // UsbBuildSelectConfigurationRequest
     case URB_FUNCTION_SELECT_CONFIGURATION:
         //
         // Fill in the URB for the client
@@ -253,7 +253,7 @@ PostProcessUrb(
         if ((*usbdStatus == USBD_STATUS_STALL_PID) && (fdoContext->NumInterfaces == 1))
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
-                __FUNCTION__": USB pipe stalled during select config...clearing failure status code");
+                        __FUNCTION__": USB pipe stalled during select config...clearing failure status code");
             *usbdStatus = USBD_STATUS_SUCCESS;
             Urb->UrbHeader.Status = *usbdStatus;
             Status = STATUS_SUCCESS;
@@ -286,21 +286,21 @@ PostProcessUrb(
         if (isoPacketDescriptor)
         {
             Status = XenPostProcessIsoResponse(Urb,
-                usbdStatus,
-                bytesTransferred,
-                startFrame,
-                isoPacketDescriptor,
-                Status);
+                                               usbdStatus,
+                                               bytesTransferred,
+                                               startFrame,
+                                               isoPacketDescriptor,
+                                               Status);
         }
         else
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
-                __FUNCTION__": No isoPacketDescriptor for ISO Urb %p - failing request\n",
-                Urb);
+                        __FUNCTION__": No isoPacketDescriptor for ISO Urb %p - failing request\n",
+                        Urb);
             Status = STATUS_UNSUCCESSFUL;
         }
         fdoContext->ScratchPad.FrameNumber = startFrame +
-            Urb->UrbIsochronousTransfer.NumberOfPackets;
+                                             Urb->UrbIsochronousTransfer.NumberOfPackets;
         break;
 
     case URB_FUNCTION_CLASS_DEVICE:
@@ -315,23 +315,23 @@ PostProcessUrb(
     case URB_FUNCTION_SYNC_RESET_PIPE_AND_CLEAR_STALL:
 
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": Clear stall completed with usb status %x\n",
-            *usbdStatus);
+                    __FUNCTION__": Clear stall completed with usb status %x\n",
+                    *usbdStatus);
         break;
 
     case URB_FUNCTION_GET_STATUS_FROM_ENDPOINT:
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": Get status from endpoint %x usb status %x\n",
-            Urb->UrbControlGetStatusRequest.Index,
-            *usbdStatus);
+                    __FUNCTION__": Get status from endpoint %x usb status %x\n",
+                    Urb->UrbControlGetStatusRequest.Index,
+                    *usbdStatus);
         if (NT_SUCCESS(Status))
         {
             PUSHORT endpointStatus = NULL;
             if (Urb->UrbControlGetStatusRequest.TransferBufferMDL)
             {
                 endpointStatus = (PUSHORT) MmGetSystemAddressForMdlSafe(
-                    Urb->UrbControlGetStatusRequest.TransferBufferMDL,
-                    NormalPagePriority );
+                                     Urb->UrbControlGetStatusRequest.TransferBufferMDL,
+                                     NormalPagePriority );
             }
             else if (Urb->UrbControlGetStatusRequest.TransferBuffer)
             {
@@ -340,13 +340,13 @@ PostProcessUrb(
             if (endpointStatus)
             {
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DPC,
-                __FUNCTION__": Endpoint status %x\n",
-                    *endpointStatus);
+                            __FUNCTION__": Endpoint status %x\n",
+                            *endpointStatus);
             }
             else
             {
                 TraceEvents(TRACE_LEVEL_WARNING, TRACE_DPC,
-                __FUNCTION__": Endpoint status buffer NULL!\n");
+                            __FUNCTION__": Endpoint status buffer NULL!\n");
             }
         }
         break;
@@ -393,8 +393,8 @@ PostProcessSelectConfig(
     fdoContext->ConfigBusy = FALSE;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DPC,
-        __FUNCTION__": returns Status %x\n",
-        Status);
+                __FUNCTION__": returns Status %x\n",
+                Status);
     return Status;
 }
 
@@ -409,9 +409,9 @@ PostProcessSelectInterface(
     fdoContext->ConfigBusy = FALSE;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DPC,
-        __FUNCTION__": interface %d %d complete\n",
-        Urb->UrbSelectInterface.Interface.InterfaceNumber,
-        Urb->UrbSelectInterface.Interface.AlternateSetting);
+                __FUNCTION__": interface %d %d complete\n",
+                Urb->UrbSelectInterface.Interface.InterfaceNumber,
+                Urb->UrbSelectInterface.Interface.AlternateSetting);
     return Status;
 }
 

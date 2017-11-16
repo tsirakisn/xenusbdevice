@@ -63,7 +63,11 @@ EVT_WDF_FILE_CLOSE  FdoEvtFileClose;
 KDEFERRED_ROUTINE FdoEvtDeviceDpcFunc;
 
 NTSTATUS LateSetup(IN WDFDEVICE);
-NTSTATUS XenConfigure(IN PUSB_FDO_CONTEXT);
+
+NTSTATUS
+__drv_requiresIRQL(PASSIVE_LEVEL)
+XenConfigure(IN PUSB_FDO_CONTEXT);
+
 NTSTATUS XenDeconfigure(IN PUSB_FDO_CONTEXT);
 VOID CleanupDisconnectedDevice(PUSB_FDO_CONTEXT fdoContext);
 
@@ -492,21 +496,8 @@ FdoEvtDevicePrepareHardware (
     WDFCMRESLIST,
     _In_ WDFCMRESLIST)
 {
-    NTSTATUS status;
-    PUSB_FDO_CONTEXT fdoContext = DeviceGetFdoContext(Device);
+    Trace("<====>\n");
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__"\n");
-
-    Trace("====>\n");
-
-    //
-    // map the hardware resources
-    //
-
-    // --XT-- Removed call to MapXenDeviceRegisters and args to this call.
-
-    Trace("<====\n");
     return STATUS_SUCCESS;
 }
 
@@ -1058,17 +1049,24 @@ NTSTATUS FdoEvtChildListCreateDevice(
  * @param[in] Dpc The WDFDPC handle.
  *
  */
-KDEFERRED_ROUTINE FdoEvtDeviceDpcFunc;
 VOID
-__drv_requiresIRQL(DISPATCH_LEVEL)
+_Function_class_(KDEFERRED_ROUTINE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_min_(DISPATCH_LEVEL)
+_IRQL_requires_(DISPATCH_LEVEL)
+_IRQL_requires_same_
 FdoEvtDeviceDpcFunc(
-    IN PKDPC Dpc,
-    IN PVOID Context,
-    IN PVOID Argument1,
-    IN PVOID Argument2
+    _In_ struct _KDPC *Dpc,
+    _In_opt_ PVOID DeferredContext,
+    _In_opt_ PVOID SystemArgument1,
+    _In_opt_ PVOID SystemArgument2
 )
 {
-    PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT)Context;
+    UNREFERENCED_PARAMETER(Dpc);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
+    PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT)DeferredContext;
 
     ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
 
@@ -1182,9 +1180,12 @@ FdoEvtDeviceDpcFunc(
  *
  */
 VOID
-__drv_requiresIRQL(DISPATCH_LEVEL)
+_Function_class_(EVT_WDF_TIMER)
+_IRQL_requires_same_
+_IRQL_requires_max_(DISPATCH_LEVEL)
 FdoEvtTimerFunc(
-    IN WDFTIMER Timer)
+    _In_ WDFTIMER Timer
+)
 {
     ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
 

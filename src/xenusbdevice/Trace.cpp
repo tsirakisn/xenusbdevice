@@ -34,5 +34,5 @@ PCHAR gDriverName = "xenusbdevice";
 void
 GetDebugSettings(IN PUNICODE_STRING RegistryPath)
 {
-	RegistryPath;
+    UNREFERENCED_PARAMETER(RegistryPath);
 }

@@ -47,6 +47,7 @@
 #include "xenif.h"
 #pragma warning(pop)
 #pragma warning(disable : 4127) //conditional expression is constant
+#pragma warning(disable:4820) // padding added after data member
 
 #define XEN_BUS L"Xen"
 #define RB_VERSION_REQUIRED "3"
@@ -747,15 +748,18 @@ XenDeviceBackendInit(
     return TRUE;
 }
 
-KSERVICE_ROUTINE EvtchnCallback;
-
 static BOOLEAN
+_Function_class_(KSERVICE_ROUTINE)
+_IRQL_requires_(HIGH_LEVEL) // HIGH_LEVEL is best approximation of DIRQL
+_IRQL_requires_same_
 EvtchnCallback(
-    IN PKINTERRUPT InterruptObject,
-    IN PVOID       Argument
+    _In_ struct _KINTERRUPT *Interrupt,
+    _In_opt_ PVOID ServiceContext
 )
 {
-    PXEN_INTERFACE Xen = (PXEN_INTERFACE)Argument;
+    UNREFERENCED_PARAMETER(Interrupt);
+
+    PXEN_INTERFACE Xen = (PXEN_INTERFACE)ServiceContext;
     KeInsertQueueDpc(&Xen->Dpc, NULL, NULL);
     return TRUE;
 }
@@ -915,7 +919,6 @@ XenDeviceInitialize(
     // set up the mapping from shadow request to request/respons through
     // the request.id field.
     //
-    memset(Xen->Shadows, 0, sizeof(usbif_shadow_t)* SHADOW_ENTRIES);
     for (i = 0; i < SHADOW_ENTRIES; i++)
     {
         Xen->Shadows[i].req.id = i;

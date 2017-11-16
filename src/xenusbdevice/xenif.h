@@ -44,6 +44,7 @@ XenDeviceInitialize(
     IN ULONG DeviceId);
 
 NTSTATUS
+__drv_requiresIRQL(PASSIVE_LEVEL)
 XenDeviceConnectBackend(
     IN PXEN_INTERFACE Xen);
 

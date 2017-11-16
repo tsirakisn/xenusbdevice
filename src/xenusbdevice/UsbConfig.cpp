@@ -29,6 +29,8 @@
 #include "UsbConfig.h"
 #pragma warning(pop)
 
+#pragma warning(disable:4820) // padding added after data member
+
 //
 // local function declarations
 //
@@ -128,11 +130,11 @@ TraceScratchStatus(IN PUSB_FDO_CONTEXT fdoContext,
     // --XT-- The stalled status does not seem like an error, downgrading
     // to a warning.
     ULONG level = (fdoContext->ScratchPad.Status == USBD_STATUS_STALL_PID) ?
-            TRACE_LEVEL_WARNING : TRACE_LEVEL_ERROR;
+                  TRACE_LEVEL_WARNING : TRACE_LEVEL_ERROR;
 
     TraceEvents(level, TRACE_DEVICE, "%s: %s usb status %x returned\n",
-            function, fdoContext->FrontEndPath,
-            fdoContext->ScratchPad.Status);
+                function, fdoContext->FrontEndPath,
+                fdoContext->ScratchPad.Status);
 }
 
 NTSTATUS
@@ -156,10 +158,10 @@ GetUsbConfigData(
             while (!NT_SUCCESS(status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s reset device failed %x retry count %d\n",
-                    fdoContext->FrontEndPath,
-                    status,
-                    count);
+                __FUNCTION__": %s reset device failed %x retry count %d\n",
+                fdoContext->FrontEndPath,
+                status,
+                count);
                 if (count > 5)
                 {
                     break;
@@ -181,8 +183,8 @@ GetUsbConfigData(
             if (!NT_SUCCESS(status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s reset device: device failed. Set registry no reset value.\n",
-                    fdoContext->FrontEndPath);
+                            __FUNCTION__": %s reset device: device failed. Set registry no reset value.\n",
+                            fdoContext->FrontEndPath);
                 //
                 // update the registry settings for this device.
                 //
@@ -200,9 +202,9 @@ GetUsbConfigData(
             // we are high speed.
             //
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s GetDeviceSpeed error %x\n",
-                fdoContext->FrontEndPath,
-                status);
+                        __FUNCTION__": %s GetDeviceSpeed error %x\n",
+                        fdoContext->FrontEndPath,
+                        status);
             fdoContext->DeviceSpeed = UsbHighSpeed;
         }
 
@@ -210,10 +212,10 @@ GetUsbConfigData(
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Device %p failing on GetAllConfigDescriptors error %x\n",
-                fdoContext->FrontEndPath,
-                fdoContext->WdfDevice,
-                status);
+                        __FUNCTION__": %s Device %p failing on GetAllConfigDescriptors error %x\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->WdfDevice,
+                        status);
         }
     }
     FINALLY
@@ -269,8 +271,8 @@ FreeUsbConfigData(
     if (fdoContext->ConfigData)
     {
         for (ULONG Index = 0;
-            Index < fdoContext->DeviceDescriptor.bNumConfigurations;
-            Index++)
+                Index < fdoContext->DeviceDescriptor.bNumConfigurations;
+                Index++)
         {
             if (fdoContext->ConfigData[Index].m_configurationDescriptor)
             {
@@ -327,19 +329,19 @@ ProcessGetDescriptorFromNode(
     setup.Packet.wValue.Value = descRequest->SetupPacket.wValue;
 
     NTSTATUS status = PutScratchOnRing(
-        fdoContext,
-        &setup,
-        *DataLength,
-        UsbdPipeTypeControl,
-        USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
-        FALSE);
+                          fdoContext,
+                          &setup,
+                          *DataLength,
+                          UsbdPipeTypeControl,
+                          USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
+                          FALSE);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s putScratchOnRing failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s putScratchOnRing failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
         fdoContext->ConfigBusy = FALSE;
         ReleaseFdoLock(fdoContext);
         return status;
@@ -352,9 +354,9 @@ ProcessGetDescriptorFromNode(
     if (status != STATUS_SUCCESS)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s wait failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s wait failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
         status = STATUS_UNSUCCESSFUL;
     }
     else if (fdoContext->ScratchPad.Status != 0) // XXX what is the correct constant?
@@ -367,7 +369,7 @@ ProcessGetDescriptorFromNode(
         // copy data back
         *DataLength = min((*DataLength), fdoContext->ScratchPad.BytesTransferred);
         RtlCopyMemory(descRequest->Data, fdoContext->ScratchPad.Buffer,
-             *DataLength);
+                      *DataLength);
     }
     fdoContext->ConfigBusy = FALSE;
     ReleaseFdoLock(fdoContext);
@@ -397,29 +399,29 @@ GetDescriptor(
     packet->Packet.wLength = Length;
 
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__": %s (%x) Recipient %x Value %x Index %x Length %x\n",
-        DescriptorTypeToString(DescType),
-        DescType,
-        packet->Packet.bm.Request.Recipient,
-        packet->Packet.wValue.Value,
-        packet->Packet.wIndex.Value,
-        packet->Packet.wLength);
+                __FUNCTION__": %s (%x) Recipient %x Value %x Index %x Length %x\n",
+                DescriptorTypeToString(DescType),
+                DescType,
+                packet->Packet.bm.Request.Recipient,
+                packet->Packet.wValue.Value,
+                packet->Packet.wIndex.Value,
+                packet->Packet.wLength);
 
 
     NTSTATUS status = PutScratchOnRing(
-        fdoContext,
-        packet,
-        Datalength,
-        UsbdPipeTypeControl,
-        USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
-        FALSE);
+                          fdoContext,
+                          packet,
+                          Datalength,
+                          UsbdPipeTypeControl,
+                          USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
+                          FALSE);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s putScratchOnRing failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s putScratchOnRing failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
         return status;
     }
 
@@ -430,9 +432,9 @@ GetDescriptor(
     if (status != STATUS_SUCCESS)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s wait failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s wait failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
         status = STATUS_UNSUCCESSFUL;
     }
     else if (fdoContext->ScratchPad.Status != 0) // XXX what is the correct constant?
@@ -450,66 +452,66 @@ GetDeviceDescriptor(
     AcquireFdoLock(fdoContext);
 
     NTSTATUS status = GetDescriptor(
-        fdoContext,
-        &fdoContext->ScratchPad.Packet,
-        USB_DEVICE_DESCRIPTOR_TYPE,
-        BMREQUEST_TO_DEVICE,
-        0,
-        0,
-        sizeof(USB_DEVICE_DESCRIPTOR),
-        256);
+                          fdoContext,
+                          &fdoContext->ScratchPad.Packet,
+                          USB_DEVICE_DESCRIPTOR_TYPE,
+                          BMREQUEST_TO_DEVICE,
+                          0,
+                          0,
+                          sizeof(USB_DEVICE_DESCRIPTOR),
+                          256);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s GetDescriptor failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s GetDescriptor failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
     }
     else if (fdoContext->ScratchPad.BytesTransferred < sizeof(USB_DEVICE_DESCRIPTOR))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s expected %x bytes got %x\n",
-            fdoContext->FrontEndPath,
-            sizeof(USB_DEVICE_DESCRIPTOR),
-            fdoContext->ScratchPad.BytesTransferred);
+                    __FUNCTION__": %s expected %x bytes got %x\n",
+                    fdoContext->FrontEndPath,
+                    sizeof(USB_DEVICE_DESCRIPTOR),
+                    fdoContext->ScratchPad.BytesTransferred);
     }
     else
     {
         RtlCopyMemory(&fdoContext->DeviceDescriptor, fdoContext->ScratchPad.Buffer, sizeof(USB_DEVICE_DESCRIPTOR));
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s Vendor %4.4x Product %4.4x\n",
-            fdoContext->FrontEndPath,
-            fdoContext->DeviceDescriptor.idVendor,
-            fdoContext->DeviceDescriptor.idProduct);
+                    __FUNCTION__": %s Vendor %4.4x Product %4.4x\n",
+                    fdoContext->FrontEndPath,
+                    fdoContext->DeviceDescriptor.idVendor,
+                    fdoContext->DeviceDescriptor.idProduct);
 
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__":  Received %d bytes for descriptor\n"
-            "    bLength %x bDescriptorType %x bcdUSB %x bDeviceClass %x\n"
-            "    bDeviceSubClass %x bDeviceProtocol %x bMaxPacketSize0 %x\n"
-            "    bcdDevice %x iManufacturer %x iProduct %x\n"
-            "    iSerialNumber %x bNumConfigurations %x\n",
-            fdoContext->ScratchPad.BytesTransferred,
-            fdoContext->DeviceDescriptor.bLength,
-            fdoContext->DeviceDescriptor.bDescriptorType,
-            fdoContext->DeviceDescriptor.bcdUSB,
-            fdoContext->DeviceDescriptor.bDeviceClass,
-            fdoContext->DeviceDescriptor.bDeviceSubClass,
-            fdoContext->DeviceDescriptor.bDeviceProtocol,
-            fdoContext->DeviceDescriptor.bMaxPacketSize0,
-            fdoContext->DeviceDescriptor.bcdDevice,
-            fdoContext->DeviceDescriptor.iManufacturer,
-            fdoContext->DeviceDescriptor.iProduct,
-            fdoContext->DeviceDescriptor.iSerialNumber,
-            fdoContext->DeviceDescriptor.bNumConfigurations);
+                    __FUNCTION__":  Received %d bytes for descriptor\n"
+                    "    bLength %x bDescriptorType %x bcdUSB %x bDeviceClass %x\n"
+                    "    bDeviceSubClass %x bDeviceProtocol %x bMaxPacketSize0 %x\n"
+                    "    bcdDevice %x iManufacturer %x iProduct %x\n"
+                    "    iSerialNumber %x bNumConfigurations %x\n",
+                    fdoContext->ScratchPad.BytesTransferred,
+                    fdoContext->DeviceDescriptor.bLength,
+                    fdoContext->DeviceDescriptor.bDescriptorType,
+                    fdoContext->DeviceDescriptor.bcdUSB,
+                    fdoContext->DeviceDescriptor.bDeviceClass,
+                    fdoContext->DeviceDescriptor.bDeviceSubClass,
+                    fdoContext->DeviceDescriptor.bDeviceProtocol,
+                    fdoContext->DeviceDescriptor.bMaxPacketSize0,
+                    fdoContext->DeviceDescriptor.bcdDevice,
+                    fdoContext->DeviceDescriptor.iManufacturer,
+                    fdoContext->DeviceDescriptor.iProduct,
+                    fdoContext->DeviceDescriptor.iSerialNumber,
+                    fdoContext->DeviceDescriptor.bNumConfigurations);
 
         if (fdoContext->DeviceDescriptor.bNumConfigurations == 0)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s bNumConfigurations is zero\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s bNumConfigurations is zero\n",
+                        fdoContext->FrontEndPath);
             status = STATUS_UNSUCCESSFUL;
         }
     }
@@ -521,12 +523,12 @@ GetDeviceDescriptor(
         // set the usbinfo string
         //
         status = RtlStringCbPrintfW(
-            fdoContext->UsbInfoEntryName,
-            sizeof(fdoContext->UsbInfoEntryName),
-            L"usbflags\\%04.4x%04.4x%04.4x",
-            fdoContext->DeviceDescriptor.idVendor,
-            fdoContext->DeviceDescriptor.idProduct,
-            fdoContext->DeviceDescriptor.bcdDevice);
+                     fdoContext->UsbInfoEntryName,
+                     sizeof(fdoContext->UsbInfoEntryName),
+                     L"usbflags\\%04.4x%04.4x%04.4x",
+                     fdoContext->DeviceDescriptor.idVendor,
+                     fdoContext->DeviceDescriptor.idProduct,
+                     fdoContext->DeviceDescriptor.bcdDevice);
 
         if (!NT_SUCCESS(status))
         {
@@ -534,30 +536,30 @@ GetDeviceDescriptor(
             //
             // this should never happen!
             //
-           TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s RtlStringCbPrintfW error %x\n",
-                fdoContext->FrontEndPath,
-               status);
-           RtlCopyMemory(fdoContext->UsbInfoEntryName, deadBeef, sizeof(deadBeef));
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
+                        __FUNCTION__": %s RtlStringCbPrintfW error %x\n",
+                        fdoContext->FrontEndPath,
+                        status);
+            RtlCopyMemory(fdoContext->UsbInfoEntryName, deadBeef, sizeof(deadBeef));
         }
         //
         // allocate the array of config data based on the device descriptor
         //
         fdoContext->ConfigData = (PUSB_CONFIG_INFO) ExAllocatePoolWithTag(
-            NonPagedPool,
-            fdoContext->DeviceDescriptor.bNumConfigurations * sizeof(USB_CONFIG_INFO),
-            XVU3);
+                                     NonPagedPool,
+                                     fdoContext->DeviceDescriptor.bNumConfigurations * sizeof(USB_CONFIG_INFO),
+                                     XVU3);
         if (!fdoContext->ConfigData)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s no memory for config info\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s no memory for config info\n",
+                        fdoContext->FrontEndPath);
             status = STATUS_INSUFFICIENT_RESOURCES;
         }
         else
         {
             RtlZeroMemory(fdoContext->ConfigData,
-                fdoContext->DeviceDescriptor.bNumConfigurations * sizeof(USB_CONFIG_INFO));
+                          fdoContext->DeviceDescriptor.bNumConfigurations * sizeof(USB_CONFIG_INFO));
         }
         //
         // fetch the registry flags for this usb device.
@@ -580,12 +582,12 @@ GetDeviceSpeed(
     fdoContext->ScratchPad.Request = XenUsbGetSpeed;
 
     NTSTATUS status = PutScratchOnRing(
-        fdoContext,
-        &fdoContext->ScratchPad.Packet,
-        sizeof(ULONG),
-        (USBD_PIPE_TYPE)XenUsbGetSpeed,
-        USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
-        FALSE);
+                          fdoContext,
+                          &fdoContext->ScratchPad.Packet,
+                          sizeof(ULONG),
+                          (USBD_PIPE_TYPE)XenUsbGetSpeed,
+                          USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK, //!< Control IN
+                          FALSE);
 
     ReleaseFdoLock(fdoContext);
 
@@ -615,17 +617,17 @@ GetDeviceSpeed(
         };
 
         TraceEvents(debugLevel, TRACE_DEVICE,
-            __FUNCTION__": %s GetDeviceSpeed got %s (%d)\n",
-            fdoContext->FrontEndPath,
-            String,
-            fdoContext->ScratchPad.Data);
+                    __FUNCTION__": %s GetDeviceSpeed got %s (%d)\n",
+                    fdoContext->FrontEndPath,
+                    String,
+                    fdoContext->ScratchPad.Data);
     }
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s waitForScratchCompletion failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s waitForScratchCompletion failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
     }
     return status;
 }
@@ -641,21 +643,21 @@ ResetDevice(
 
     RtlZeroMemory(&fdoContext->ScratchPad.Packet, sizeof(fdoContext->ScratchPad.Packet));
     NTSTATUS status = PutScratchOnRing(
-        fdoContext,
-        NULL,
-        0,
-        UsbdPipeTypeControl,
-        USB_ENDPOINT_TYPE_CONTROL,
-        TRUE);
+                          fdoContext,
+                          NULL,
+                          0,
+                          UsbdPipeTypeControl,
+                          USB_ENDPOINT_TYPE_CONTROL,
+                          TRUE);
 
     ReleaseFdoLock(fdoContext);
 
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s putScratchOnRing for failed %x\n",
-            fdoContext->FrontEndPath,
-            status);
+                    __FUNCTION__": %s putScratchOnRing for failed %x\n",
+                    fdoContext->FrontEndPath,
+                    status);
     }
     else
     {
@@ -670,9 +672,9 @@ ResetDevice(
         }
     }
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-        __FUNCTION__": %s returns status %x\n",
-        fdoContext->FrontEndPath,
-        status);
+                __FUNCTION__": %s returns status %x\n",
+                fdoContext->FrontEndPath,
+                status);
     return status;
 }
 
@@ -686,17 +688,17 @@ GetAllConfigDescriptors(
         return status;
     }
     for (UCHAR Index = 0;
-        Index < fdoContext->DeviceDescriptor.bNumConfigurations;
-        Index++)
+            Index < fdoContext->DeviceDescriptor.bNumConfigurations;
+            Index++)
     {
         status = GetCompleteConfigDescriptor(fdoContext, Index);
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Get config descriptor %d of %d failed\n",
-                fdoContext->FrontEndPath,
-                Index,
-                fdoContext->DeviceDescriptor.bNumConfigurations);
+                        __FUNCTION__": %s Get config descriptor %d of %d failed\n",
+                        fdoContext->FrontEndPath,
+                        Index,
+                        fdoContext->DeviceDescriptor.bNumConfigurations);
             break;
         }
     }
@@ -724,7 +726,7 @@ GetAllConfigDescriptors(
                     // need to offset bConfigurationValue
                     //
                     status = SetCurrentConfiguration(fdoContext,
-                        defaultDesc->bConfigurationValue + fdoContext->CurrentConfigOffset);
+                                                     defaultDesc->bConfigurationValue + fdoContext->CurrentConfigOffset);
                 }
                 else
                 {
@@ -771,12 +773,12 @@ ConfigInfoByValue(
     if (fdoContext->ConfigData)
     {
         for (UCHAR Index = 0;
-            Index < fdoContext->DeviceDescriptor.bNumConfigurations;
-            Index++)
+                Index < fdoContext->DeviceDescriptor.bNumConfigurations;
+                Index++)
         {
             configInfo = &fdoContext->ConfigData[Index];
             if ((configInfo->m_configurationDescriptor) &&
-                (configInfo->m_configurationDescriptor->bConfigurationValue == Value))
+                    (configInfo->m_configurationDescriptor->bConfigurationValue == Value))
             {
                 break;
             }
@@ -798,9 +800,9 @@ GetDefaultInterface(
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s Warning: no interfaces defined for this device %p\n",
-            fdoContext->FrontEndPath,
-            fdoContext->WdfDevice);
+                    __FUNCTION__": %s Warning: no interfaces defined for this device %p\n",
+                    fdoContext->FrontEndPath,
+                    fdoContext->WdfDevice);
         return NULL;
     }
 }
@@ -818,7 +820,7 @@ SetConfigPointers(
     if (CurrentConfigValue(fdoContext))
     {
         PUSB_CONFIG_INFO info = ConfigInfoByValue(fdoContext,
-            fdoContext->CurrentConfigValue);
+                                fdoContext->CurrentConfigValue);
         if (info)
         {
             fdoContext->ConfigurationDescriptor  = info->m_configurationDescriptor;
@@ -846,7 +848,7 @@ ParseConfig(
     UCHAR configValue = configInfo->m_configurationDescriptor->bConfigurationValue;
 
     PUCHAR descEnd = (PUCHAR)configInfo->m_configurationDescriptor +
-        configInfo->m_configurationDescriptor->wTotalLength;
+                     configInfo->m_configurationDescriptor->wTotalLength;
     PUSB_COMMON_DESCRIPTOR commonDesc = (PUSB_COMMON_DESCRIPTOR)configInfo->m_configurationDescriptor;
     PUCHAR currentLocation = (PUCHAR) configInfo->m_configurationDescriptor;
     ULONG numInterfaces = 0;
@@ -860,7 +862,7 @@ ParseConfig(
     ULONG numHidEndpointsFound = 0;
 
     while ((PUCHAR)commonDesc + sizeof(USB_COMMON_DESCRIPTOR) < descEnd &&
-        (PUCHAR)commonDesc + commonDesc->bLength <= descEnd)
+            (PUCHAR)commonDesc + commonDesc->bLength <= descEnd)
     {
         switch (commonDesc->bDescriptorType)
         {
@@ -868,17 +870,17 @@ ParseConfig(
             if (configDescriptors != 0)
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d configuration descriptor unexpected\n",
-                    configValue);
+                            __FUNCTION__ ": Config %d configuration descriptor unexpected\n",
+                            configValue);
                 Status = STATUS_UNSUCCESSFUL;
                 break;
             }
             if (commonDesc->bLength != sizeof(USB_CONFIGURATION_DESCRIPTOR))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Error parsing configuration descriptor index %d\n",
-                    configValue,
-                    enumIndex);
+                            __FUNCTION__ ": Config %d Error parsing configuration descriptor index %d\n",
+                            configValue,
+                            enumIndex);
                 Status = STATUS_UNSUCCESSFUL;
                 break;
             }
@@ -892,11 +894,11 @@ ParseConfig(
             if (commonDesc->bLength < sizeof(USB_INTERFACE_DESCRIPTOR))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Error parsing interface descriptor index %d bLength %d expected %d\n",
-                    configValue,
-                    commonDesc->bLength,
-                    sizeof(USB_INTERFACE_DESCRIPTOR),
-                    enumIndex);
+                            __FUNCTION__ ": Config %d Error parsing interface descriptor index %d bLength %d expected %d\n",
+                            configValue,
+                            commonDesc->bLength,
+                            sizeof(USB_INTERFACE_DESCRIPTOR),
+                            enumIndex);
                 Status = STATUS_UNSUCCESSFUL;
                 break;
             }
@@ -908,25 +910,25 @@ ParseConfig(
                 //
                 configInfo->m_interfaceDescriptors[numInterfaces] = currentInterface;
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Found interface at %p\n",
-                    configValue,
-                    currentInterface);
+                            __FUNCTION__ ": Config %d Found interface at %p\n",
+                            configValue,
+                            currentInterface);
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    "bLength %x bDescriptorType %x bInterfaceNumber %x\n"
-                    "bAlternateSetting %x bNumEndpoints %x bInterfaceClass %x\n"
-                    "bInterfaceSubClass %x bInterfaceProtocol %x iInterface %x\n",
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bLength,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bDescriptorType,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceNumber,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bAlternateSetting,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bNumEndpoints,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceClass,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceSubClass,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceProtocol,
-                    configInfo->m_interfaceDescriptors[numInterfaces]->iInterface);
+                            "bLength %x bDescriptorType %x bInterfaceNumber %x\n"
+                            "bAlternateSetting %x bNumEndpoints %x bInterfaceClass %x\n"
+                            "bInterfaceSubClass %x bInterfaceProtocol %x iInterface %x\n",
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bLength,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bDescriptorType,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceNumber,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bAlternateSetting,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bNumEndpoints,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceClass,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceSubClass,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceProtocol,
+                            configInfo->m_interfaceDescriptors[numInterfaces]->iInterface);
 
                 if (configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceClass ==
-                    USB_INTERFACE_CLASS_HID)
+                        USB_INTERFACE_CLASS_HID)
                 {
                     isHidDevice = TRUE;
                     isHidDescriptorBeforeEndpoint = FALSE;
@@ -938,12 +940,12 @@ ParseConfig(
                     // hid descriptor AFTER the endpoints.
                     //
                     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                        __FUNCTION__ ": Config %d HID Device class subclass %d protocol %d\n",
-                        configValue,
-                        // 1 == boot
-                        configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceSubClass,
-                        // 1 == keyboard 2 == mouse
-                        configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceProtocol);
+                                __FUNCTION__ ": Config %d HID Device class subclass %d protocol %d\n",
+                                configValue,
+                                // 1 == boot
+                                configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceSubClass,
+                                // 1 == keyboard 2 == mouse
+                                configInfo->m_interfaceDescriptors[numInterfaces]->bInterfaceProtocol);
                 }
                 else
                 {
@@ -963,17 +965,17 @@ ParseConfig(
                 if (!isHidDevice)
                 {
                     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                        __FUNCTION__ ": Config %d Hid descriptor found for non-hid device (ignoring it)\n",
-                        configValue);
+                                __FUNCTION__ ": Config %d Hid descriptor found for non-hid device (ignoring it)\n",
+                                configValue);
                 }
                 else if ((numHidEndpointsFound == 0) && numHidEndPoints)
                 {
                     isHidDescriptorBeforeEndpoint = TRUE;
                 }
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Found HID descriptor HID device was %s compliant\n",
-                    configValue,
-                    isHidDescriptorBeforeEndpoint ? "D4" : "D3");
+                            __FUNCTION__ ": Config %d Found HID descriptor HID device was %s compliant\n",
+                            configValue,
+                            isHidDescriptorBeforeEndpoint ? "D4" : "D3");
             }
             currentLocation  += commonDesc->bLength;
             commonDesc = (PUSB_COMMON_DESCRIPTOR) currentLocation;
@@ -984,19 +986,19 @@ ParseConfig(
             if (commonDesc->bLength < sizeof(USB_ENDPOINT_DESCRIPTOR)) // not equal?
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Error parsing endpoint descriptor index %d bLength %d expected %d\n",
-                    configValue,
-                    enumIndex,
-                    commonDesc->bLength,
-                    sizeof(USB_ENDPOINT_DESCRIPTOR));
+                            __FUNCTION__ ": Config %d Error parsing endpoint descriptor index %d bLength %d expected %d\n",
+                            configValue,
+                            enumIndex,
+                            commonDesc->bLength,
+                            sizeof(USB_ENDPOINT_DESCRIPTOR));
                 Status = STATUS_UNSUCCESSFUL;
                 break;
             }
             if (currentInterface == NULL)
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Error parsing endpoint descriptor. currentInterface is NULL\n",
-                    configValue);
+                            __FUNCTION__ ": Config %d Error parsing endpoint descriptor. currentInterface is NULL\n",
+                            configValue);
                 Status = STATUS_UNSUCCESSFUL;
                 break;
             }
@@ -1007,49 +1009,49 @@ ParseConfig(
                 configInfo->m_pipeDescriptors[numEndpoints].interfaceDescriptor = currentInterface;
                 configInfo->m_pipeDescriptors[numEndpoints].valid = FALSE;
                 configInfo->m_pipeDescriptors[numEndpoints].intInEndpoint = (
-                    (ea->bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_INTERRUPT) &&
-                    USB_ENDPOINT_DIRECTION_IN(ea->bEndpointAddress);
+                            (ea->bmAttributes & USB_ENDPOINT_TYPE_MASK) == USB_ENDPOINT_TYPE_INTERRUPT) &&
+                        USB_ENDPOINT_DIRECTION_IN(ea->bEndpointAddress);
                 configInfo->m_pipeDescriptors[numEndpoints].requestsQueued = 0;
                 configInfo->m_pipeDescriptors[numEndpoints].lastResponseTime = 0;
                 configInfo->m_pipeDescriptors[numEndpoints].abortInProgress = FALSE;
                 configInfo->m_pipeDescriptors[numEndpoints].abortWaiters = 0;
                 KeInitializeEvent(&configInfo->m_pipeDescriptors[numEndpoints].abortCompleteEvent,
-                    NotificationEvent,
-                    FALSE);
+                                  NotificationEvent,
+                                  FALSE);
 
 
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Found %s endpoint %x at %p for interface %p (%d %d) Class %x SubClass %x Protocol %x IntIn %d\n",
-                    configValue,
-                    AttributesToEndpointTypeString(ea->bmAttributes),
-                    ea->bEndpointAddress,
-                    configInfo->m_pipeDescriptors[numEndpoints].endpoint,
-                    configInfo->m_pipeDescriptors[numEndpoints].interfaceDescriptor,
-                    currentInterface->bInterfaceNumber,
-                    currentInterface->bAlternateSetting,
-                    currentInterface->bInterfaceClass,
-                    currentInterface->bInterfaceSubClass,
-                    currentInterface->bInterfaceProtocol,
-                    configInfo->m_pipeDescriptors[numEndpoints].intInEndpoint);
+                            __FUNCTION__ ": Config %d Found %s endpoint %x at %p for interface %p (%d %d) Class %x SubClass %x Protocol %x IntIn %d\n",
+                            configValue,
+                            AttributesToEndpointTypeString(ea->bmAttributes),
+                            ea->bEndpointAddress,
+                            configInfo->m_pipeDescriptors[numEndpoints].endpoint,
+                            configInfo->m_pipeDescriptors[numEndpoints].interfaceDescriptor,
+                            currentInterface->bInterfaceNumber,
+                            currentInterface->bAlternateSetting,
+                            currentInterface->bInterfaceClass,
+                            currentInterface->bInterfaceSubClass,
+                            currentInterface->bInterfaceProtocol,
+                            configInfo->m_pipeDescriptors[numEndpoints].intInEndpoint);
 
                 TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__ ": bLength %x bDescriptorType %x bEndpointAddress %x\n"
-                    "bmAttributes %x wMaxPacketSize %x bInterval %x\n",
-                    ea->bLength,
-                    ea->bDescriptorType,
-                    ea->bEndpointAddress,
-                    ea->bmAttributes,
-                    ea->wMaxPacketSize,
-                    ea->bInterval);
+                            __FUNCTION__ ": bLength %x bDescriptorType %x bEndpointAddress %x\n"
+                            "bmAttributes %x wMaxPacketSize %x bInterval %x\n",
+                            ea->bLength,
+                            ea->bDescriptorType,
+                            ea->bEndpointAddress,
+                            ea->bmAttributes,
+                            ea->wMaxPacketSize,
+                            ea->bInterval);
 
                 if (isHidDevice)
                 {
                     if (numHidEndpointsFound == 0 &&
-                        !isHidDescriptorBeforeEndpoint)
+                            !isHidDescriptorBeforeEndpoint)
                     {
                         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                            __FUNCTION__ ": Config %d D3 compliant HID device\n",
-                            configValue);
+                                    __FUNCTION__ ": Config %d D3 compliant HID device\n",
+                                    configValue);
                     }
                     numHidEndpointsFound++;
                 }
@@ -1059,40 +1061,40 @@ ParseConfig(
             numEndpoints++;
             enumIndex++;
             continue;
-            //
-            // Audio devices are bork'd. Why?
-            //
+        //
+        // Audio devices are bork'd. Why?
+        //
         case (USB_CLASS_AUDIO | USB_INTERFACE_DESCRIPTOR_TYPE):
-            {
-                PUSB_INTERFACE_DESCRIPTOR audioInterface = (PUSB_INTERFACE_DESCRIPTOR) commonDesc;
-                TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Audio Class Interface Descriptor bLength %d bDescriptorType %x bDescriptorSubtype %x\n",
-                    configValue,
-                    audioInterface->bLength,
-                    audioInterface->bDescriptorType,
-                    audioInterface->bInterfaceNumber);
-            }
-            currentLocation  += commonDesc->bLength;
-            commonDesc = (PUSB_COMMON_DESCRIPTOR) currentLocation;
-            enumIndex++;
-            continue;
+        {
+            PUSB_INTERFACE_DESCRIPTOR audioInterface = (PUSB_INTERFACE_DESCRIPTOR) commonDesc;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                        __FUNCTION__ ": Config %d Audio Class Interface Descriptor bLength %d bDescriptorType %x bDescriptorSubtype %x\n",
+                        configValue,
+                        audioInterface->bLength,
+                        audioInterface->bDescriptorType,
+                        audioInterface->bInterfaceNumber);
+        }
+        currentLocation  += commonDesc->bLength;
+        commonDesc = (PUSB_COMMON_DESCRIPTOR) currentLocation;
+        enumIndex++;
+        continue;
 
         case (USB_CLASS_AUDIO | USB_ENDPOINT_DESCRIPTOR_TYPE):
-            {
-                PUSB_ENDPOINT_DESCRIPTOR audioEndpoint = (PUSB_ENDPOINT_DESCRIPTOR) commonDesc;
-                TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                    __FUNCTION__ ": Config %d Audio Class Endpoint Descriptor bLength %d bDescriptorType %x\n"
-                    "    bDescriptorSubtype %x bmAttributes %x\n",
-                    configValue,
-                    audioEndpoint->bLength,
-                    audioEndpoint->bDescriptorType,
-                    audioEndpoint->bEndpointAddress,
-                    audioEndpoint->bEndpointAddress);
-            }
-            currentLocation  += commonDesc->bLength;
-            commonDesc = (PUSB_COMMON_DESCRIPTOR) currentLocation;
-            enumIndex++;
-            continue;
+        {
+            PUSB_ENDPOINT_DESCRIPTOR audioEndpoint = (PUSB_ENDPOINT_DESCRIPTOR) commonDesc;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
+                        __FUNCTION__ ": Config %d Audio Class Endpoint Descriptor bLength %d bDescriptorType %x\n"
+                        "    bDescriptorSubtype %x bmAttributes %x\n",
+                        configValue,
+                        audioEndpoint->bLength,
+                        audioEndpoint->bDescriptorType,
+                        audioEndpoint->bEndpointAddress,
+                        audioEndpoint->bEndpointAddress);
+        }
+        currentLocation  += commonDesc->bLength;
+        commonDesc = (PUSB_COMMON_DESCRIPTOR) currentLocation;
+        enumIndex++;
+        continue;
 
         case USB_RESERVED_DESCRIPTOR_TYPE:
         case USB_CONFIG_POWER_DESCRIPTOR_TYPE:
@@ -1102,10 +1104,10 @@ ParseConfig(
             // allow other descriptors as well.
             //
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__ ": Config %d Custom descriptor type %x length %x \n",
-                configValue,
-                commonDesc->bDescriptorType,
-                commonDesc->bLength);
+                        __FUNCTION__ ": Config %d Custom descriptor type %x length %x \n",
+                        configValue,
+                        commonDesc->bDescriptorType,
+                        commonDesc->bLength);
 
             currentLocation  += commonDesc->bLength;
             commonDesc = (PUSB_COMMON_DESCRIPTOR) currentLocation;
@@ -1119,10 +1121,10 @@ ParseConfig(
         configInfo->m_numInterfaces = numInterfaces;
         configInfo->m_numEndpoints = numEndpoints;
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__ ": Config %d parseConfig successfully parsed %d interfaces and %d endpoints\n",
-            configValue,
-            configInfo->m_numInterfaces,
-            configInfo->m_numEndpoints);
+                    __FUNCTION__ ": Config %d parseConfig successfully parsed %d interfaces and %d endpoints\n",
+                    configValue,
+                    configInfo->m_numInterfaces,
+                    configInfo->m_numEndpoints);
     }
     return Status;
 }
@@ -1145,10 +1147,10 @@ GetCompleteConfigDescriptor(
 
     USB_CONFIGURATION_DESCRIPTOR configHeader;
     NTSTATUS status = GetConfigDescriptor(
-        fdoContext,
-        &configHeader,
-        sizeof(configHeader),
-        index);
+                          fdoContext,
+                          &configHeader,
+                          sizeof(configHeader),
+                          index);
 
     if (!NT_SUCCESS(status))
     {
@@ -1162,19 +1164,19 @@ GetCompleteConfigDescriptor(
         ExFreePool(configInfo->m_configurationDescriptor);
     }
     configInfo->m_configurationDescriptor = (PUSB_CONFIGURATION_DESCRIPTOR)
-        ExAllocatePoolWithTag(NonPagedPool, length, XVU4);
+                                            ExAllocatePoolWithTag(NonPagedPool, length, XVU4);
     if (!configInfo->m_configurationDescriptor)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s allocation failure for m_configurationDescriptor\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s allocation failure for m_configurationDescriptor\n",
+                    fdoContext->FrontEndPath);
         return STATUS_UNSUCCESSFUL;
     }
     status = GetConfigDescriptor(
-        fdoContext,
-        configInfo->m_configurationDescriptor,
-        length,
-        index);
+                 fdoContext,
+                 configInfo->m_configurationDescriptor,
+                 length,
+                 index);
 
     if (!NT_SUCCESS(status))
     {
@@ -1198,9 +1200,9 @@ GetCompleteConfigDescriptor(
         // what is this?
         //
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s Config index %d No interfaces?\n",
-            fdoContext->FrontEndPath,
-            index);
+                    __FUNCTION__": %s Config index %d No interfaces?\n",
+                    fdoContext->FrontEndPath,
+                    index);
         ExFreePool(configInfo->m_configurationDescriptor);
         configInfo->m_configurationDescriptor = NULL;
         return STATUS_UNSUCCESSFUL;
@@ -1209,15 +1211,15 @@ GetCompleteConfigDescriptor(
     // allocate interface pointers and pipe_descriptor pointers
     //
     configInfo->m_interfaceDescriptors = (PUSB_INTERFACE_DESCRIPTOR *)
-        ExAllocatePoolWithTag(NonPagedPool,
-            (configInfo->m_numInterfaces * sizeof(PUSB_INTERFACE_DESCRIPTOR *)),
-            XVU5);
+                                         ExAllocatePoolWithTag(NonPagedPool,
+                                                 (configInfo->m_numInterfaces * sizeof(PUSB_INTERFACE_DESCRIPTOR *)),
+                                                 XVU5);
     if (!configInfo->m_interfaceDescriptors)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s Config index %d allocation failure for interface pointer array\n",
-            fdoContext->FrontEndPath,
-            index);
+                    __FUNCTION__": %s Config index %d allocation failure for interface pointer array\n",
+                    fdoContext->FrontEndPath,
+                    index);
         ExFreePool(configInfo->m_configurationDescriptor);
         configInfo->m_configurationDescriptor = NULL;
         return STATUS_UNSUCCESSFUL;
@@ -1230,15 +1232,15 @@ GetCompleteConfigDescriptor(
     if (configInfo->m_numEndpoints)
     {
         configInfo->m_pipeDescriptors = (PIPE_DESCRIPTOR *)
-            ExAllocatePoolWithTag(NonPagedPool,
-            (configInfo->m_numEndpoints * sizeof(PIPE_DESCRIPTOR)),
-            XVU6);
+                                        ExAllocatePoolWithTag(NonPagedPool,
+                                                (configInfo->m_numEndpoints * sizeof(PIPE_DESCRIPTOR)),
+                                                XVU6);
         if (!configInfo->m_pipeDescriptors)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s Config index %d allocation failure for PIPE_DESCRIPTOR array\n",
-                fdoContext->FrontEndPath,
-                index);
+                        __FUNCTION__": %s Config index %d allocation failure for PIPE_DESCRIPTOR array\n",
+                        fdoContext->FrontEndPath,
+                        index);
             ExFreePool(configInfo->m_configurationDescriptor);
             configInfo->m_configurationDescriptor = NULL;
             ExFreePool(configInfo->m_interfaceDescriptors);
@@ -1280,78 +1282,78 @@ GetConfigDescriptor(
     if (!configDescriptor)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s input buffer NULL!\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s input buffer NULL!\n",
+                    fdoContext->FrontEndPath);
         return STATUS_UNSUCCESSFUL;
     }
     if (length < sizeof(USB_CONFIGURATION_DESCRIPTOR))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s input length %x too small (%x)\n",
-            fdoContext->FrontEndPath,
-            length,
-            sizeof(USB_CONFIGURATION_DESCRIPTOR));
+                    __FUNCTION__": %s input length %x too small (%x)\n",
+                    fdoContext->FrontEndPath,
+                    length,
+                    sizeof(USB_CONFIGURATION_DESCRIPTOR));
 
         return STATUS_UNSUCCESSFUL;
     }
     if (length > 0xffff)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s input length %x too big\n",
-            fdoContext->FrontEndPath,
-            length);
+                    __FUNCTION__": %s input length %x too big\n",
+                    fdoContext->FrontEndPath,
+                    length);
         return STATUS_UNSUCCESSFUL;
     }
     if (index >= fdoContext->DeviceDescriptor.bNumConfigurations)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s input index %d bNumConfigurations %d\n",
-            fdoContext->FrontEndPath,
-            index,
-            fdoContext->DeviceDescriptor.bNumConfigurations);
+                    __FUNCTION__": %s input index %d bNumConfigurations %d\n",
+                    fdoContext->FrontEndPath,
+                    index,
+                    fdoContext->DeviceDescriptor.bNumConfigurations);
         return STATUS_UNSUCCESSFUL;
     }
 
     AcquireFdoLock(fdoContext);
 
     NTSTATUS status = GetDescriptor(
-        fdoContext,
-        &fdoContext->ScratchPad.Packet,
-        USB_CONFIGURATION_DESCRIPTOR_TYPE,
-        BMREQUEST_TO_DEVICE,
-        index,
-        0,
-        (USHORT) length,
-        length);
+                          fdoContext,
+                          &fdoContext->ScratchPad.Packet,
+                          USB_CONFIGURATION_DESCRIPTOR_TYPE,
+                          BMREQUEST_TO_DEVICE,
+                          index,
+                          0,
+                          (USHORT) length,
+                          length);
     do
     {
         if (!NT_SUCCESS(status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s failed index %d %x\n",
-                fdoContext->FrontEndPath,
-                index,
-                status);
+                        __FUNCTION__": %s failed index %d %x\n",
+                        fdoContext->FrontEndPath,
+                        index,
+                        status);
             break;
         }
 
         if (fdoContext->ScratchPad.BytesTransferred < sizeof(USB_CONFIGURATION_DESCRIPTOR))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s expected at least %x bytes got %x\n",
-                fdoContext->FrontEndPath,
-                sizeof(USB_CONFIGURATION_DESCRIPTOR),
-                fdoContext->ScratchPad.BytesTransferred);
+                        __FUNCTION__": %s expected at least %x bytes got %x\n",
+                        fdoContext->FrontEndPath,
+                        sizeof(USB_CONFIGURATION_DESCRIPTOR),
+                        fdoContext->ScratchPad.BytesTransferred);
             status = STATUS_UNSUCCESSFUL;
             break;
         }
         if (fdoContext->ScratchPad.BytesTransferred > length)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s expected no more than %x bytes got %x\n",
-                fdoContext->FrontEndPath,
-                length,
-                fdoContext->ScratchPad.BytesTransferred);
+                        __FUNCTION__": %s expected no more than %x bytes got %x\n",
+                        fdoContext->FrontEndPath,
+                        length,
+                        fdoContext->ScratchPad.BytesTransferred);
             status = STATUS_UNSUCCESSFUL;
             break;
         }
@@ -1360,15 +1362,15 @@ GetConfigDescriptor(
         if (configDescriptor->bConfigurationValue == 0)
         {
             if ((index == 0) &&
-                (fdoContext->DeviceDescriptor.bNumConfigurations == 1))
+                    (fdoContext->DeviceDescriptor.bNumConfigurations == 1))
             {
                 //
                 // UGH! This device has a single non-compliant config with a
                 // bConfigurationValue of zero, allow it to exist.
                 //
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s Non compliant single config zero value config descriptor allowed\n",
-                    fdoContext->FrontEndPath);
+                            __FUNCTION__": %s Non compliant single config zero value config descriptor allowed\n",
+                            fdoContext->FrontEndPath);
                 fdoContext->CurrentConfigOffset = 1;
             }
             else
@@ -1378,27 +1380,27 @@ GetConfigDescriptor(
                 // bConfigurationValue of zero, don't allow it to exist.
                 //
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s Non compliant multi config zero value config descriptor not allowed\n",
-                    fdoContext->FrontEndPath);
+                            __FUNCTION__": %s Non compliant multi config zero value config descriptor not allowed\n",
+                            fdoContext->FrontEndPath);
                 status = STATUS_UNSUCCESSFUL;
             }
         }
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": index %d Received %d bytes for config descriptor\n"
-            "    bLength %x bDescriptorType %x wTotalLength %x bNumInterfaces %x\n"
-            "    bConfigurationValue %x iConfiguration %x bmAttributes %x\n"
-            "    MaxPower %x\n",
-            index,
-            fdoContext->ScratchPad.BytesTransferred,
-            configDescriptor->bLength,
-            configDescriptor->bDescriptorType,
-            configDescriptor->wTotalLength,
-            configDescriptor->bNumInterfaces,
-            configDescriptor->bConfigurationValue,
-            configDescriptor->iConfiguration,
-            configDescriptor->bmAttributes,
-            configDescriptor->MaxPower);
+                    __FUNCTION__": index %d Received %d bytes for config descriptor\n"
+                    "    bLength %x bDescriptorType %x wTotalLength %x bNumInterfaces %x\n"
+                    "    bConfigurationValue %x iConfiguration %x bmAttributes %x\n"
+                    "    MaxPower %x\n",
+                    index,
+                    fdoContext->ScratchPad.BytesTransferred,
+                    configDescriptor->bLength,
+                    configDescriptor->bDescriptorType,
+                    configDescriptor->wTotalLength,
+                    configDescriptor->bNumInterfaces,
+                    configDescriptor->bConfigurationValue,
+                    configDescriptor->iConfiguration,
+                    configDescriptor->bmAttributes,
+                    configDescriptor->MaxPower);
         break;
 
     } while (1);
@@ -1425,44 +1427,44 @@ GetDeviceStrings(
         fdoContext->LangId = (USHORT)*p;
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": Language ID: 0x%04.4x (English 0x0409) Length: %d (4)\n",
-          *p,
-          lang_id->bLength);
+                    __FUNCTION__": Language ID: 0x%04.4x (English 0x0409) Length: %d (4)\n",
+                    *p,
+                    lang_id->bLength);
         ExFreePool (lang_id);
     }
 
     if (fdoContext->DeviceDescriptor.iSerialNumber)
     {
         fdoContext->SerialNumber = GetString(fdoContext,
-            fdoContext->DeviceDescriptor.iSerialNumber);
+                                             fdoContext->DeviceDescriptor.iSerialNumber);
         if (fdoContext->SerialNumber)
         {
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": serial number: %S\n",
-                fdoContext->SerialNumber->sString);
+                        __FUNCTION__": serial number: %S\n",
+                        fdoContext->SerialNumber->sString);
         }
     }
     if (fdoContext->DeviceDescriptor.iProduct)
     {
         fdoContext->Product = GetString(
-            fdoContext,
-            fdoContext->DeviceDescriptor.iProduct);
+                                  fdoContext,
+                                  fdoContext->DeviceDescriptor.iProduct);
         if (fdoContext->Product)
         {
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": product: %S\n",
-                fdoContext->Product->sString);
+                        __FUNCTION__": product: %S\n",
+                        fdoContext->Product->sString);
         }
     }
     if (fdoContext->DeviceDescriptor.iManufacturer)
     {
         fdoContext->Manufacturer = GetString(fdoContext,
-            fdoContext->DeviceDescriptor.iManufacturer);
+                                             fdoContext->DeviceDescriptor.iManufacturer);
         if (fdoContext->Manufacturer )
         {
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": manufacturer: %S\n",
-                fdoContext->Manufacturer->sString);
+                        __FUNCTION__": manufacturer: %S\n",
+                        fdoContext->Manufacturer->sString);
         }
     }
 }
@@ -1479,27 +1481,27 @@ GetOsDescriptorString(
         if (!fdoContext->FetchOsDescriptor)
         {
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": %s this device does not support os descriptors\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s this device does not support os descriptors\n",
+                        fdoContext->FrontEndPath);
             doSet = FALSE;
             break;
         }
         if (fdoContext->OsDescriptorString)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s m_osDescriptor already set\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s m_osDescriptor already set\n",
+                        fdoContext->FrontEndPath);
             Status = STATUS_SUCCESS;
             break;
         }
 
         fdoContext->OsDescriptorString = (POS_DESCRIPTOR_STRING) GetString(
-            fdoContext, OS_STRING_DESCRIPTOR_INDEX);
+                                             fdoContext, OS_STRING_DESCRIPTOR_INDEX);
         if (!fdoContext->OsDescriptorString)
         {
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": putScratchOnRing failed %x\n",
-                Status);
+                        __FUNCTION__": putScratchOnRing failed %x\n",
+                        Status);
             doReset = TRUE;
             break;
         }
@@ -1507,64 +1509,64 @@ GetOsDescriptorString(
         if (fdoContext->OsDescriptorString->osDescriptor.bLength != 0x12)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s OS Descriptor invalid length %x ignoring\n",
-                fdoContext->FrontEndPath,
-                fdoContext->OsDescriptorString->osDescriptor.bLength);
+                        __FUNCTION__": %s OS Descriptor invalid length %x ignoring\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->OsDescriptorString->osDescriptor.bLength);
             break;
         }
 
         if (fdoContext->OsDescriptorString->osDescriptor.bDescriptorType != 0x03)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s OS Descriptor invalid type %x ignoring\n",
-                fdoContext->FrontEndPath,
-                fdoContext->OsDescriptorString->osDescriptor.bDescriptorType);
+                        __FUNCTION__": %s OS Descriptor invalid type %x ignoring\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->OsDescriptorString->osDescriptor.bDescriptorType);
             break;
         }
 
         if (wcsncmp(MS_OS_STRING_SIGNATURE, fdoContext->OsDescriptorString->osDescriptor.MicrosoftString, 7))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s OS Descriptor invalid String %C%C%C%C%C%C ignoring\n",
-                fdoContext->FrontEndPath,
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[0],
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[1],
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[2],
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[3],
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[4],
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[5],
-                fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[6]);
+                        __FUNCTION__": %s OS Descriptor invalid String %C%C%C%C%C%C ignoring\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[0],
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[1],
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[2],
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[3],
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[4],
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[5],
+                        fdoContext->OsDescriptorString->osDescriptor.MicrosoftString[6]);
             break;
         }
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s OS Descriptor String found for this device\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s OS Descriptor String found for this device\n",
+                    fdoContext->FrontEndPath);
         //
         //  fetch the feature descriptor
         //
         WDF_USB_CONTROL_SETUP_PACKET packet = formatOsFeaturePacket(
-            fdoContext->OsDescriptorString->osDescriptor.bVendorCode,
-            0,
-            0,
-            4,
-            0x10);
+                fdoContext->OsDescriptorString->osDescriptor.bVendorCode,
+                0,
+                0,
+                4,
+                0x10);
 
         AcquireFdoLock(fdoContext);
         Status = PutScratchOnRing(
-            fdoContext,
-            &packet,
-            0x16,
-            UsbdPipeTypeControl,
-            USB_ENDPOINT_DIRECTION_MASK,
-            FALSE);
+                     fdoContext,
+                     &packet,
+                     0x16,
+                     UsbdPipeTypeControl,
+                     USB_ENDPOINT_DIRECTION_MASK,
+                     FALSE);
         ReleaseFdoLock(fdoContext);
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s putScratchOnRing failed %x\n",
-                fdoContext->FrontEndPath,
-                Status);
+                        __FUNCTION__": %s putScratchOnRing failed %x\n",
+                        fdoContext->FrontEndPath,
+                        Status);
             break;
         }
 
@@ -1572,9 +1574,9 @@ GetOsDescriptorString(
         if (Status != STATUS_SUCCESS)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s wait failed %x\n",
-                fdoContext->FrontEndPath,
-                Status);
+                        __FUNCTION__": %s wait failed %x\n",
+                        fdoContext->FrontEndPath,
+                        Status);
             break;
         }
 
@@ -1589,9 +1591,9 @@ GetOsDescriptorString(
         if (compatIds->header.dwLength > PAGE_SIZE)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s dwLength %d too big\n",
-                fdoContext->FrontEndPath,
-                compatIds->header.dwLength);
+                        __FUNCTION__": %s dwLength %d too big\n",
+                        fdoContext->FrontEndPath,
+                        compatIds->header.dwLength);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
@@ -1599,9 +1601,9 @@ GetOsDescriptorString(
         if (compatIds->header.bcdVersion != 0x100)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s bcdVersion %x not 0x0100\n",
-                fdoContext->FrontEndPath,
-                compatIds->header.bcdVersion);
+                        __FUNCTION__": %s bcdVersion %x not 0x0100\n",
+                        fdoContext->FrontEndPath,
+                        compatIds->header.bcdVersion);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
@@ -1609,24 +1611,24 @@ GetOsDescriptorString(
         if (compatIds->header.wIndex != 4)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s wIndex %x not 4\n",
-                fdoContext->FrontEndPath,
-                compatIds->header.wIndex);
+                        __FUNCTION__": %s wIndex %x not 4\n",
+                        fdoContext->FrontEndPath,
+                        compatIds->header.wIndex);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
 
         USHORT length = (compatIds->header.bCount * (USHORT) sizeof(OS_COMPATID_FUNCTION)) +
-            (USHORT) sizeof(OS_FEATURE_HEADER);
+                        (USHORT) sizeof(OS_FEATURE_HEADER);
         if (length != compatIds->header.dwLength)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s computed length %d != reported length %d bCount %d size %d\n",
-                fdoContext->FrontEndPath,
-                length,
-                compatIds->header.dwLength,
-                compatIds->header.bCount,
-                sizeof(OS_COMPATID_FUNCTION));
+                        __FUNCTION__": %s computed length %d != reported length %d bCount %d size %d\n",
+                        fdoContext->FrontEndPath,
+                        length,
+                        compatIds->header.dwLength,
+                        compatIds->header.bCount,
+                        sizeof(OS_COMPATID_FUNCTION));
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
@@ -1634,28 +1636,28 @@ GetOsDescriptorString(
         // get the whole thing
         //
         packet = formatOsFeaturePacket(
-            fdoContext->OsDescriptorString->osDescriptor.bVendorCode,
-            0,
-            0,
-            4,
-            length);
+                     fdoContext->OsDescriptorString->osDescriptor.bVendorCode,
+                     0,
+                     0,
+                     4,
+                     length);
 
         AcquireFdoLock(fdoContext);
         Status = PutScratchOnRing(
-            fdoContext,
-            &packet,
-            length,
-            UsbdPipeTypeControl,
-            USB_ENDPOINT_DIRECTION_MASK,
-            FALSE);
+                     fdoContext,
+                     &packet,
+                     length,
+                     UsbdPipeTypeControl,
+                     USB_ENDPOINT_DIRECTION_MASK,
+                     FALSE);
         ReleaseFdoLock(fdoContext);
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s putScratchOnRing (2) failed %x\n",
-                fdoContext->FrontEndPath,
-                Status);
+                        __FUNCTION__": %s putScratchOnRing (2) failed %x\n",
+                        fdoContext->FrontEndPath,
+                        Status);
             break;
         }
 
@@ -1663,9 +1665,9 @@ GetOsDescriptorString(
         if (Status != STATUS_SUCCESS)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s wait (2) failed %x\n",
-                fdoContext->FrontEndPath,
-                Status);
+                        __FUNCTION__": %s wait (2) failed %x\n",
+                        fdoContext->FrontEndPath,
+                        Status);
             break;
         }
 
@@ -1679,51 +1681,51 @@ GetOsDescriptorString(
         if (compatIds->header.bcdVersion != 0x100)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s compatID bcdVersion %x not 0x100\n",
-                fdoContext->FrontEndPath,
-                compatIds->header.bcdVersion);
+                        __FUNCTION__": %s compatID bcdVersion %x not 0x100\n",
+                        fdoContext->FrontEndPath,
+                        compatIds->header.bcdVersion);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
         if (compatIds->header.wIndex != 4)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s compatId wIndex %x not 4\n",
-                fdoContext->FrontEndPath,
-                compatIds->header.wIndex);
+                        __FUNCTION__": %s compatId wIndex %x not 4\n",
+                        fdoContext->FrontEndPath,
+                        compatIds->header.wIndex);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
         if (length != compatIds->header.dwLength)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s compatid dwLength %d not %d\n",
-                fdoContext->FrontEndPath,
-                compatIds->header.dwLength,
-                length);
+                        __FUNCTION__": %s compatid dwLength %d not %d\n",
+                        fdoContext->FrontEndPath,
+                        compatIds->header.dwLength,
+                        length);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
         fdoContext->CompatIds = (POS_COMPAT_ID) ExAllocatePoolWithTag(NonPagedPool,
-            length,
-            XVU7);
+                                length,
+                                XVU7);
         if (!fdoContext->CompatIds)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s allocation failure\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s allocation failure\n",
+                        fdoContext->FrontEndPath);
             Status = STATUS_UNSUCCESSFUL;
             break;
         }
         RtlCopyMemory(fdoContext->CompatIds, fdoContext->ScratchPad.Buffer, length);
-                // yay! That was fun!
+        // yay! That was fun!
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s got compat IDs length %d count %d %s %s\n",
-            fdoContext->FrontEndPath,
-            fdoContext->CompatIds->header.dwLength,
-            fdoContext->CompatIds->header.bCount,
-            fdoContext->CompatIds->functions[0].compatibleID,
-            fdoContext->CompatIds->functions[0].subCompatibleID);
+                    __FUNCTION__": %s got compat IDs length %d count %d %s %s\n",
+                    fdoContext->FrontEndPath,
+                    fdoContext->CompatIds->header.dwLength,
+                    fdoContext->CompatIds->header.bCount,
+                    fdoContext->CompatIds->functions[0].compatibleID,
+                    fdoContext->CompatIds->functions[0].subCompatibleID);
 
     } while(0);
 
@@ -1750,8 +1752,8 @@ GetOsDescriptorString(
         if (doReset)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s reset device after os compat failure\n",
-                fdoContext->FrontEndPath);
+                        __FUNCTION__": %s reset device after os compat failure\n",
+                        fdoContext->FrontEndPath);
 
             ResetDevice(fdoContext);
         }
@@ -1774,8 +1776,8 @@ GetString(
     if (!uString)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s allocation failed\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s allocation failed\n",
+                    fdoContext->FrontEndPath);
         return NULL;
     }
 
@@ -1788,20 +1790,20 @@ GetString(
         USHORT ActualLength;
 
         NTSTATUS Status = GetDescriptor(
-            fdoContext,
-            &fdoContext->ScratchPad.Packet,
-            USB_STRING_DESCRIPTOR_TYPE,
-            BMREQUEST_TO_DEVICE,
-            index,
-            fdoContext->LangId,
-            4,
-            sizeof(USB_STRING));
+                              fdoContext,
+                              &fdoContext->ScratchPad.Packet,
+                              USB_STRING_DESCRIPTOR_TYPE,
+                              BMREQUEST_TO_DEVICE,
+                              index,
+                              fdoContext->LangId,
+                              4,
+                              sizeof(USB_STRING));
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": GetDescriptor length probe failed %x\n",
-                Status);
+                        __FUNCTION__": GetDescriptor length probe failed %x\n",
+                        Status);
             ExFreePool(uString);
             uString = NULL;
             break;
@@ -1809,46 +1811,46 @@ GetString(
 
         ActualLength = (USHORT) ((PUCHAR)fdoContext->ScratchPad.Buffer)[0];
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": GetDescriptor requesting string of length %d (0x%x)\n",
-            ActualLength, ActualLength);
+                    __FUNCTION__": GetDescriptor requesting string of length %d (0x%x)\n",
+                    ActualLength, ActualLength);
 
         Status = GetDescriptor(
-            fdoContext,
-            &fdoContext->ScratchPad.Packet,
-            USB_STRING_DESCRIPTOR_TYPE,
-            BMREQUEST_TO_DEVICE,
-            index,
-            fdoContext->LangId,
-            ActualLength,
-            sizeof(USB_STRING));
+                     fdoContext,
+                     &fdoContext->ScratchPad.Packet,
+                     USB_STRING_DESCRIPTOR_TYPE,
+                     BMREQUEST_TO_DEVICE,
+                     index,
+                     fdoContext->LangId,
+                     ActualLength,
+                     sizeof(USB_STRING));
 
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s actual length %d GetDescriptor failed %x\n",
-                fdoContext->FrontEndPath,
-                ActualLength,
-                Status);
+                        __FUNCTION__": %s actual length %d GetDescriptor failed %x\n",
+                        fdoContext->FrontEndPath,
+                        ActualLength,
+                        Status);
             //
             // ugh. Ok try using 255. Some devices are broken.
             // Note: some other devices are broken the other way.
             //
             Status = GetDescriptor(
-                fdoContext,
-                &fdoContext->ScratchPad.Packet,
-                USB_STRING_DESCRIPTOR_TYPE,
-                BMREQUEST_TO_DEVICE,
-                index,
-                fdoContext->LangId,
-                0xff,
-                sizeof(USB_STRING));
+                         fdoContext,
+                         &fdoContext->ScratchPad.Packet,
+                         USB_STRING_DESCRIPTOR_TYPE,
+                         BMREQUEST_TO_DEVICE,
+                         index,
+                         fdoContext->LangId,
+                         0xff,
+                         sizeof(USB_STRING));
 
             if (!NT_SUCCESS(Status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s max length 255 GetDescriptor failed %x\n",
-                    fdoContext->FrontEndPath,
-                    Status);
+                            __FUNCTION__": %s max length 255 GetDescriptor failed %x\n",
+                            fdoContext->FrontEndPath,
+                            Status);
                 ExFreePool(uString);
                 uString = NULL;
                 break;
@@ -1858,10 +1860,10 @@ GetString(
         if (fdoContext->ScratchPad.BytesTransferred < sizeof(USB_COMMON_DESCRIPTOR))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s expected %x bytes got %x\n",
-                fdoContext->FrontEndPath,
-                sizeof(fdoContext->DeviceDescriptor),
-                fdoContext->ScratchPad.BytesTransferred);
+                        __FUNCTION__": %s expected %x bytes got %x\n",
+                        fdoContext->FrontEndPath,
+                        sizeof(fdoContext->DeviceDescriptor),
+                        fdoContext->ScratchPad.BytesTransferred);
             ExFreePool(uString);
             uString = NULL;
             break;
@@ -1871,9 +1873,9 @@ GetString(
         if (uString->bLength < 3)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s less that three bytes of data (%d)\n",
-                fdoContext->FrontEndPath,
-                uString->bLength);
+                        __FUNCTION__": %s less that three bytes of data (%d)\n",
+                        fdoContext->FrontEndPath,
+                        uString->bLength);
             ExFreePool(uString);
             uString = NULL;
             break;
@@ -1914,12 +1916,12 @@ GetCurrentConfigurationLocked(
     fdoContext->ScratchPad.Request = XenUsbdPipeControl;
 
     NTSTATUS Status = PutScratchOnRing(
-        fdoContext,
-        &fdoContext->ScratchPad.Packet,
-        sizeof(UCHAR),
-        UsbdPipeTypeControl,
-        USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK,
-        FALSE);
+                          fdoContext,
+                          &fdoContext->ScratchPad.Packet,
+                          sizeof(UCHAR),
+                          UsbdPipeTypeControl,
+                          USB_ENDPOINT_TYPE_CONTROL | USB_ENDPOINT_DIRECTION_MASK,
+                          FALSE);
 
     ReleaseFdoLock(fdoContext);
     Status = WaitForScratchCompletion(fdoContext);
@@ -1932,16 +1934,16 @@ GetCurrentConfigurationLocked(
             PUCHAR byte0 = (PUCHAR) &fdoContext->ScratchPad.Data;
             fdoContext->CurrentConfigValue = *byte0;
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-                __FUNCTION__": %s CurrentConfiguration %d\n",
-                fdoContext->FrontEndPath,
-                fdoContext->CurrentConfigValue);
+                        __FUNCTION__": %s CurrentConfiguration %d\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->CurrentConfigValue);
         }
         else
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s %d m_scratchBytesTransferred unexpected\n",
-                fdoContext->FrontEndPath,
-                fdoContext->ScratchPad.BytesTransferred);
+                        __FUNCTION__": %s %d m_scratchBytesTransferred unexpected\n",
+                        fdoContext->FrontEndPath,
+                        fdoContext->ScratchPad.BytesTransferred);
 
             if (fdoContext->ResetDevice)
             {
@@ -1959,9 +1961,9 @@ GetCurrentConfigurationLocked(
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s failed %x\n",
-            fdoContext->FrontEndPath,
-            Status);
+                    __FUNCTION__": %s failed %x\n",
+                    fdoContext->FrontEndPath,
+                    Status);
     }
     return Status;
 }
@@ -2004,12 +2006,12 @@ SetCurrentConfigurationLocked(
     fdoContext->ScratchPad.Request = XenUsbdPipeControl;
 
     NTSTATUS Status = PutScratchOnRing(
-        fdoContext,
-        &fdoContext->ScratchPad.Packet,
-        sizeof(UCHAR),
-        UsbdPipeTypeControl,
-        USB_ENDPOINT_TYPE_CONTROL,
-        FALSE);
+                          fdoContext,
+                          &fdoContext->ScratchPad.Packet,
+                          sizeof(UCHAR),
+                          UsbdPipeTypeControl,
+                          USB_ENDPOINT_TYPE_CONTROL,
+                          FALSE);
 
     ReleaseFdoLock(fdoContext);
     Status = WaitForScratchCompletion(fdoContext);
@@ -2019,9 +2021,9 @@ SetCurrentConfigurationLocked(
     {
         fdoContext->CurrentConfigValue = configValue;  // XXX how to deal with non-compliant configs?
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DEVICE,
-            __FUNCTION__":  %s %d\n",
-            fdoContext->FrontEndPath,
-            fdoContext->CurrentConfigValue);
+                    __FUNCTION__":  %s %d\n",
+                    fdoContext->FrontEndPath,
+                    fdoContext->CurrentConfigValue);
 
         if (SetInterface)
         {
@@ -2029,10 +2031,10 @@ SetCurrentConfigurationLocked(
             // select an interface too.
             //
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-                __FUNCTION__": %s SET_INTERFACE %d Alternate %d\n",
-                fdoContext->FrontEndPath,
-                InterfaceNumber,
-                AlternateSetting);
+                        __FUNCTION__": %s SET_INTERFACE %d Alternate %d\n",
+                        fdoContext->FrontEndPath,
+                        InterfaceNumber,
+                        AlternateSetting);
 
             RtlZeroMemory(&fdoContext->ScratchPad.Packet, sizeof(fdoContext->ScratchPad.Packet));
             fdoContext->ScratchPad.Packet.Packet.bm.Request.Dir = BMREQUEST_HOST_TO_DEVICE;
@@ -2044,12 +2046,12 @@ SetCurrentConfigurationLocked(
             fdoContext->ScratchPad.Packet.Packet.wLength = 0;
 
             Status = PutScratchOnRing(
-                fdoContext,
-                &fdoContext->ScratchPad.Packet,
-                sizeof(UCHAR),
-                UsbdPipeTypeControl,
-                USB_ENDPOINT_TYPE_CONTROL,
-                FALSE);
+                         fdoContext,
+                         &fdoContext->ScratchPad.Packet,
+                         sizeof(UCHAR),
+                         UsbdPipeTypeControl,
+                         USB_ENDPOINT_TYPE_CONTROL,
+                         FALSE);
 
             ReleaseFdoLock(fdoContext);
             Status = WaitForScratchCompletion(fdoContext);
@@ -2058,18 +2060,18 @@ SetCurrentConfigurationLocked(
             if (!NT_SUCCESS(Status))
             {
                 TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                    __FUNCTION__": %s SET_INTERFACE failed %x\n",
-                    fdoContext->FrontEndPath,
-                    Status);
+                            __FUNCTION__": %s SET_INTERFACE failed %x\n",
+                            fdoContext->FrontEndPath,
+                            Status);
             }
         }
     }
     else
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s failed %x\n",
-            fdoContext->FrontEndPath,
-            Status);
+                    __FUNCTION__": %s failed %x\n",
+                    fdoContext->FrontEndPath,
+                    Status);
     }
     return Status;
 }
@@ -2116,8 +2118,8 @@ GetUsbInfo(
     FdoContext->ResetDevice = FALSE;       // default is no reset.
 
     NTSTATUS Status = RtlCheckRegistryKey(
-        RTL_REGISTRY_CONTROL,
-        (PWSTR) FdoContext->UsbInfoEntryName);
+                          RTL_REGISTRY_CONTROL,
+                          (PWSTR) FdoContext->UsbInfoEntryName);
 
     if (!NT_SUCCESS(Status))
     {
@@ -2147,11 +2149,11 @@ GetUsbInfo(
     QueryTable[1].DefaultLength = sizeof(Reset);
 
     Status = RtlQueryRegistryValues(
-            RTL_REGISTRY_CONTROL,
-            FdoContext->UsbInfoEntryName,
-            QueryTable,
-            NULL,
-            NULL);
+                 RTL_REGISTRY_CONTROL,
+                 FdoContext->UsbInfoEntryName,
+                 QueryTable,
+                 NULL,
+                 NULL);
     if (NT_SUCCESS(Status))
     {
         if ((Value & 0xFF00) != 0x0100)
@@ -2164,10 +2166,10 @@ GetUsbInfo(
         }
         FdoContext->ResetDevice = Reset ? TRUE : FALSE;
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s Os Descriptors %s, Reset %s\n",
-            FdoContext->FrontEndPath,
-            FdoContext->FetchOsDescriptor ? "enabled" : "disabled",
-            FdoContext->ResetDevice ? "enabled" : "disabled");
+                    __FUNCTION__": %s Os Descriptors %s, Reset %s\n",
+                    FdoContext->FrontEndPath,
+                    FdoContext->FetchOsDescriptor ? "enabled" : "disabled",
+                    FdoContext->ResetDevice ? "enabled" : "disabled");
     }
     //
     // now check the XP blacklist value.
@@ -2181,8 +2183,8 @@ GetUsbInfo(
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": RtlGetVersion error %x\n",
-            Status);
+                    __FUNCTION__": RtlGetVersion error %x\n",
+                    Status);
         return FALSE;
     }
     //
@@ -2199,7 +2201,7 @@ GetUsbInfo(
     //   FFFF  all OS releases are blacklisted.
     //
     ULONG OsVersion = (VersionInformation.dwMajorVersion << 8) |
-        (VersionInformation.dwMinorVersion & 0x00FF);
+                      (VersionInformation.dwMinorVersion & 0x00FF);
     ULONG BlackListOS = 0; // default no os is blacklisted.
 
     RtlZeroMemory(QueryTable, sizeof(QueryTable));
@@ -2212,21 +2214,21 @@ GetUsbInfo(
     QueryTable[0].DefaultLength = sizeof(BlackListOS);
 
     Status = RtlQueryRegistryValues(
-        RTL_REGISTRY_CONTROL,
-        FdoContext->UsbInfoEntryName,
-        QueryTable,
-        NULL,
-        NULL);
+                 RTL_REGISTRY_CONTROL,
+                 FdoContext->UsbInfoEntryName,
+                 QueryTable,
+                 NULL,
+                 NULL);
 
     if (NT_SUCCESS(Status))
     {
         if (BlackListOS >= OsVersion)
         {
             TraceEvents(TRACE_LEVEL_WARNING, TRACE_DEVICE,
-                __FUNCTION__": %s device is blacklisted for OS version %x (%x)\n",
-                FdoContext->FrontEndPath,
-                OsVersion,
-                Value);
+                        __FUNCTION__": %s device is blacklisted for OS version %x (%x)\n",
+                        FdoContext->FrontEndPath,
+                        OsVersion,
+                        Value);
             FdoContext->BlacklistDevice = TRUE;
             //
             // XXX add a system errorlog entry.
@@ -2247,91 +2249,91 @@ SetUsbInfo(
     FdoContext->FetchOsDescriptor = enable;
 
     NTSTATUS Status = RtlCheckRegistryKey(
-        RTL_REGISTRY_CONTROL,
-        L"usbflags");
+                          RTL_REGISTRY_CONTROL,
+                          L"usbflags");
 
     if (!NT_SUCCESS(Status))
     {
         Status = RtlCreateRegistryKey(
-            RTL_REGISTRY_CONTROL,
-            L"usbflags");
+                     RTL_REGISTRY_CONTROL,
+                     L"usbflags");
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s RtlCreateRegistryKey usbflags error %x\n",
-                FdoContext->FrontEndPath,
-                Status);
+                        __FUNCTION__": %s RtlCreateRegistryKey usbflags error %x\n",
+                        FdoContext->FrontEndPath,
+                        Status);
             return;
         }
     }
 
     Status = RtlCheckRegistryKey(
-        RTL_REGISTRY_CONTROL,
-        FdoContext->UsbInfoEntryName);
+                 RTL_REGISTRY_CONTROL,
+                 FdoContext->UsbInfoEntryName);
 
     if (!NT_SUCCESS(Status))
     {
         Status = RtlCreateRegistryKey(
-            RTL_REGISTRY_CONTROL,
-            FdoContext->UsbInfoEntryName);
+                     RTL_REGISTRY_CONTROL,
+                     FdoContext->UsbInfoEntryName);
         if (!NT_SUCCESS(Status))
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-                __FUNCTION__": %s RtlCreateRegistryKey %S error %x\n",
-                FdoContext->FrontEndPath,
-                FdoContext->UsbInfoEntryName,
-                Status);
+                        __FUNCTION__": %s RtlCreateRegistryKey %S error %x\n",
+                        FdoContext->FrontEndPath,
+                        FdoContext->UsbInfoEntryName,
+                        Status);
             return;
         }
     }
 
     Status = RtlWriteRegistryValue(
-        RTL_REGISTRY_CONTROL,
-        FdoContext->UsbInfoEntryName,
-        L"osvc",
-        REG_BINARY,
-        &value,
-        sizeof(value));
+                 RTL_REGISTRY_CONTROL,
+                 FdoContext->UsbInfoEntryName,
+                 L"osvc",
+                 REG_BINARY,
+                 &value,
+                 sizeof(value));
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s RtlWriteRegistryValue %S osvc error %x\n",
-            FdoContext->FrontEndPath,
-            FdoContext->UsbInfoEntryName,
-            Status);
+                    __FUNCTION__": %s RtlWriteRegistryValue %S osvc error %x\n",
+                    FdoContext->FrontEndPath,
+                    FdoContext->UsbInfoEntryName,
+                    Status);
     }
     else
     {
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s device %S os descriptors %s\n",
-            FdoContext->FrontEndPath,
-            FdoContext->UsbInfoEntryName,
-            enable ? "enabled" : "disabled");
+                    __FUNCTION__": %s device %S os descriptors %s\n",
+                    FdoContext->FrontEndPath,
+                    FdoContext->UsbInfoEntryName,
+                    enable ? "enabled" : "disabled");
     }
 
     Status = RtlWriteRegistryValue(
-        RTL_REGISTRY_CONTROL,
-        FdoContext->UsbInfoEntryName,
-        L"ResetOnStart",
-        REG_DWORD,
-        &resetSupport,
-        sizeof(resetSupport));
+                 RTL_REGISTRY_CONTROL,
+                 FdoContext->UsbInfoEntryName,
+                 L"ResetOnStart",
+                 REG_DWORD,
+                 &resetSupport,
+                 sizeof(resetSupport));
     if (!NT_SUCCESS(Status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE,
-            __FUNCTION__": %s RtlWriteRegistryValue %S ResetOnStart error %x\n",
-            FdoContext->FrontEndPath,
-            FdoContext->UsbInfoEntryName,
-            Status);
+                    __FUNCTION__": %s RtlWriteRegistryValue %S ResetOnStart error %x\n",
+                    FdoContext->FrontEndPath,
+                    FdoContext->UsbInfoEntryName,
+                    Status);
     }
     else
     {
         FdoContext->ResetDevice = resetSupport ? TRUE : FALSE;
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE,
-            __FUNCTION__": %s device %S ResetOnStart %s\n",
-            FdoContext->FrontEndPath,
-            FdoContext->UsbInfoEntryName,
-            FdoContext->ResetDevice ? "enabled" : "disabled");
+                    __FUNCTION__": %s device %S ResetOnStart %s\n",
+                    FdoContext->FrontEndPath,
+                    FdoContext->UsbInfoEntryName,
+                    FdoContext->ResetDevice ? "enabled" : "disabled");
     }
 
 }
@@ -2347,8 +2349,8 @@ PipeHandleToEndpointAddressDescriptor(
     PUSB_ENDPOINT_DESCRIPTOR endpoint = NULL;
     ULONG Index;
     for (Index = 0;
-        Index < fdoContext->NumEndpoints;
-        Index++)
+            Index < fdoContext->NumEndpoints;
+            Index++)
     {
         if (NT_VERIFY(fdoContext->PipeDescriptors))
         {
@@ -2371,8 +2373,8 @@ EndpointAddressToPipeDescriptor(
     PIPE_DESCRIPTOR * pipe = NULL;
     ULONG Index;
     for (Index = 0;
-        Index < fdoContext->NumEndpoints;
-        Index++)
+            Index < fdoContext->NumEndpoints;
+            Index++)
     {
         if (NT_VERIFY(fdoContext->PipeDescriptors))
         {
@@ -2396,8 +2398,8 @@ PipeHandleToInterfaceDescriptor(
     PUSB_INTERFACE_DESCRIPTOR interfaceDesc = NULL;
     ULONG Index;
     for (Index = 0;
-        Index < fdoContext->NumEndpoints;
-        Index++)
+            Index < fdoContext->NumEndpoints;
+            Index++)
     {
         if (NT_VERIFY(fdoContext->PipeDescriptors))
         {
@@ -2421,14 +2423,14 @@ FindFirstPipeForInterface(
     PUSB_INTERFACE_DESCRIPTOR pInterfaceDescriptor)
 {
     PIPE_DESCRIPTOR * pipeDescriptors = configInfo ?
-        configInfo->m_pipeDescriptors : fdoContext->PipeDescriptors;
+                                        configInfo->m_pipeDescriptors : fdoContext->PipeDescriptors;
 
     ULONG numEndpoints = configInfo ?
-        configInfo->m_numEndpoints : fdoContext->NumEndpoints;
+                         configInfo->m_numEndpoints : fdoContext->NumEndpoints;
 
     for (ULONG Index = 0;
-        Index < numEndpoints;
-        Index++)
+            Index < numEndpoints;
+            Index++)
     {
         if (NT_VERIFY(pipeDescriptors))
         {
@@ -2449,35 +2451,35 @@ SetInterfaceDescriptorPipes(
     PUSBD_INTERFACE_INFORMATION Interface)
 {
     PIPE_DESCRIPTOR * pipeDesc = FindFirstPipeForInterface(
-        fdoContext,
-        configInfo,
-        pInterfaceDescriptor);
+                                     fdoContext,
+                                     configInfo,
+                                     pInterfaceDescriptor);
 
     NTSTATUS Status = STATUS_SUCCESS;
 
     if (pipeDesc == NULL)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-            __FUNCTION__": %s no pipe descriptor for interface\n",
-            fdoContext->FrontEndPath);
+                    __FUNCTION__": %s no pipe descriptor for interface\n",
+                    fdoContext->FrontEndPath);
         return STATUS_UNSUCCESSFUL;
     }
     for (ULONG pipeIndex = 0;
-        pipeIndex < Interface->NumberOfPipes;
-        pipeIndex++)
+            pipeIndex < Interface->NumberOfPipes;
+            pipeIndex++)
     {
         if (pipeDesc->interfaceDescriptor != pInterfaceDescriptor)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_URB,
-                __FUNCTION__": %s pipe index %d for %p %d %d not associated with interface %p %d %d\n",
-                fdoContext->FrontEndPath,
-                pipeIndex,
-                pipeDesc->interfaceDescriptor,
-                pipeDesc->interfaceDescriptor->bInterfaceNumber,
-                pipeDesc->interfaceDescriptor->bAlternateSetting,
-                pInterfaceDescriptor,
-                pInterfaceDescriptor->bInterfaceNumber,
-                pInterfaceDescriptor->bAlternateSetting);
+                        __FUNCTION__": %s pipe index %d for %p %d %d not associated with interface %p %d %d\n",
+                        fdoContext->FrontEndPath,
+                        pipeIndex,
+                        pipeDesc->interfaceDescriptor,
+                        pipeDesc->interfaceDescriptor->bInterfaceNumber,
+                        pipeDesc->interfaceDescriptor->bAlternateSetting,
+                        pInterfaceDescriptor,
+                        pInterfaceDescriptor->bInterfaceNumber,
+                        pInterfaceDescriptor->bAlternateSetting);
             return STATUS_UNSUCCESSFUL;
         }
 
@@ -2491,13 +2493,13 @@ SetInterfaceDescriptorPipes(
         pipe->PipeHandle = (USBD_PIPE_HANDLE) pipeDesc;
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_URB,
-            __FUNCTION__": pipe %d maxpacket %d ea %x interval %d type %d handle %p\n",
-            pipeIndex,
-            pipe->MaximumPacketSize,
-            pipe->EndpointAddress,
-            pipe->Interval,
-            pipe->PipeType,
-            pipe->PipeHandle);
+                    __FUNCTION__": pipe %d maxpacket %d ea %x interval %d type %d handle %p\n",
+                    pipeIndex,
+                    pipe->MaximumPacketSize,
+                    pipe->EndpointAddress,
+                    pipe->Interval,
+                    pipe->PipeType,
+                    pipe->PipeHandle);
 
         pipeDesc++;
     }
@@ -2514,18 +2516,18 @@ FindInterface(
 {
     PUSB_INTERFACE_DESCRIPTOR handle = NULL;
     PUSB_INTERFACE_DESCRIPTOR * interfaces = configInfo ?
-        configInfo->m_interfaceDescriptors : fdoContext->InterfaceDescriptors;
+            configInfo->m_interfaceDescriptors : fdoContext->InterfaceDescriptors;
     ULONG numInterfaces = configInfo ?
-        configInfo->m_numInterfaces : fdoContext->NumInterfaces;
+                          configInfo->m_numInterfaces : fdoContext->NumInterfaces;
 
     if (interfaces)
     {
         for (ULONG index = 0;
-            index < numInterfaces;
-            index++)
+                index < numInterfaces;
+                index++)
         {
             if ((interfaces[index]->bInterfaceNumber == InterfaceNumber) &&
-                (interfaces[index]->bAlternateSetting == AlternateSetting))
+                    (interfaces[index]->bAlternateSetting == AlternateSetting))
             {
                 handle = interfaces[index];
                 break;
@@ -2935,7 +2937,7 @@ DbgPrintBuffer(
     ULONG Flag)
 {
     if ((gDebugLevel >= Level) &&
-        (gDebugFlag & Flag))
+            (gDebugFlag & Flag))
     {
         ULONG index = 0;
         WDF_USB_CONTROL_SETUP_PACKET packet;
@@ -2943,20 +2945,20 @@ DbgPrintBuffer(
         {
             ULONG remainder = bytesTransferred - index;
             RtlCopyMemory(packet.Generic.Bytes,
-                buffer,
-                remainder < 8 ? remainder : 8);
+                          buffer,
+                          remainder < 8 ? remainder : 8);
 
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER,
-                "    %03.3d: %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x\n",
-                index,
-                packet.Generic.Bytes[0],
-                packet.Generic.Bytes[1],
-                packet.Generic.Bytes[2],
-                packet.Generic.Bytes[3],
-                packet.Generic.Bytes[4],
-                packet.Generic.Bytes[5],
-                packet.Generic.Bytes[6],
-                packet.Generic.Bytes[7]);
+                        "    %03.3d: %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x %02.2x\n",
+                        index,
+                        packet.Generic.Bytes[0],
+                        packet.Generic.Bytes[1],
+                        packet.Generic.Bytes[2],
+                        packet.Generic.Bytes[3],
+                        packet.Generic.Bytes[4],
+                        packet.Generic.Bytes[5],
+                        packet.Generic.Bytes[6],
+                        packet.Generic.Bytes[7]);
 
             index += 8;
             buffer = ((PUCHAR)buffer) + 8;
