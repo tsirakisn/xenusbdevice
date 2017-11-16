@@ -1074,6 +1074,10 @@ FdoEvtDeviceDpcFunc(
     PUSB_FDO_CONTEXT fdoContext = (PUSB_FDO_CONTEXT)DeferredContext;
 
     ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
+    ASSERT3P(fdoContext, != , NULL);
+
+    if (!fdoContext)
+        return;
 
     //
     // this stuff needs to be done at DPC level in order to complete irps.

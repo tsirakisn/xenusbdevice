@@ -758,6 +758,11 @@ EvtchnCallback(
     UNREFERENCED_PARAMETER(Interrupt);
 
     PXEN_INTERFACE Xen = (PXEN_INTERFACE)ServiceContext;
+
+    ASSERT3P(Xen, != , NULL);
+    if (!Xen)
+        return FALSE;
+
     KeInsertQueueDpc(&Xen->Dpc, NULL, NULL);
     return TRUE;
 }
