@@ -654,6 +654,7 @@ ProcessUsbPowerStateMap(
         case WdmUsbPowerDeviceD1:
         case WdmUsbPowerDeviceD2:
         case WdmUsbPowerDeviceD3:
+        case WdmUsbPowerDeviceUnspecified:
         default:
             usbPower->PowerInformation.HcDevicePowerState = WdmUsbPowerDeviceD3;
             usbPower->PowerInformation.RhDevicePowerState = WdmUsbPowerDeviceD3;
