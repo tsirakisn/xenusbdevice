@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\projectconfigurations.props" />
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\projectconfigs.props" />
   <PropertyGroup Label="PropertySheets">
     <DriverType>WDM</DriverType>
     <PlatformToolset>WindowsApplicationForDrivers10.0</PlatformToolset>
@@ -10,7 +10,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AFC14008-D8EF-4642-9F86-64A2841797E5}</ProjectGuid>
   </PropertyGroup>
-  <Import Project="..\targetconfigurations.props" />
+  <Import Project="..\targetconfigs.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
